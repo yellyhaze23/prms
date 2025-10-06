@@ -1,0 +1,16 @@
+disease_name,forecast_month,forecast_cases
+Chickenpox,2025-10,24
+Chickenpox,2025-11,23
+Chickenpox,2025-12,23
+Dengue,2025-10,60
+Dengue,2025-11,55
+Dengue,2025-12,53
+Hepatitis,2025-10,12
+Hepatitis,2025-11,11
+Hepatitis,2025-12,10
+Measles,2025-10,24
+Measles,2025-11,23
+Measles,2025-12,22
+Tuberculosis,2025-10,35
+Tuberculosis,2025-11,33
+Tuberculosis,2025-12,31

@@ -31,10 +31,10 @@ function Sidebar() {
       const navItems = [
         { path: "/", icon: FaTachometerAlt, label: "Dashboard" },
         { path: "/patient", icon: FaUser, label: "Patient" },
-        { path: "/records", icon: FaRegFileAlt, label: "Records" },
+        { path: "/records", icon: FaRegFileAlt, label: "Medical Records" },
         { path: "/diseases", icon: FaStethoscope, label: "Diseases" },
         { path: "/tracker", icon: FaMapMarkerAlt, label: "Tracker" },
-        { path: "/seir-forecast", icon: FaChartLine, label: "SEIR Forecast" },
+        { path: "/arima-forecast", icon: FaChartLine, label: "Forecast" },
         { path: "/reports", icon: FaChartBar, label: "Reports" },
         { path: "/settings", icon: FaCog, label: "Settings" },
       ];

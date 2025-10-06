@@ -1,7 +1,21 @@
-import React from "react";
-import { FaEdit, FaTrash, FaUser, FaIdCard, FaPhone, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt } from "react-icons/fa";
+import React, { useState } from "react";
+import { FaEdit, FaTrash, FaUser, FaIdCard, FaPhone, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaEye } from "react-icons/fa";
+import PatientDetailsModal from "./PatientDetailsModal";
 
 function PatientList({ patients, onSelect, onEdit, onDelete }) {
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  const handleViewDetails = (patient) => {
+    setSelectedPatient(patient);
+    setShowDetailsModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowDetailsModal(false);
+    setSelectedPatient(null);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden" style={{backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', border: '1px solid #e5e7eb', overflow: 'hidden'}}>
       {patients.length === 0 ? (
@@ -107,6 +121,13 @@ function PatientList({ patients, onSelect, onEdit, onDelete }) {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-2">
                       <button
+                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-150"
+                        title="View Details"
+                        onClick={() => handleViewDetails(patient)}
+                      >
+                        <FaEye className="h-4 w-4" />
+                      </button>
+                      <button
                         className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150"
                         title="Edit Patient"
                         onClick={() => onEdit(patient)}
@@ -128,6 +149,13 @@ function PatientList({ patients, onSelect, onEdit, onDelete }) {
           </table>
         </div>
       )}
+
+      {/* Patient Details Modal */}
+      <PatientDetailsModal
+        isVisible={showDetailsModal}
+        onClose={handleCloseModal}
+        patient={selectedPatient}
+      />
     </div>
   );
 }

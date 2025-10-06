@@ -100,7 +100,7 @@ function Login({ onLogin }) {
               </div>
               <div className="feature-item">
                 <FaChartLine className="feature-icon" />
-                <span>SEIR Forecasting</span>
+                <span>ARIMA Forecasting</span>
               </div>
               <div className="feature-item">
                 <FaShieldAlt className="feature-icon" />
