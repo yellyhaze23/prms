@@ -1,0 +1,96 @@
+/* Custom styles for Diseases page */
+.disease-card {
+  transition: all 0.3s ease;
+}
+
+.disease-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.disease-header-red {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.disease-header-orange {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+}
+
+.disease-header-blue {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.disease-header-green {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.disease-header-purple {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.disease-header-yellow {
+  background: linear-gradient(135deg, #eab308, #ca8a04);
+}
+
+.disease-header-indigo {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+}
+
+.disease-header-pink {
+  background: linear-gradient(135deg, #ec4899, #db2777);
+}
+
+/* Ensure proper spacing and layout */
+.diseases-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .diseases-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .diseases-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Loading animation */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Button hover effects */
+.action-button {
+  transition: all 0.2s ease;
+}
+
+.action-button:hover {
+  transform: scale(1.05);
+}
+
+/* Card content spacing */
+.disease-content {
+  padding: 1.5rem;
+}
+
+.disease-symptoms {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

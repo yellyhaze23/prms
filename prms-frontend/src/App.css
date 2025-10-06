@@ -1,0 +1,18 @@
+.app-layout {
+  display: flex;
+}
+
+.main-content {
+  margin-left: 0; /* Mobile first */
+  width: 100%;
+  min-height: 100vh;
+  background-color: #f8fafc; /* slate-50 */
+}
+
+/* Desktop styles */
+@media (min-width: 1024px) {
+  .main-content {
+    margin-left: 16rem; /* 256px - matches w-64 in Tailwind */
+    width: calc(100% - 16rem);
+  }
+}

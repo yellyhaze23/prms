@@ -1,0 +1,168 @@
+.settings-page {
+padding: 24px;
+font-family: 'Segoe UI', sans-serif;
+}
+
+.settings-title {
+font-size: 20px;
+text-align: center;
+margin-bottom: 20px;
+display: flex;
+justify-content: center;
+align-items: center;
+gap: 10px;
+color: #2c3e50;
+}
+
+.settings-icon {
+font-size: 20px;
+}
+
+.settings-table-wrapper {
+overflow-x: auto;
+max-height: 70vh;
+border-radius: 10px;
+box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.settings-table {
+width: 100%;
+border-collapse: collapse;
+min-width: 600px;
+background: #fff;
+border-radius: 10px;
+overflow: hidden;
+}
+
+.settings-table th {
+position: sticky;
+top: 0;
+background: #f9fafc;
+padding: 14px 16px;
+text-align: left;
+font-weight: 600;
+font-size: 14px;
+color: #34495e;
+z-index: 1;
+}
+
+.settings-table td {
+padding: 14px 16px;
+font-size: 14px;
+color: #333;
+}
+
+.settings-row:hover {
+background-color: #f7fbff;
+}
+
+.settings-empty-msg {
+text-align: center;
+color: #aaa;
+padding: 20px;
+background-color: #f7f9fc;
+font-size: 14px;
+}
+
+/* Action buttons */
+.settings-action-btn {
+background: none;
+border: none;
+margin-right: 8px;
+cursor: pointer;
+color: #2980b9;
+font-size: 16px;
+transition: color 0.2s ease;
+}
+
+.settings-action-btn:hover {
+transform: scale(1.1);
+}
+
+.settings-action-btn.delete {
+color: #e74c3c;
+}
+
+.settings-action-btn.delete:hover {
+transform: scale(1.1);
+}
+
+.settings-reauth-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-reauth-form {
+  width: 100%;
+  background: #fff;
+  padding: 24px 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.settings-reauth-form .form-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.settings-reauth-form h3 {
+  margin: 0px 0px 10px;
+  font-weight: 700;
+  font-size: 20px;
+  color: #222;
+  text-align: center;
+}
+
+.settings-reauth-form input[type="text"],
+.settings-reauth-form input[type="password"] {
+  margin: 4px;
+  padding: 8px;
+  width: 30%;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.settings-reauth-form input[type="text"]:focus,
+.settings-reauth-form input[type="password"]:focus {
+  border-color: #0052cc;
+  box-shadow: 0 0 6px rgba(0, 82, 204, 0.3);
+}
+
+.reauth-form-error {
+  width: 30%;
+  height: 32px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #e74c3c;
+  text-align: left;
+}
+
+.settings-reauth-form button {
+  width: 20%;
+  background-color: #0052cc;
+  border: none;
+  color: white;
+  margin: 6px;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 82, 204, 0.3);
+}
+
+.settings-reauth-form button:hover {
+  background-color: #003d99;
+}
+
+.settings-reauth-form button:active {
+  background-color: #002966;
+}

@@ -1,0 +1,57 @@
+.patient-card-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 16px;
+}
+
+.patient-card-box {
+  background-color: #fff;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  padding: 12px 16px;
+  width: 220px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.patient-card-box:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.06);
+}
+
+.patient-img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 50%;
+  padding: 2px;
+  border: 1px solid #ccc;
+}
+
+.card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin: 4px 0;
+  text-align: center;
+}
+
+.card-info {
+  font-size: 13px;
+  color: #666;
+  text-align: center;
+  margin: 2px 0;
+}
+
+.empty-msg {
+  font-size: 14px;
+  color: #aaa;
+  padding: 20px;
+  text-align: center;
+  width: 100%;
+}

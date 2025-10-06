@@ -1,0 +1,98 @@
+.medical-records-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.medical-records-form .card:first-of-type {
+  border-top-left-radius: 0;
+}
+
+.card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+}
+
+.card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.info-item {
+  flex: 1;
+  min-width: 250px;
+  font-size: 14px;
+  color: #2c3e50;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.checkbox-row {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.checkbox input {
+  margin-right: 5px;
+}
+
+.checkbox label {
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+.medical-records-form input,
+.medical-records-form input[type="text"],
+.medical-records-form input[type="number"],
+.medical-records-form textarea {
+  width: 50%;
+  font-size: 14px;
+  padding: 2px 6px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #f9f9f9;
+  color: #2c3e50;
+  box-sizing: border-box;
+}
+
+.medical-records-form input[type="date"] {
+  width: 15%;
+}
+
+.medical-records-form input[type="checkbox"] {
+  width: 4%;
+}
+
+.medical-records-form textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+.checkboxes {
+  padding: 10px 6px;
+}
+
+.checkboxes input[type="checkbox"]{
+  width: 15%;
+}
+
+.card.note {
+  background: #f7f9fc;
+  padding: 20px;
+  text-align: center;
+  font-style: italic;
+  font-weight: 500;
+  color: #555;
+  box-shadow: none;
+}
