@@ -4,6 +4,7 @@ import Toolbar from '../components/Toolbar';
 import Return from '../components/Return';
 import AddPatient from '../components/AddPatient';
 import Toast from '../components/Toast';
+import Tabs from '../components/Tabs';
 import { FaUser, FaIdCard, FaPhone, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaEdit, FaTrash, FaStethoscope, FaFilter } from 'react-icons/fa';
 
 function Records() {

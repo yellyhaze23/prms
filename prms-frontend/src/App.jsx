@@ -7,7 +7,7 @@ import Records from "./pages/Records";
 import Diseases from "./pages/Diseases";
 // import Logbook from "./pages/Logbook";
 import Tracker from "./pages/Tracker";
-import SEIRForecast from "./pages/SEIRForecast";
+import ARIMAForecast from "./pages/ARIMAForecast";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
@@ -65,9 +65,8 @@ function App() {
           <Route path="/records" element={<Records />} />
           <Route path="/patient" element={<Patient />} />
           <Route path="/diseases" element={<Diseases />} />
-       {/* <Route path="/logbook" element={<Logbook />} /> */}
           <Route path="/tracker" element={<Tracker />} />
-          <Route path="/seir-forecast" element={<SEIRForecast />} />
+          <Route path="/arima-forecast" element={<ARIMAForecast />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />
           {/** Staff Portal */}
