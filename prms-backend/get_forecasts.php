@@ -16,12 +16,10 @@ try {
             'disease' => $row['disease'],
             'forecast_period' => (int)$row['forecast_period'],
             'population' => (int)$row['population'],
-            'seir_results' => json_decode($row['seir_results'], true),
+            'forecast_results' => json_decode($row['forecast_results'], true),
             'indicators' => json_decode($row['indicators'], true),
             'area_data' => json_decode($row['area_data'], true),
             'current_data' => json_decode($row['current_data'], true),
-            'interpretation' => json_decode($row['interpretation'], true),
-            'barangay_risk' => json_decode($row['barangay_risk'], true),
             'generated_at' => $row['generated_at']
         ];
     }

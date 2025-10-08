@@ -13,6 +13,7 @@ import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "./Tracker.css";
 import { FaFilter, FaSearch, FaMapMarkerAlt, FaUsers, FaExclamationTriangle, FaCheckCircle, FaStethoscope } from "react-icons/fa";
+import { formatPatientID } from "../utils/patientUtils";
 
 const individualRedIcon = L.divIcon({
   html: `<div class="pulsating-marker"></div>`,
@@ -164,7 +165,8 @@ function Tracker() {
       filtered = filtered.filter(patient =>
         patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         patient.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (patient.disease && patient.disease.toLowerCase().includes(searchTerm.toLowerCase()))
+        (patient.disease && patient.disease.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        formatPatientID(patient.patient_id).includes(searchTerm)
       );
     }
 
@@ -181,7 +183,7 @@ function Tracker() {
         filtered = filtered.filter(patient => !patient.disease);
       } else {
         filtered = filtered.filter(patient => 
-          patient.disease && patient.disease.toLowerCase() === selectedDisease.toLowerCase()
+          patient.disease && patient.disease.toLowerCase().trim() === selectedDisease.toLowerCase().trim()
         );
       }
     }
@@ -225,7 +227,7 @@ function Tracker() {
                 <input
                   type="text"
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Search patients..."
+                  placeholder="Search by address, disease, or Patient ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -394,7 +396,7 @@ function Tracker() {
                     }}
                   >
                     <Popup className="custom-popup">
-                      <strong>{patient.full_name}</strong>
+                      <strong>Patient ID: #{formatPatientID(patient.patient_id)}</strong>
                       <br />
                       <em>{patient.disease || "No illness reported."}</em>
                       <br />

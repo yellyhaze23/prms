@@ -12,7 +12,7 @@ import {
   FaChevronRight,
   FaHospital,
   FaStethoscope,
-  FaChartLine, // Added FaChartLine icon for SEIR Forecasting
+  FaChartLine, // Added FaChartLine icon for ARIMA Forecasting
 } from "react-icons/fa";
 import ConfirmationModal from "./ConfirmationModal";
 

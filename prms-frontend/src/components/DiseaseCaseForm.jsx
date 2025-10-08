@@ -1,23 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { FaTimes, FaSave, FaUser, FaCalendarAlt, FaStethoscope, FaExclamationTriangle, FaShieldAlt, FaMapMarkerAlt, FaPhone, FaEnvelope, FaSearch } from "react-icons/fa";
+import { FaTimes, FaSave, FaUser, FaCalendarAlt, FaStethoscope, FaPhone, FaEnvelope, FaSearch } from "react-icons/fa";
 import axios from "axios";
 import Toast from "./Toast";
+import { formatPatientID } from "../utils/patientUtils";
 
 // Disease options will be fetched from database
 
-const severityOptions = [
-  { value: "mild", label: "Mild", color: "green" },
-  { value: "moderate", label: "Moderate", color: "yellow" },
-  { value: "severe", label: "Severe", color: "red" },
-  { value: "critical", label: "Critical", color: "red" }
-];
-
-const statusOptions = [
-  { value: "suspected", label: "Suspected", color: "yellow" },
-  { value: "confirmed", label: "Confirmed", color: "red" },
-  { value: "recovered", label: "Recovered", color: "green" },
-  { value: "quarantined", label: "Quarantined", color: "orange" }
-];
 
 function DiseaseCaseForm({ onClose, onConfirm, patient = null, disease = null }) {
   const [patients, setPatients] = useState([]);
@@ -32,12 +20,9 @@ function DiseaseCaseForm({ onClose, onConfirm, patient = null, disease = null })
     disease: disease || "",
     onset_date: "",
     diagnosis_date: "",
-    severity: "",
-    status: "",
     symptoms: "",
     treatment: "",
-    vaccination_status: "",
-    contact_tracing: "",
+    medical_advice: "",
     notes: "",
     reported_by: "",
     reported_date: new Date().toISOString().split('T')[0]
@@ -80,6 +65,7 @@ function DiseaseCaseForm({ onClose, onConfirm, patient = null, disease = null })
     if (patientSearchTerm) {
       const filtered = patients.filter(patient =>
         patient.full_name.toLowerCase().includes(patientSearchTerm.toLowerCase()) ||
+        formatPatientID(patient.id).includes(patientSearchTerm) ||
         (patient.contact_number && patient.contact_number.includes(patientSearchTerm)) ||
         (patient.email && patient.email.toLowerCase().includes(patientSearchTerm.toLowerCase()))
       );
@@ -93,11 +79,38 @@ function DiseaseCaseForm({ onClose, onConfirm, patient = null, disease = null })
     setToast({ message, type });
   };
 
+  // Function to fetch patient's existing medical records
+  const fetchPatientMedicalRecords = async (patientId) => {
+    try {
+      const response = await axios.get(`http://localhost/prms/prms-backend/get_medical_records.php?patient_id=${patientId}`);
+      if (response.data) {
+        // Pre-populate form with existing medical records
+        setFormData(prev => ({
+          ...prev,
+          diagnosis: response.data.diagnosis || "",
+          symptoms: response.data.symptoms || "",
+          treatment: response.data.treatment || "",
+          medical_advice: response.data.medical_advice || "",
+          notes: response.data.notes || "",
+          onset_date: response.data.onset_date || "",
+          diagnosis_date: response.data.diagnosis_date || ""
+        }));
+        showToast("Patient medical records loaded successfully", "success");
+      }
+    } catch (error) {
+      console.error("Error fetching patient medical records:", error);
+      // Don't show error toast as it's optional
+    }
+  };
+
   const handlePatientSelect = (patient) => {
     setSelectedPatient(patient);
     setFormData(prev => ({ ...prev, patient_id: patient.id }));
     setPatientSearchTerm(patient.full_name);
     setShowPatientDropdown(false);
+    
+    // Auto-fetch patient's medical records
+    fetchPatientMedicalRecords(patient.id);
   };
 
   // Close dropdown when clicking outside
@@ -125,7 +138,7 @@ function DiseaseCaseForm({ onClose, onConfirm, patient = null, disease = null })
     e.preventDefault();
     
     // Validation
-    if (!selectedPatient || !formData.patient_id || !formData.disease || !formData.onset_date || !formData.status) {
+    if (!selectedPatient || !formData.patient_id || !formData.disease || !formData.onset_date) {
       showToast("Please select a patient and fill in all required fields", "error");
       return;
     }
@@ -203,7 +216,7 @@ function DiseaseCaseForm({ onClose, onConfirm, patient = null, disease = null })
                     }}
                     onFocus={() => setShowPatientDropdown(true)}
                     className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Search patients by name, contact, or email..."
+                    placeholder="Search patients by name, or patient ID..."
                   />
                   
                   {/* Patient Dropdown */}
@@ -223,7 +236,7 @@ function DiseaseCaseForm({ onClose, onConfirm, patient = null, disease = null })
                               <div className="flex-1">
                                 <p className="text-sm font-medium text-gray-900">{patient.full_name}</p>
                                 <p className="text-xs text-gray-500">
-                                  ID: #{patient.id} • {patient.sex} • {patient.age ? `${patient.age} years old` : 'Age N/A'}
+                                  ID: #{formatPatientID(patient.id)} • {patient.sex} • {patient.age ? `${patient.age} years old` : 'Age N/A'}
                                 </p>
                                 {patient.contact_number && (
                                   <p className="text-xs text-gray-500">
@@ -256,7 +269,7 @@ function DiseaseCaseForm({ onClose, onConfirm, patient = null, disease = null })
                     </div>
                     <div>
                       <span className="text-xs text-blue-700 font-medium">ID:</span>
-                      <p className="text-sm text-blue-800">#{selectedPatient.id}</p>
+                      <p className="text-sm text-blue-800">#{formatPatientID(selectedPatient.id)}</p>
                     </div>
                     <div>
                       <span className="text-xs text-blue-700 font-medium">Gender:</span>
@@ -290,45 +303,24 @@ function DiseaseCaseForm({ onClose, onConfirm, patient = null, disease = null })
               <FaStethoscope className="h-4 w-4 mr-2 text-red-600" />
               Disease Information
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Disease <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="disease"
-                  value={formData.disease}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                >
-                  <option value="">{diseases.length === 0 ? "Loading diseases..." : "Select Disease"}</option>
-                  {diseases.map(disease => (
-                    <option key={disease.id} value={disease.name}>
-                      {disease.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                >
-                  <option value="">Select Status</option>
-                  {statusOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Disease <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="disease"
+                value={formData.disease}
+                onChange={handleChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              >
+                <option value="">{diseases.length === 0 ? "Loading diseases..." : "Select Disease"}</option>
+                {diseases.map(disease => (
+                  <option key={disease.id} value={disease.name}>
+                    {disease.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -363,46 +355,6 @@ function DiseaseCaseForm({ onClose, onConfirm, patient = null, disease = null })
             </div>
           </div>
 
-          {/* Severity and Treatment */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                <FaExclamationTriangle className="inline h-4 w-4 mr-1" />
-                Severity
-              </label>
-              <select
-                name="severity"
-                value={formData.severity}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              >
-                <option value="">Select Severity</option>
-                {severityOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                <FaShieldAlt className="inline h-4 w-4 mr-1" />
-                Vaccination Status
-              </label>
-              <select
-                name="vaccination_status"
-                value={formData.vaccination_status}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              >
-                <option value="">Select Status</option>
-                <option value="vaccinated">Vaccinated</option>
-                <option value="partially_vaccinated">Partially Vaccinated</option>
-                <option value="not_vaccinated">Not Vaccinated</option>
-                <option value="unknown">Unknown</option>
-              </select>
-            </div>
-          </div>
 
           {/* Symptoms */}
           <div>
@@ -436,19 +388,19 @@ function DiseaseCaseForm({ onClose, onConfirm, patient = null, disease = null })
             />
           </div>
 
-          {/* Contact Tracing */}
+          {/* Medical Advice */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              <FaMapMarkerAlt className="inline h-4 w-4 mr-1" />
-              Contact Tracing Notes
+              <FaStethoscope className="inline h-4 w-4 mr-1" />
+              Medical Advice
             </label>
             <textarea
-              name="contact_tracing"
-              value={formData.contact_tracing}
+              name="medical_advice"
+              value={formData.medical_advice}
               onChange={handleChange}
               rows={2}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              placeholder="Record contact tracing information..."
+              placeholder="Provide medical advice and recommendations..."
             />
           </div>
 

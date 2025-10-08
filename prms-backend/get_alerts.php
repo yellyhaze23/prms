@@ -19,32 +19,15 @@ while ($row = $followUpsResult->fetch_assoc()) {
     $response['followUps'][] = $row;
 }
 
-$healthExamQuery = "
-    SELECT p.id, p.full_name
-    FROM patients p
-    LEFT JOIN health_examinations he ON p.id = he.patient_id
-    WHERE he.id IS NULL OR 
-        he.exam_date IS NULL OR
-        he.blood_pressure IS NULL OR
-        he.height IS NULL OR
-        he.weight IS NULL OR
-        he.bmi IS NULL
-";
-$incompleteHealthResult = $conn->query($healthExamQuery);
-while ($row = $incompleteHealthResult->fetch_assoc()) {
-    $response['incompleteHealthExams'][] = $row;
-}
-
 $medRecordQuery = "
     SELECT p.id, p.full_name
     FROM patients p
     LEFT JOIN medical_records mr ON p.id = mr.patient_id
     WHERE mr.id IS NULL OR
-        mr.known_illnesses IS NULL OR
+        mr.blood_pressure IS NULL OR
         mr.height IS NULL OR
         mr.weight IS NULL OR
-        mr.bmi IS NULL OR
-        mr.blood_pressure IS NULL
+        mr.diagnosis IS NULL
 ";
 $incompleteMedResult = $conn->query($medRecordQuery);
 while ($row = $incompleteMedResult->fetch_assoc()) {

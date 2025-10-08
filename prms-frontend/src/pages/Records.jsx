@@ -4,8 +4,9 @@ import Toolbar from '../components/Toolbar';
 import Return from '../components/Return';
 import AddPatient from '../components/AddPatient';
 import Toast from '../components/Toast';
-import Tabs from '../components/Tabs';
-import { FaUser, FaIdCard, FaPhone, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaEdit, FaTrash, FaStethoscope, FaFilter } from 'react-icons/fa';
+import MedicalRecords from '../components/MedicalRecords';
+import { FaIdCard, FaMapMarkerAlt, FaCalendarAlt, FaEdit, FaTrash, FaStethoscope, FaFilter } from 'react-icons/fa';
+import { formatPatientID } from '../utils/patientUtils';
 
 function Records() {
   const [patients, setPatients] = useState([]);
@@ -104,7 +105,7 @@ function Records() {
         (p.email || "").toLowerCase().includes(term) ||
         (p.address || "").toLowerCase().includes(term) ||
         (p.sex || "").toLowerCase().includes(term) ||
-        (p.previous_illness || "").toLowerCase().includes(term) ||
+        (p.diagnosis || "").toLowerCase().includes(term) ||
         (p.status || "").toLowerCase().includes(term) ||
         (p.severity || "").toLowerCase().includes(term)
       );
@@ -113,9 +114,9 @@ function Records() {
       if (selectedDisease === "all") {
         return matchesSearch;
       } else if (selectedDisease === "healthy") {
-        return matchesSearch && (!p.previous_illness || p.previous_illness.trim() === '');
+        return matchesSearch && (!p.diagnosis || p.diagnosis.trim() === '');
       } else {
-        return matchesSearch && p.previous_illness && p.previous_illness.toLowerCase() === selectedDisease.toLowerCase();
+        return matchesSearch && p.diagnosis && p.diagnosis.toLowerCase() === selectedDisease.toLowerCase();
       }
     })
 
@@ -153,7 +154,7 @@ function Records() {
                     {/* Search Input */}
                     <div className="relative flex-1 max-w-md">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FaUser className="h-5 w-5 text-gray-400" />
+                        <FaIdCard className="h-5 w-5 text-gray-400" />
                       </div>
                       <input
                         type="text"
@@ -204,7 +205,7 @@ function Records() {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               {filteredPatients.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 px-6">
-                  <FaUser className="text-6xl text-gray-300 mb-4" />
+                  <FaIdCard className="text-6xl text-gray-300 mb-4" />
                   <p className="text-gray-500 text-lg font-medium">No medical records found</p>
                   <p className="text-gray-400 text-sm">Patient records will appear here</p>
                 </div>
@@ -216,12 +217,12 @@ function Records() {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
                             <FaIdCard className="text-gray-400" />
-                            ID
+                            Patient ID
                           </div>
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
-                            <FaUser className="text-gray-400" />
+                            <FaIdCard className="text-gray-400" />
                             Patient Name
                           </div>
                         </th>
@@ -233,12 +234,6 @@ function Records() {
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
-                            <FaPhone className="text-gray-400" />
-                            Contact
-                          </div>
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          <div className="flex items-center gap-2">
                             <FaMapMarkerAlt className="text-gray-400" />
                             Address
                           </div>
@@ -246,7 +241,7 @@ function Records() {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
                             <FaStethoscope className="text-gray-400" />
-                            Disease Status
+                            Diagnosis
                           </div>
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -268,23 +263,11 @@ function Records() {
                           className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
                         >
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            #{patient.id}
+                            #{formatPatientID(patient.id)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0 h-10 w-10">
-                                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                  <FaUser className="h-5 w-5 text-blue-600" />
-                                </div>
-                              </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">
-                                  {patient.full_name}
-                                </div>
-                                {/* <div className="text-sm text-gray-500">
-                                  {patient.patient_id || 'No ID'}
-                                </div> */}
-                              </div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {patient.full_name}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -293,36 +276,17 @@ function Records() {
                               <div className="text-gray-500">{patient.sex || 'N/A'}</div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <div className="space-y-1">
-                              {patient.contact_number && (
-                                <div className="flex items-center gap-1">
-                                  <FaPhone className="h-3 w-3 text-gray-400" />
-                                  <span>{patient.contact_number}</span>
-                                </div>
-                              )}
-                              {patient.email && (
-                                <div className="flex items-center gap-1">
-                                  <FaEnvelope className="h-3 w-3 text-gray-400" />
-                                  <span className="truncate max-w-32">{patient.email}</span>
-                                </div>
-                              )}
-                              {!patient.contact_number && !patient.email && (
-                                <span className="text-gray-400">No contact info</span>
-                              )}
-                            </div>
-                          </td>
                           <td className="px-6 py-4 text-sm text-gray-900">
                             <div className="max-w-xs truncate" title={patient.address}>
                               {patient.address || 'No address provided'}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {patient.previous_illness ? (
+                            {patient.diagnosis ? (
                               <div className="space-y-1">
                                 <div className="flex items-center gap-1">
                                   <FaStethoscope className="h-3 w-3 text-red-500" />
-                                  <span className="font-medium text-red-600">{patient.previous_illness}</span>
+                                  <span className="font-medium text-red-600">{patient.diagnosis}</span>
                                 </div>
                                 {patient.status && (
                                   <div className="text-xs text-gray-500">
@@ -383,10 +347,11 @@ function Records() {
         ) : (
           <>
             <Return onBack={() => setSelectedPatient(null)} />
-            <Tabs 
+            <MedicalRecords 
               patient={selectedPatient} 
               onEdit={handleEditBasicInfo}
               onDelete={handleDeletePatient}
+              onPatientUpdate={handleUpdatePatient}
             />
           </>
         )}

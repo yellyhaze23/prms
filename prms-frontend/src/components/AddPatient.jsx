@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from "react";
-import { FaTimes, FaUser, FaSave, FaPhone, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaVenusMars } from "react-icons/fa";
-import Toast from "./Toast"; 
+import { FaTimes, FaUser, FaSave, FaMapMarkerAlt, FaCalendarAlt, FaVenusMars } from "react-icons/fa";
+import axios from "axios";
+import Toast from "./Toast";
+import { formatPatientID, generateNextPatientID } from "../utils/patientUtils"; 
 
 function AddPatient({ onClose, onConfirm, patient = null }) {
 
   const [formData, setFormData] = useState({
-    full_name: patient?.full_name || "",
+    // Name fields (separate components)
+    surname: patient?.surname || "",
+    first_name: patient?.first_name || "",
+    middle_name: patient?.middle_name || "",
+    suffix: patient?.suffix || "",
+    // Basic patient info
     date_of_birth: patient?.date_of_birth || "",
     sex: patient?.sex || "",
-    contact_number: patient?.contact_number || "",
-    email: patient?.email || "",
     address: patient?.address || "",
+    // Medical records fields
+    philhealth_id: patient?.philhealth_id || "",
+    priority: patient?.priority || "medium",
   });
 
   const [toast, setToast] = useState(null); 
@@ -19,7 +27,60 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
     setToast({ message, type });
   };
 
-  useEffect(() => {}, [patient]);
+  useEffect(() => {
+    if (patient?.id) {
+      // Fetch medical records data for editing
+      axios.get(`http://localhost/prms/prms-backend/get_medical_records.php?patient_id=${patient.id}`)
+        .then((res) => {
+          // Merge patient basic info with medical records data
+          const mergedData = {
+            ...patient,
+            ...res.data
+          };
+          
+          // Update form data with the merged data
+          setFormData({
+            surname: mergedData.surname || "",
+            first_name: mergedData.first_name || "",
+            middle_name: mergedData.middle_name || "",
+            suffix: mergedData.suffix || "",
+            date_of_birth: mergedData.date_of_birth || "",
+            sex: mergedData.sex || "",
+            address: mergedData.address || "",
+            philhealth_id: mergedData.philhealth_id || "",
+            priority: mergedData.priority || "medium",
+          });
+        })
+        .catch((err) => {
+          console.error("Error fetching medical records:", err);
+          // If no medical records exist, use patient data
+          setFormData({
+            surname: patient.surname || "",
+            first_name: patient.first_name || "",
+            middle_name: patient.middle_name || "",
+            suffix: patient.suffix || "",
+            date_of_birth: patient.date_of_birth || "",
+            sex: patient.sex || "",
+            address: patient.address || "",
+            philhealth_id: patient.philhealth_id || "",
+            priority: patient.priority || "medium",
+          });
+        });
+    } else {
+      // Reset form for new patient
+      setFormData({
+        surname: "",
+        first_name: "",
+        middle_name: "",
+        suffix: "",
+        date_of_birth: "",
+        sex: "",
+        address: "",
+        philhealth_id: "",
+        priority: "medium",
+      });
+    }
+  }, [patient]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -31,20 +92,23 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
   // Image upload removed
 
   const handleSubmit = async () => {
-    const { full_name, date_of_birth, sex, address } = formData;
+    const { first_name, date_of_birth, sex, address } = formData;
 
-    if (!full_name || !date_of_birth || !sex || !address) {
-      showToast("Please fill in all required fields (Name, Date of Birth, Gender, Address)", "error");
+    if (!first_name || !date_of_birth || !sex || !address) {
+      showToast("Please fill in all required fields (First Name, Date of Birth, Gender, Address)", "error");
       return;
     }
 
+    // Combine name fields into full_name for backward compatibility
+    const full_name = `${formData.first_name} ${formData.middle_name} ${formData.surname} ${formData.suffix}`.trim();
+
     const url = patient
-      ? "http://localhost/prms/prms-backend/update_patient.php"
+      ? "http://localhost/prms/prms-backend/update_patient_comprehensive.php"
       : "http://localhost/prms/prms-backend/add_patient.php";
 
     const body = patient
-      ? { id: patient.id, ...formData }
-      : { ...formData };
+      ? { id: patient.id, full_name, ...formData }
+      : { full_name, ...formData };
 
     console.log('Sending data:', body);
 
@@ -78,7 +142,19 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
         throw new Error(result.error);
       }
 
-      onConfirm(patient ? { ...patient, ...formData } : result.data || result);
+      if (patient) {
+        // For editing, create a proper updated patient object
+        const updatedPatient = {
+          ...patient,
+          full_name: full_name,
+          ...formData
+        };
+        console.log('Updated patient data:', updatedPatient);
+        onConfirm(updatedPatient);
+      } else {
+        // For adding new patient
+        onConfirm(result.data || result);
+      }
       onClose();
     } catch (error) {
       showToast("Error: " + error.message, "error");
@@ -106,21 +182,75 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
           {/* Body */}
           <div className="px-6 py-6 space-y-6">
             <div className="grid grid-cols-1 gap-6">
-              {/* Full Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <FaUser className="inline h-4 w-4 mr-2" />
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="full_name"
-                  placeholder="Enter full name"
-                  value={formData.full_name}
-                  onChange={handleChange}
-                  required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
-                />
+              {/* Name Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* First Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <FaUser className="inline h-4 w-4 mr-2" />
+                    First Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="first_name"
+                    placeholder="Enter first name"
+                    value={formData.first_name}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                  />
+                </div>
+
+                {/* Last Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <FaUser className="inline h-4 w-4 mr-2" />
+                    Surname <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="surname"
+                    placeholder="Enter surname"
+                    value={formData.surname}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Middle Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <FaUser className="inline h-4 w-4 mr-2" />
+                    Middle Name <span className="text-gray-400">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="middle_name"
+                    placeholder="Enter middle name"
+                    value={formData.middle_name}
+                    onChange={handleChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                  />
+                </div>
+
+                {/* Suffix */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <FaUser className="inline h-4 w-4 mr-2" />
+                    Suffix <span className="text-gray-400">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="suffix"
+                    placeholder="e.g. Jr., Sr., III"
+                    value={formData.suffix}
+                    onChange={handleChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -161,37 +291,6 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
                 </div>
               </div>
 
-              {/* Contact Number */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <FaPhone className="inline h-4 w-4 mr-2" />
-                  Contact Number <span className="text-gray-400">(Optional)</span>
-                </label>
-                <input
-                  type="tel"
-                  name="contact_number"
-                  placeholder="e.g. 09123456789"
-                  value={formData.contact_number}
-                  onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
-                />
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <FaEnvelope className="inline h-4 w-4 mr-2" />
-                  Email <span className="text-gray-400">(Optional)</span>
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="e.g. patient@email.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
-                />
-              </div>
 
               {/* Address */}
               <div>
@@ -208,6 +307,44 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
                   rows={3}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
                 />
+              </div>
+
+              {/* Additional Medical Record Fields */}
+              <div>
+                {/* PhilHealth ID */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <FaUser className="inline h-4 w-4 mr-2" />
+                    PhilHealth ID No. <span className="text-gray-400">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="philhealth_id"
+                    placeholder="Enter PhilHealth ID"
+                    value={formData.philhealth_id}
+                    onChange={handleChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Priority */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <FaUser className="inline h-4 w-4 mr-2" />
+                  Priority <span className="text-gray-400">(Optional)</span>
+                </label>
+                <select
+                  name="priority"
+                  value={formData.priority}
+                  onChange={handleChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                >
+                  <option value="low">Low Priority</option>
+                  <option value="medium">Medium Priority</option>
+                  <option value="high">High Priority</option>
+                  <option value="urgent">Urgent</option>
+                </select>
               </div>
             </div>
           </div>

@@ -107,10 +107,10 @@ function Patient() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-6" style={{minHeight: '100vh', backgroundColor: '#f9fafb', padding: '1.5rem 0'}}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style={{maxWidth: '80rem', margin: '0 auto', padding: '0 1rem'}}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style={{maxWidth: '80rem', margin: '0 auto', padding: '0 2rem'}}>
         {/* Header */}
         <div className="mb-8 bg-red-500 p-4 rounded-lg">
-          <h1 className="text-3xl font-bold text-white">Patient Management</h1>
+          <h1 className="text-3xl font-bold text-white">Patient Records</h1>
           <p className="mt-2 text-white">Manage patient records</p>
         </div>
 

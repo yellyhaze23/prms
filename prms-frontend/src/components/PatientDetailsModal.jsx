@@ -1,8 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { FaTimes, FaUser, FaIdCard, FaPhone, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaVenusMars, FaHeartbeat, FaWeight, FaEye } from 'react-icons/fa';
+import axios from 'axios';
+import { FaUser, FaIdCard, FaPhone, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaVenusMars, FaHeartbeat, FaWeight, FaEye, FaStethoscope, FaUserMd, FaFlask, FaPills, FaCommentMedical } from 'react-icons/fa';
+import { formatPatientID } from '../utils/patientUtils';
 
 const PatientDetailsModal = ({ isVisible, onClose, patient }) => {
+  const [patientData, setPatientData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isVisible && patient?.id) {
+      setLoading(true);
+      // Fetch complete patient data including medical records
+      axios.get(`http://localhost/prms/prms-backend/get_medical_records.php?patient_id=${patient.id}`)
+        .then((res) => {
+          // Merge patient basic info with medical records data
+          const mergedData = {
+            ...patient,
+            ...res.data
+          };
+          setPatientData(mergedData);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error("Error fetching patient details:", err);
+          // If no medical records exist, use patient data
+          setPatientData(patient);
+          setLoading(false);
+        });
+    } else {
+      setPatientData(patient);
+    }
+  }, [isVisible, patient]);
+
   if (!isVisible || !patient) return null;
 
   const formatDate = (dateString) => {
@@ -26,6 +56,23 @@ const PatientDetailsModal = ({ isVisible, onClose, patient }) => {
     return `${age} years old`;
   };
 
+  if (loading) {
+    return createPortal(
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
+        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}
+      >
+        <div className="bg-white rounded-xl shadow-2xl p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading patient details...</p>
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
+  const data = patientData || patient;
+
   const modalContent = (
     <div 
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
@@ -39,168 +86,141 @@ const PatientDetailsModal = ({ isVisible, onClose, patient }) => {
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[80vh] overflow-hidden mx-auto transform transition-all relative" style={{ maxWidth: '800px', maxHeight: '80vh' }}>
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                <FaUser className="w-8 h-8 text-white" />
-              </div>
+          <div className="flex items-center">
               <div>
-                <h2 className="text-2xl font-bold text-white">{patient.full_name || "Unknown Patient"}</h2>
-                <p className="text-blue-100">Patient ID: #{patient.id}</p>
+                <h2 className="text-2xl font-bold text-white">{data.full_name || "Unknown Patient"}</h2>
+                <p className="text-blue-100">Patient ID: #{formatPatientID(data.id)}</p>
               </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-white/80 hover:text-white transition-colors p-2"
-            >
-              <FaTimes className="w-6 h-6" />
-            </button>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-4 max-h-[calc(80vh-120px)] overflow-y-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
+        <div className="p-6 max-h-[calc(80vh-120px)] overflow-y-auto">
+          <div className="space-y-6">
             {/* Personal Information */}
-            <div className="flex flex-col space-y-3 h-full">
-              <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-                <FaUser className="text-blue-600" />
-                Personal Information
-              </h3>
-              <div className="bg-gray-50 rounded-lg p-3 space-y-2 flex-1">
-                <div className="flex items-center gap-3">
-                  <FaIdCard className="text-gray-500 w-4 h-4" />
-                  <div>
-                    <span className="text-sm text-gray-600">Patient ID:</span>
-                    <span className="ml-2 font-medium">#{patient.id}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <FaUser className="text-gray-500 w-4 h-4" />
-                  <div>
-                    <span className="text-sm text-gray-600">Full Name:</span>
-                    <span className="ml-2 font-medium">{patient.full_name || 'N/A'}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <FaVenusMars className="text-gray-500 w-4 h-4" />
-                  <div>
-                    <span className="text-sm text-gray-600">Sex:</span>
-                    <span className="ml-2 font-medium">{patient.sex || 'N/A'}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <FaCalendarAlt className="text-gray-500 w-4 h-4" />
-                  <div>
-                    <span className="text-sm text-gray-600">Age:</span>
-                    <span className="ml-2 font-medium">{patient.age ? `${patient.age} years old` : 'N/A'}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <FaCalendarAlt className="text-gray-500 w-4 h-4" />
-                  <div>
-                    <span className="text-sm text-gray-600">Birth Date:</span>
-                    <span className="ml-2 font-medium">{formatDate(patient.birth_date)}</span>
-                  </div>
-                </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="px-4 py-3 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <FaUser className="text-blue-600" />
+                  Personal Information
+                </h3>
               </div>
-            </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left Column */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <FaIdCard className="text-blue-600 w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Patient ID</p>
+                        <p className="text-lg font-semibold text-gray-900">#{formatPatientID(data.id)}</p>
+                      </div>
+                    </div>
 
-            {/* Contact Information */}
-            <div className="flex flex-col space-y-3 h-full">
-              <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-                <FaPhone className="text-green-600" />
-                Contact Information
-              </h3>
-              <div className="bg-gray-50 rounded-lg p-3 space-y-2 flex-1">
-                <div className="flex items-center gap-3">
-                  <FaPhone className="text-gray-500 w-4 h-4" />
-                  <div>
-                    <span className="text-sm text-gray-600">Phone:</span>
-                    <span className="ml-2 font-medium">{patient.phone || 'N/A'}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <FaEnvelope className="text-gray-500 w-4 h-4" />
-                  <div>
-                    <span className="text-sm text-gray-600">Email:</span>
-                    <span className="ml-2 font-medium">{patient.email || 'N/A'}</span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <FaMapMarkerAlt className="text-gray-500 w-4 h-4 mt-1" />
-                  <div>
-                    <span className="text-sm text-gray-600">Address:</span>
-                    <span className="ml-2 font-medium block">{patient.address || 'N/A'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <FaUser className="text-green-600 w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">First Name</p>
+                        <p className="text-lg font-semibold text-gray-900">{data.first_name || 'N/A'}</p>
+                      </div>
+                    </div>
 
-            {/* Medical Information */}
-            <div className="flex flex-col space-y-3 h-full">
-              <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-                <FaHeartbeat className="text-red-600" />
-                Medical Information
-              </h3>
-              <div className="bg-gray-50 rounded-lg p-3 space-y-2 flex-1">
-                <div className="flex items-center gap-3">
-                  <FaWeight className="text-gray-500 w-4 h-4" />
-                  <div>
-                    <span className="text-sm text-gray-600">Weight:</span>
-                    <span className="ml-2 font-medium">{patient.weight ? `${patient.weight} kg` : 'N/A'}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <FaEye className="text-gray-500 w-4 h-4" />
-                  <div>
-                    <span className="text-sm text-gray-600">Height:</span>
-                    <span className="ml-2 font-medium">{patient.height ? `${patient.height} cm` : 'N/A'}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <FaHeartbeat className="text-gray-500 w-4 h-4" />
-                  <div>
-                    <span className="text-sm text-gray-600">Blood Type:</span>
-                    <span className="ml-2 font-medium">{patient.blood_type || 'N/A'}</span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <FaUser className="text-gray-500 w-4 h-4 mt-1" />
-                  <div>
-                    <span className="text-sm text-gray-600">Emergency Contact:</span>
-                    <span className="ml-2 font-medium block">{patient.emergency_contact || 'N/A'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <FaUser className="text-green-600 w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Middle Name</p>
+                        <p className="text-lg font-semibold text-gray-900">{data.middle_name || 'N/A'}</p>
+                      </div>
+                    </div>
 
-            {/* Additional Information */}
-            <div className="flex flex-col space-y-3 h-full">
-              <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-                <FaIdCard className="text-purple-600" />
-                Additional Information
-              </h3>
-              <div className="bg-gray-50 rounded-lg p-3 space-y-2 flex-1">
-                <div className="flex items-start gap-3">
-                  <FaUser className="text-gray-500 w-4 h-4 mt-1" />
-                  <div>
-                    <span className="text-sm text-gray-600">Allergies:</span>
-                    <span className="ml-2 font-medium block">{patient.allergies || 'None reported'}</span>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <FaUser className="text-green-600 w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Surname</p>
+                        <p className="text-lg font-semibold text-gray-900">{data.surname || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <FaUser className="text-green-600 w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Suffix</p>
+                        <p className="text-lg font-semibold text-gray-900">{data.suffix || 'N/A'}</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <FaHeartbeat className="text-gray-500 w-4 h-4 mt-1" />
-                  <div>
-                    <span className="text-sm text-gray-600">Medical History:</span>
-                    <span className="ml-2 font-medium block">{patient.medical_history || 'None reported'}</span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <FaCalendarAlt className="text-gray-500 w-4 h-4 mt-1" />
-                  <div>
-                    <span className="text-sm text-gray-600">Last Visit:</span>
-                    <span className="ml-2 font-medium">{formatDate(patient.last_visit)}</span>
+
+                  {/* Right Column */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
+                        <FaVenusMars className="text-pink-600 w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Sex</p>
+                        <p className="text-lg font-semibold text-gray-900">{data.sex || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                        <FaCalendarAlt className="text-purple-600 w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Age</p>
+                        <p className="text-lg font-semibold text-gray-900">{data.age ? `${data.age} years old` : 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                        <FaCalendarAlt className="text-purple-600 w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Birth Date</p>
+                        <p className="text-lg font-semibold text-gray-900">{formatDate(data.date_of_birth)}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mt-1">
+                        <FaMapMarkerAlt className="text-orange-600 w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Address</p>
+                        <p className="text-lg font-semibold text-gray-900">{data.address || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <FaUserMd className="text-indigo-600 w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">PhilHealth ID</p>
+                        <p className="text-lg font-semibold text-gray-900">{data.philhealth_id || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <FaUserMd className="text-indigo-600 w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Priority</p>
+                        <p className="text-lg font-semibold text-gray-900 capitalize">{data.priority || 'N/A'}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -208,15 +228,6 @@ const PatientDetailsModal = ({ isVisible, onClose, patient }) => {
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
-          >
-            Close
-          </button>
-        </div>
       </div>
     </div>
   );

@@ -16,21 +16,21 @@ try {
             p.contact_number,
             p.email,
             p.created_at,
-            h.previous_illness as disease,
-            h.status,
-            h.severity,
-            h.updated_at as last_visit,
+            mr.previous_illness as disease,
+            mr.status,
+            mr.severity,
+            mr.updated_at as last_visit,
             TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) as age
         FROM patients p
         LEFT JOIN (
-            SELECT h1.*
-            FROM health_examinations h1
+            SELECT mr1.*
+            FROM medical_records mr1
             INNER JOIN (
                 SELECT patient_id, MAX(updated_at) as max_updated, MAX(id) as max_id
-                FROM health_examinations
+                FROM medical_records
                 GROUP BY patient_id
-            ) h2 ON h1.patient_id = h2.patient_id AND h1.updated_at = h2.max_updated AND h1.id = h2.max_id
-        ) h ON p.id = h.patient_id
+            ) mr2 ON mr1.patient_id = mr2.patient_id AND mr1.updated_at = mr2.max_updated AND mr1.id = mr2.max_id
+        ) mr ON p.id = mr.patient_id
         ORDER BY p.created_at DESC
     ";
     

@@ -10,11 +10,10 @@ $data = json_decode(file_get_contents("php://input"), true);
 if (
     !isset($data['patient_id']) || empty($data['patient_id']) ||
     !isset($data['disease']) || empty($data['disease']) ||
-    !isset($data['onset_date']) || empty($data['onset_date']) ||
-    !isset($data['status']) || empty($data['status'])
+    !isset($data['onset_date']) || empty($data['onset_date'])
 ) {
     http_response_code(400);
-    echo json_encode(['error' => 'Missing required fields: Patient ID, Disease, Onset Date, and Status are required.']);
+    echo json_encode(['error' => 'Missing required fields: Patient ID, Disease, and Onset Date are required.']);
     exit;
 }
 
@@ -32,13 +31,6 @@ if ($result->num_rows === 0) {
 }
 $stmt->close();
 
-// Validate status
-$validStatuses = ['suspected', 'confirmed', 'recovered', 'quarantined'];
-if (!in_array($data['status'], $validStatuses)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Invalid status.']);
-    exit;
-}
 
 try {
     // Sanitize input data
@@ -46,12 +38,9 @@ try {
     $disease = mysqli_real_escape_string($conn, $data['disease']);
     $onset_date = mysqli_real_escape_string($conn, $data['onset_date']);
     $diagnosis_date = mysqli_real_escape_string($conn, $data['diagnosis_date'] ?? '');
-    $severity = mysqli_real_escape_string($conn, $data['severity'] ?? '');
-    $status = mysqli_real_escape_string($conn, $data['status']);
     $symptoms = mysqli_real_escape_string($conn, $data['symptoms'] ?? '');
     $treatment = mysqli_real_escape_string($conn, $data['treatment'] ?? '');
-    $vaccination_status = mysqli_real_escape_string($conn, $data['vaccination_status'] ?? '');
-    $contact_tracing = mysqli_real_escape_string($conn, $data['contact_tracing'] ?? '');
+    $medical_advice = mysqli_real_escape_string($conn, $data['medical_advice'] ?? '');
     $notes = mysqli_real_escape_string($conn, $data['notes'] ?? '');
     $reported_by = mysqli_real_escape_string($conn, $data['reported_by'] ?? '');
     $reported_date = mysqli_real_escape_string($conn, $data['reported_date'] ?? date('Y-m-d'));
@@ -65,37 +54,31 @@ try {
         exit;
     }
 
-    // Insert disease case into health_examinations table
-    $sql = "INSERT INTO health_examinations 
-                (patient_id, previous_illness, onset_date, diagnosis_date, severity, status, symptoms, treatment, vaccination_status, contact_tracing, notes, reported_by, reported_date, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+    // Insert disease case into medical_records table
+    $sql = "INSERT INTO medical_records 
+                (patient_id, diagnosis, onset_date, diagnosis_date, symptoms, treatment, medical_advice, notes, reported_by, reported_date, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
             ON DUPLICATE KEY UPDATE
-                previous_illness = VALUES(previous_illness),
+                diagnosis = VALUES(diagnosis),
                 onset_date = VALUES(onset_date),
                 diagnosis_date = VALUES(diagnosis_date),
-                severity = VALUES(severity),
-                status = VALUES(status),
                 symptoms = VALUES(symptoms),
                 treatment = VALUES(treatment),
-                vaccination_status = VALUES(vaccination_status),
-                contact_tracing = VALUES(contact_tracing),
+                medical_advice = VALUES(medical_advice),
                 notes = VALUES(notes),
                 reported_by = VALUES(reported_by),
                 reported_date = VALUES(reported_date),
                 updated_at = NOW()";
 
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("issssssssssss", 
+    $stmt->bind_param("issssssss", 
         $patient_id,
         $disease, 
         $onset_date, 
         $diagnosis_date, 
-        $severity, 
-        $status, 
         $symptoms, 
         $treatment, 
-        $vaccination_status, 
-        $contact_tracing, 
+        $medical_advice, 
         $notes, 
         $reported_by, 
         $reported_date
@@ -103,9 +86,9 @@ try {
 
     if ($stmt->execute()) {
         // Get updated patient data
-        $getPatient = "SELECT p.*, h.previous_illness, h.onset_date, h.diagnosis_date, h.severity, h.status, h.symptoms, h.treatment, h.vaccination_status, h.contact_tracing, h.notes, h.reported_by, h.reported_date
+        $getPatient = "SELECT p.*, mr.diagnosis, mr.onset_date, mr.diagnosis_date, mr.symptoms, mr.treatment, mr.medical_advice, mr.notes, mr.reported_by, mr.reported_date
                       FROM patients p 
-                      LEFT JOIN health_examinations h ON p.id = h.patient_id 
+                      LEFT JOIN medical_records mr ON p.id = mr.patient_id 
                       WHERE p.id = $patient_id";
         $patientResult = $conn->query($getPatient);
         $patientData = $patientResult->fetch_assoc();
