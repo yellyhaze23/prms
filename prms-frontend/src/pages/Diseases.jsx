@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { FaPlus, FaEdit, FaTrash, FaVirus, FaExclamationTriangle, FaLungs, FaHeartbeat, FaThermometerHalf, FaStethoscope, FaShieldAlt, FaChartLine, FaMapMarkerAlt } from "react-icons/fa";
+import { FaPlus, FaEdit, FaTrash, FaVirus, FaExclamationTriangle, FaLungs, FaHeartbeat, FaThermometerHalf, FaStethoscope, FaShieldAlt, FaChartBar, FaEye } from "react-icons/fa";
 import axios from "axios";
 import DiseaseCaseForm from "../components/DiseaseCaseForm";
 import AddDiseaseModal from "../components/AddDiseaseModal";
+import DiseaseAnalytics from "../components/DiseaseAnalytics";
+import DiseaseCasesModal from "../components/DiseaseCasesModal";
 import ConfirmationModal from "../components/ConfirmationModal";
 import Toast from "../components/Toast";
 import "./Diseases.css";
@@ -34,10 +36,12 @@ function Diseases() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDiseaseCaseModal, setShowDiseaseCaseModal] = useState(false);
+  const [showDiseaseCasesModal, setShowDiseaseCasesModal] = useState(false);
   const [editingDisease, setEditingDisease] = useState(null);
   const [selectedDisease, setSelectedDisease] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
   const [toast, setToast] = useState(null);
+  const [activeTab, setActiveTab] = useState('analytics'); // 'analytics' or 'management'
 
   useEffect(() => {
     fetchDiseases();
@@ -93,9 +97,9 @@ function Diseases() {
     }
   };
 
-  const handleAddDiseaseCase = (disease) => {
+  const handleViewDiseaseCases = (disease) => {
     setSelectedDisease(disease);
-    setShowDiseaseCaseModal(true);
+    setShowDiseaseCasesModal(true);
   };
 
   const handleDiseaseSubmit = (diseaseData) => {
@@ -146,103 +150,134 @@ function Diseases() {
           </div>
         </div>
 
-        {/* Diseases Grid */}
-        <div className="diseases-grid">
-          {diseases.map((disease) => {
-            const IconComponent = iconMap[disease.icon] || FaVirus;
-            return (
-              <div key={disease.id} className="disease-card bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                {/* Disease Header */}
-                <div className={`${getColorClasses(disease.color)} p-4`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                        <IconComponent className="text-white text-xl" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-white">{disease.name}</h3>
-                        <p className="text-white/80 text-sm">{disease.description}</p>
-                      </div>
-                    </div>
-                    <div className="flex space-x-1">
-                      <button
-                        onClick={() => handleEditDisease(disease)}
-                        className="p-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors duration-200"
-                        title="Edit Disease"
-                      >
-                        <FaEdit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteDisease(disease.id)}
-                        className="p-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors duration-200"
-                        title="Delete Disease"
-                      >
-                        <FaTrash className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Disease Details */}
-                <div className="disease-content">
-                  <div className="space-y-4">
-                    {/* Symptoms */}
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Common Symptoms</h4>
-                      <p className="text-sm text-gray-600 disease-symptoms">{disease.symptoms}</p>
-                    </div>
-
-                    {/* Incubation Period */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-700 mb-1">Incubation</h4>
-                        <p className="text-sm text-gray-600">{disease.incubation_period}</p>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-700 mb-1">Contagious</h4>
-                        <p className="text-sm text-gray-600 line-clamp-2">{disease.contagious_period}</p>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex space-x-2 pt-4 border-t border-gray-200">
-                      <button
-                        onClick={() => handleAddDiseaseCase(disease)}
-                        className="action-button flex-1 inline-flex items-center justify-center px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-                      >
-                        <FaPlus className="h-4 w-4 mr-1" />
-                        Add Case
-                      </button>
-                      <button className="action-button inline-flex items-center justify-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200">
-                        <FaChartLine className="h-4 w-4" />
-                      </button>
-                      <button className="action-button inline-flex items-center justify-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200">
-                        <FaMapMarkerAlt className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        {/* Tab Navigation */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'analytics'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <FaChartBar className="inline h-4 w-4 mr-2" />
+                Analytics Dashboard
+              </button>
+              <button
+                onClick={() => setActiveTab('management')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'management'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <FaStethoscope className="inline h-4 w-4 mr-2" />
+                Disease Management
+              </button>
+            </nav>
+          </div>
         </div>
 
-        {/* Empty State */}
-        {diseases.length === 0 && (
-          <div className="text-center py-12">
-            <FaStethoscope className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No diseases found</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by adding a new disease.</p>
-            <div className="mt-6">
-              <button
-                onClick={handleAddDisease}
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
-              >
-                <FaPlus className="h-4 w-4 mr-2" />
-                Add Disease
-              </button>
+        {/* Tab Content */}
+        {activeTab === 'analytics' ? (
+          <DiseaseAnalytics />
+        ) : (
+          <>
+            {/* Diseases Grid */}
+            <div className="diseases-grid">
+              {diseases.map((disease) => {
+                const IconComponent = iconMap[disease.icon] || FaVirus;
+                return (
+                  <div key={disease.id} className="disease-card bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    {/* Disease Header */}
+                    <div className={`${getColorClasses(disease.color)} p-4`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                            <IconComponent className="text-white text-xl" />
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold text-white">{disease.name}</h3>
+                            <p className="text-white/80 text-sm">{disease.description}</p>
+                          </div>
+                        </div>
+                        <div className="flex space-x-1">
+                          <button
+                            onClick={() => handleEditDisease(disease)}
+                            className="p-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors duration-200"
+                            title="Edit Disease"
+                          >
+                            <FaEdit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDisease(disease.id)}
+                            className="p-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors duration-200"
+                            title="Delete Disease"
+                          >
+                            <FaTrash className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Disease Details */}
+                    <div className="disease-content">
+                      <div className="space-y-4 flex-1">
+                        {/* Symptoms */}
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">Common Symptoms</h4>
+                          <p className="text-sm text-gray-600 disease-symptoms">{disease.symptoms}</p>
+                        </div>
+
+                        {/* Incubation Period */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-700 mb-1">Incubation</h4>
+                            <p className="text-sm text-gray-600">{disease.incubation_period}</p>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-700 mb-1">Contagious</h4>
+                            <p className="text-sm text-gray-600 line-clamp-2">{disease.contagious_period}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Button */}
+                      <div className="pt-4 border-t border-gray-200 mt-auto">
+                        <button
+                          onClick={() => handleViewDiseaseCases(disease)}
+                          className="w-full inline-flex items-center justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+                        >
+                          <FaEye className="h-4 w-4 mr-2" />
+                          View Cases
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+
+            {/* Empty State */}
+            {diseases.length === 0 && (
+              <div className="text-center py-12">
+                <FaStethoscope className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No diseases found</h3>
+                <p className="mt-1 text-sm text-gray-500">Get started by adding a new disease.</p>
+                <div className="mt-6">
+                  <button
+                    onClick={handleAddDisease}
+                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                  >
+                    <FaPlus className="h-4 w-4 mr-2" />
+                    Add Disease
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -269,6 +304,16 @@ function Diseases() {
             fetchDiseases(); // Refresh the diseases list
           }}
           disease={selectedDisease?.name}
+        />
+      )}
+
+      {showDiseaseCasesModal && (
+        <DiseaseCasesModal
+          disease={selectedDisease?.name}
+          onClose={() => {
+            setShowDiseaseCasesModal(false);
+            setSelectedDisease(null);
+          }}
         />
       )}
 

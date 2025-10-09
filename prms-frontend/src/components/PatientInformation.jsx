@@ -1,5 +1,6 @@
 import React from "react";
 import { FaUser, FaCalendarAlt, FaVenusMars, FaPhone, FaEnvelope, FaMapMarkerAlt, FaIdCard, FaHospital, FaEdit, FaTrash } from "react-icons/fa";
+import { formatPatientID } from "../utils/patientUtils";
 
 function PatientInformation({ patient, onEdit, onDelete }) {
   if (!patient) return (
@@ -31,7 +32,7 @@ function PatientInformation({ patient, onEdit, onDelete }) {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">{patient.full_name || "Unknown Patient"}</h1>
-                <p className="text-blue-100">Patient ID: #{patient.id}</p>
+                <p className="text-blue-100">Patient ID: #{formatPatientID(patient.id)}</p>
               </div>
             </div>
             <div className="flex space-x-2">

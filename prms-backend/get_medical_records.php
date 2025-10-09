@@ -10,13 +10,13 @@ if ($patient_id <= 0) {
     exit;
 }
 
-// Join patients to get patient.sex and other fields
+// Get all medical record data including patient info
 $stmt = $conn->prepare("
-    SELECT mr.*, p.sex
+    SELECT mr.*, p.sex, p.full_name, p.age, p.address
     FROM medical_records mr
     JOIN patients p ON mr.patient_id = p.id
     WHERE mr.patient_id = ?
-    ORDER BY mr.last_checkup_date DESC
+    ORDER BY mr.updated_at DESC, mr.created_at DESC
     LIMIT 1
 ");
 

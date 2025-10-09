@@ -25,8 +25,6 @@ $id = (int)$data['id'];
 $full_name = mysqli_real_escape_string($conn, $data['full_name']);
 $date_of_birth = mysqli_real_escape_string($conn, $data['date_of_birth']);
 $sex = mysqli_real_escape_string($conn, $data['sex']);
-$contact_number = mysqli_real_escape_string($conn, $data['contact_number'] ?? '');
-$email = mysqli_real_escape_string($conn, $data['email'] ?? '');
 $address = mysqli_real_escape_string($conn, $data['address']);
 
 // Calculate age from date of birth
@@ -34,15 +32,12 @@ $birthDate = new DateTime($date_of_birth);
 $today = new DateTime();
 $age = $today->diff($birthDate)->y;
 
-// Image handling removed - not needed
-
+// Update patient basic information
 $sql = "UPDATE patients SET 
             full_name = '$full_name',
             date_of_birth = '$date_of_birth',
             sex = '$sex',
             age = '$age',
-            contact_number = '$contact_number',
-            email = '$email',
             address = '$address'
         WHERE id = $id";
 
@@ -55,8 +50,6 @@ if (mysqli_query($conn, $sql)) {
             'date_of_birth' => $date_of_birth,
             'sex' => $sex,
             'age' => $age,
-            'contact_number' => $contact_number,
-            'email' => $email,
             'address' => $address 
         ]
     ]);

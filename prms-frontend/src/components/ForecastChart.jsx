@@ -85,11 +85,16 @@ const ForecastChart = ({ forecastData, historicalData, diseaseName, forecastPeri
   // Color palette for different diseases
   const getDiseaseColor = (disease) => {
     const colors = {
-      'Chickenpox': '#ef4444', // red-500
-      'Dengue': '#f97316', // orange-500
-      'Hepatitis': '#eab308', // yellow-500
-      'Measles': '#22c55e', // green-500
-      'Tuberculosis': '#a855f7', // purple-500
+      'chickenpox': '#ef4444', // red-500
+      'dengue': '#f97316', // orange-500
+      'hepatitis': '#eab308', // yellow-500
+      'measles': '#22c55e', // green-500
+      'tuberculosis': '#a855f7', // purple-500
+      'Chickenpox': '#ef4444', // red-500 (capitalized)
+      'Dengue': '#f97316', // orange-500 (capitalized)
+      'Hepatitis': '#eab308', // yellow-500 (capitalized)
+      'Measles': '#22c55e', // green-500 (capitalized)
+      'Tuberculosis': '#a855f7', // purple-500 (capitalized)
       'All Diseases': '#3b82f6' // blue-500
     };
     return colors[disease] || '#6b7280'; // gray-500

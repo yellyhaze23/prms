@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { FaUser, FaStethoscope, FaHeartbeat, FaFileMedicalAlt } from 'react-icons/fa';
+import { FaFileMedicalAlt } from 'react-icons/fa';
 import MedicalRecords from './MedicalRecords';
-import HealthExamination from './HealthExamination';
 
-const Tabs = ({ patient, onEdit, onDelete }) => {
+const Tabs = ({ patient, onEdit, onDelete, onPatientUpdate }) => {
   const [activeTab, setActiveTab] = useState('medical');
 
   const tabs = [
@@ -12,12 +11,6 @@ const Tabs = ({ patient, onEdit, onDelete }) => {
       name: 'Medical Records',
       icon: FaFileMedicalAlt,
       component: MedicalRecords
-    },
-    {
-      id: 'examination',
-      name: 'Health Examination',
-      icon: FaStethoscope,
-      component: HealthExamination
     }
   ];
 
@@ -55,6 +48,7 @@ const Tabs = ({ patient, onEdit, onDelete }) => {
             patient={patient} 
             onEdit={onEdit}
             onDelete={onDelete}
+            onPatientUpdate={onPatientUpdate}
           />
         )}
       </div>
