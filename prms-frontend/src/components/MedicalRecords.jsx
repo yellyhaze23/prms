@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { FaEdit, FaSave, FaUser, FaCalendarAlt, FaVenusMars, FaPhone, FaEnvelope, FaMapMarkerAlt, FaHeartbeat, FaWeight, FaEye, FaStethoscope, FaFileMedicalAlt, FaTimes, FaUserMd, FaFlask, FaPills, FaCommentMedical } from "react-icons/fa";
+import { FaEdit, FaSave, FaUser, FaCalendarAlt, FaVenusMars, FaPhone, FaEnvelope, FaMapMarkerAlt, FaHeartbeat, FaWeight, FaEye, FaStethoscope, FaFileMedicalAlt, FaTimes, FaUserMd, FaFlask, FaPills, FaCommentMedical, FaHistory, FaEye as FaView } from "react-icons/fa";
 import Toast from "./Toast";
 import { formatPatientID } from "../utils/patientUtils";
 
 function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
   const [medicalRecord, setMedicalRecord] = useState({});
+  const [consultationHistory, setConsultationHistory] = useState([]);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "success", visible: false });
@@ -16,7 +19,7 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
 
   useEffect(() => {
     if (patient?.id) {
-      // Fetch medical records data
+      // Fetch current medical record (latest)
       axios.get(`http://localhost/prms/prms-backend/get_medical_records.php?patient_id=${patient.id}`)
         .then((res) => {
           // Merge patient basic info with medical records data
@@ -25,16 +28,31 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
             ...res.data
           };
           setMedicalRecord(mergedData);
-          setLoading(false);
         })
         .catch((err) => {
           console.error("Error fetching medical records:", err);
           // If no medical records exist, use patient data
           setMedicalRecord(patient);
+        });
+
+      // Fetch consultation history (all records)
+      axios.get(`http://localhost/prms/prms-backend/get_all_medical_records.php?patient_id=${patient.id}`)
+        .then((res) => {
+          console.log("Consultation history response:", res.data);
+          // Ensure we always have an array
+          const historyData = Array.isArray(res.data) ? res.data : [];
+          console.log("Processed history data:", historyData);
+          setConsultationHistory(historyData);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error("Error fetching consultation history:", err);
+          setConsultationHistory([]);
           setLoading(false);
         });
     } else {
       setMedicalRecord({});
+      setConsultationHistory([]);
       setLoading(false);
     }
   }, [patient]);
@@ -48,10 +66,33 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
 
   const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : "");
 
+  const handleViewRecord = async (recordId) => {
+    try {
+      const response = await axios.get(`http://localhost/prms/prms-backend/get_medical_record_by_id.php?record_id=${recordId}&patient_id=${patient.id}`);
+      setSelectedRecord(response.data);
+      setShowHistoryModal(true);
+    } catch (error) {
+      console.error("Error fetching record:", error);
+      showToast("Error loading medical record", "error");
+    }
+  };
+
+  const closeHistoryModal = () => {
+    setShowHistoryModal(false);
+    setSelectedRecord(null);
+  };
+
   const toggleEdit = async () => {
     if (isEditing) {
         try {
-          const formData = { ...medicalRecord, id: patient.id };
+          // Ensure we have a valid patient ID
+          const patientId = patient?.id || medicalRecord?.id || patient?.patient_id;
+          if (!patientId) {
+            showToast("Error: Patient ID not found", "error");
+            return;
+          }
+          
+          const formData = { ...medicalRecord, id: patientId };
           
           // If name fields are changed, update the full_name for the patient
           if (formData.first_name || formData.surname || formData.middle_name || formData.suffix) {
@@ -59,7 +100,9 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
             formData.full_name = full_name;
           }
           
+          console.log('Patient object:', patient);
           console.log('Current medicalRecord state:', medicalRecord);
+          console.log('Patient ID being used:', patientId);
           console.log('Sending medical records data:', formData);
 
         // Use comprehensive update API that handles both patient and medical records
@@ -665,6 +708,161 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
           </div>
         </div>
       </div>
+
+      {/* 4. CONSULTATION HISTORY Section */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+            <FaHistory className="h-5 w-5 mr-2 text-purple-600" />
+            CONSULTATION HISTORY
+          </h3>
+        </div>
+        <div className="p-6">
+          {!Array.isArray(consultationHistory) || consultationHistory.length === 0 ? (
+            <div className="text-center py-8">
+              <FaHistory className="text-4xl text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500">No consultation history available</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {Array.isArray(consultationHistory) && consultationHistory.map((record, index) => (
+                <div key={record.medical_record_id || record.id || index} className="border-l-4 border-blue-500 pl-4 py-3 bg-gray-50 rounded-r-lg">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-4 mb-2">
+                        <h4 className="font-medium text-gray-900">
+                          {fmtDate(record.date_of_consultation) || 'No date'}
+                        </h4>
+                        {index === 0 && (
+                          <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                            Latest
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium text-gray-700">Diagnosis:</span>
+                          <p className="text-gray-600">{record.diagnosis || 'Not recorded'}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-700">Provider:</span>
+                          <p className="text-gray-600">{record.health_provider || record.health_provider_medical || 'Not recorded'}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-700">Chief Complaint:</span>
+                          <p className="text-gray-600">{record.chief_complaint || 'Not recorded'}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-700">Treatment:</span>
+                          <p className="text-gray-600">{record.prescribed_medicine || 'Not recorded'}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleViewRecord(record.medical_record_id || record.id)}
+                      className="ml-4 inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors duration-200"
+                    >
+                      <FaView className="h-4 w-4 mr-1" />
+                      View Full Record
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* History Modal */}
+      {showHistoryModal && selectedRecord && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Medical Record - {fmtDate(selectedRecord.date_of_consultation)}
+              </h3>
+              <button
+                onClick={closeHistoryModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FaTimes className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              {/* Display the selected record in the same format as current medical record */}
+              <div className="space-y-6">
+                {/* Patient Information */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-900 mb-3">Patient Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium">Name:</span> {selectedRecord.full_name || 'Not provided'}
+                    </div>
+                    <div>
+                      <span className="font-medium">Age:</span> {selectedRecord.age || 'Not provided'}
+                    </div>
+                    <div>
+                      <span className="font-medium">Sex:</span> {selectedRecord.sex || 'Not provided'}
+                    </div>
+                    <div>
+                      <span className="font-medium">Date of Birth:</span> {fmtDate(selectedRecord.date_of_birth) || 'Not provided'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vital Signs */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-900 mb-3">Vital Signs</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium">Blood Pressure:</span> {selectedRecord.blood_pressure || 'Not recorded'}
+                    </div>
+                    <div>
+                      <span className="font-medium">Temperature:</span> {selectedRecord.temperature || 'Not recorded'}
+                    </div>
+                    <div>
+                      <span className="font-medium">Height:</span> {selectedRecord.height ? `${selectedRecord.height} cm` : 'Not recorded'}
+                    </div>
+                    <div>
+                      <span className="font-medium">Weight:</span> {selectedRecord.weight ? `${selectedRecord.weight} kg` : 'Not recorded'}
+                    </div>
+                    <div>
+                      <span className="font-medium">Chief Complaint:</span> {selectedRecord.chief_complaint || 'Not recorded'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Medical Record */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-900 mb-3">Medical Record</h4>
+                  <div className="space-y-4 text-sm">
+                    <div>
+                      <span className="font-medium">Diagnosis:</span>
+                      <p className="text-gray-600 mt-1">{selectedRecord.diagnosis || 'No diagnosis recorded'}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Laboratory Procedure:</span>
+                      <p className="text-gray-600 mt-1">{selectedRecord.laboratory_procedure || 'No laboratory procedures recorded'}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Prescribed Medicine:</span>
+                      <p className="text-gray-600 mt-1">{selectedRecord.prescribed_medicine || 'No medications prescribed'}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Medical Advice:</span>
+                      <p className="text-gray-600 mt-1">{selectedRecord.medical_advice || 'No medical advice recorded'}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Medical Remarks:</span>
+                      <p className="text-gray-600 mt-1">{selectedRecord.medical_remarks || 'No additional remarks'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast.visible && (
         <Toast

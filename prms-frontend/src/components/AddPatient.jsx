@@ -29,9 +29,12 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
 
   useEffect(() => {
     if (patient?.id) {
-      // Fetch medical records data for editing
+      console.log("Patient data for editing:", patient);
+      
+      // Try to fetch medical records data for additional fields
       axios.get(`http://localhost/prms/prms-backend/get_medical_records.php?patient_id=${patient.id}`)
         .then((res) => {
+          console.log("Medical records response:", res.data);
           // Merge patient basic info with medical records data
           const mergedData = {
             ...patient,
@@ -44,16 +47,16 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
             first_name: mergedData.first_name || "",
             middle_name: mergedData.middle_name || "",
             suffix: mergedData.suffix || "",
-            date_of_birth: mergedData.date_of_birth || "",
-            sex: mergedData.sex || "",
-            address: mergedData.address || "",
+            date_of_birth: mergedData.date_of_birth || patient.date_of_birth || "",
+            sex: mergedData.sex || patient.sex || "",
+            address: mergedData.address || patient.address || "",
             philhealth_id: mergedData.philhealth_id || "",
             priority: mergedData.priority || "medium",
           });
         })
         .catch((err) => {
           console.error("Error fetching medical records:", err);
-          // If no medical records exist, use patient data
+          // If no medical records exist, use patient data directly
           setFormData({
             surname: patient.surname || "",
             first_name: patient.first_name || "",
@@ -91,6 +94,9 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
 
 
   const handleSubmit = async () => {
+    console.log('Form data:', formData);
+    console.log('Patient data:', patient);
+    
     const { first_name, date_of_birth, sex, address } = formData;
 
     if (!first_name || !date_of_birth || !sex || !address) {
@@ -110,22 +116,30 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
       : { full_name, ...formData };
 
     console.log('Sending data:', body);
+    console.log('URL:', url);
 
     try {
+      console.log('Making request to:', url);
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
       // Check if response is ok first
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('Error response:', errorText);
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       // Get response text first to check if it's valid JSON
       const responseText = await response.text();
+      console.log('Response text:', responseText);
+      
       if (!responseText.trim()) {
         throw new Error("Empty response from server");
       }
@@ -133,7 +147,9 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
       let result;
       try {
         result = JSON.parse(responseText);
+        console.log('Parsed result:', result);
       } catch (jsonError) {
+        console.error('JSON parse error:', jsonError);
         throw new Error(`Invalid JSON response: ${responseText}`);
       }
 

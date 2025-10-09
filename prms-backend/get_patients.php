@@ -7,8 +7,6 @@ $sql = "
     SELECT 
         p.*,
         mr.diagnosis,
-        mr.status,
-        mr.severity,
         COALESCE(
             mr.date_of_consultation,
             mr.date_of_consultation_medical, 
@@ -20,8 +18,6 @@ $sql = "
         SELECT 
             patient_id,
             diagnosis,
-            status,
-            severity,
             date_of_consultation,
             date_of_consultation_medical,
             updated_at,
