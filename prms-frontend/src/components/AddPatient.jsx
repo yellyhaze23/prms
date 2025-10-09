@@ -89,7 +89,6 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
     }));
   };
 
-  // Image upload removed
 
   const handleSubmit = async () => {
     const { first_name, date_of_birth, sex, address } = formData;
