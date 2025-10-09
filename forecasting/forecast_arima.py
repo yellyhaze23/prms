@@ -55,7 +55,7 @@ def main():
         current_cases_30d = {}
         if not recent_data.empty:
             for disease, group in recent_data.groupby('disease_name'):
-                current_cases_30d[disease] = group['total_cases'].sum()
+                current_cases_30d[disease] = int(group['total_cases'].sum())  # Convert to int
         
         forecast_results = []
         
@@ -88,7 +88,7 @@ def main():
                     forecast_results.append({
                         "disease_name": disease,
                         "forecast_month": next_month.strftime("%Y-%m"),
-                        "forecast_cases": round(val) if not pd.isna(val) else max(1, ts.mean()) # Round to whole number for professional presentation
+                        "forecast_cases": int(round(float(val))) if not pd.isna(val) else int(max(1, float(ts.mean()))) # Convert to int for JSON serialization
                     })
                 
                 # Plot actual vs forecast
@@ -125,11 +125,11 @@ def main():
             'success': True,
             'forecast_results': forecast_results,
             'summary': {
-                'total_diseases': len(set(r['disease_name'] for r in forecast_results if 'error' not in r)),
-                'total_forecast_months': len(forecast_results),
-                'historical_records': len(data),
-                'current_cases_30d': current_cases_30d,  # Add current cases data
-                'generated_at': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+                'total_diseases': int(len(set(r['disease_name'] for r in forecast_results if 'error' not in r))),
+                'total_forecast_months': int(len(forecast_results)),
+                'historical_records': int(len(data)),
+                'current_cases_30d': current_cases_30d,  # Keep as dictionary
+                'generated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # Use datetime instead of pd.Timestamp
             }
         }
         

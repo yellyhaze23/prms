@@ -13,12 +13,8 @@ try {
             p.date_of_birth,
             p.sex,
             p.address,
-            p.contact_number,
-            p.email,
             p.created_at,
-            mr.previous_illness as disease,
-            mr.status,
-            mr.severity,
+            mr.diagnosis as disease,
             mr.updated_at as last_visit,
             TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) as age
         FROM patients p
@@ -35,6 +31,9 @@ try {
     ";
     
     $result = $conn->query($sql);
+    if (!$result) {
+        throw new Exception("Main query failed: " . $conn->error);
+    }
     $patients = [];
     
     while ($row = $result->fetch_assoc()) {
@@ -45,11 +44,7 @@ try {
             'age' => (int)$row['age'],
             'sex' => $row['sex'],
             'address' => $row['address'],
-            'contact_number' => $row['contact_number'],
-            'email' => $row['email'],
             'disease' => $row['disease'],
-            'status' => $row['status'],
-            'severity' => $row['severity'],
             'created_at' => $row['created_at'],
             'last_visit' => $row['last_visit']
         ];
@@ -59,37 +54,34 @@ try {
     $diseaseStats = [];
     $diseaseSql = "
         SELECT 
-            h.previous_illness as disease,
+            mr.diagnosis as disease,
             COUNT(*) as total_cases,
-            SUM(CASE WHEN h.status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_cases,
-            SUM(CASE WHEN h.status = 'suspected' THEN 1 ELSE 0 END) as suspected_cases,
-            SUM(CASE WHEN h.status = 'recovered' THEN 1 ELSE 0 END) as recovered_cases,
             AVG(TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE())) as avg_age,
             SUM(CASE WHEN p.sex = 'Male' THEN 1 ELSE 0 END) as male_cases,
             SUM(CASE WHEN p.sex = 'Female' THEN 1 ELSE 0 END) as female_cases
         FROM patients p
         JOIN (
-            SELECT h1.*
-            FROM health_examinations h1
+            SELECT mr1.*
+            FROM medical_records mr1
             INNER JOIN (
                 SELECT patient_id, MAX(updated_at) as max_updated, MAX(id) as max_id
-                FROM health_examinations
+                FROM medical_records
                 GROUP BY patient_id
-            ) h2 ON h1.patient_id = h2.patient_id AND h1.updated_at = h2.max_updated AND h1.id = h2.max_id
-        ) h ON p.id = h.patient_id
-        WHERE h.previous_illness IS NOT NULL AND h.previous_illness != ''
-        GROUP BY h.previous_illness
+            ) mr2 ON mr1.patient_id = mr2.patient_id AND mr1.updated_at = mr2.max_updated AND mr1.id = mr2.max_id
+        ) mr ON p.id = mr.patient_id
+        WHERE mr.diagnosis IS NOT NULL AND mr.diagnosis != ''
+        GROUP BY mr.diagnosis
         ORDER BY total_cases DESC
     ";
     
     $diseaseResult = $conn->query($diseaseSql);
+    if (!$diseaseResult) {
+        throw new Exception("Disease query failed: " . $conn->error);
+    }
     while ($row = $diseaseResult->fetch_assoc()) {
         $diseaseStats[] = [
             'disease' => $row['disease'],
             'total_cases' => (int)$row['total_cases'],
-            'confirmed_cases' => (int)$row['confirmed_cases'],
-            'suspected_cases' => (int)$row['suspected_cases'],
-            'recovered_cases' => (int)$row['recovered_cases'],
             'avg_age' => round($row['avg_age'], 1),
             'male_cases' => (int)$row['male_cases'],
             'female_cases' => (int)$row['female_cases']
@@ -102,25 +94,28 @@ try {
         SELECT 
             SUBSTRING_INDEX(p.address, ',', 1) as barangay,
             COUNT(*) as total_cases,
-            SUM(CASE WHEN h.previous_illness IS NOT NULL AND h.previous_illness != '' THEN 1 ELSE 0 END) as infected_cases,
+            SUM(CASE WHEN mr.diagnosis IS NOT NULL AND mr.diagnosis != '' THEN 1 ELSE 0 END) as infected_cases,
             AVG(TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE())) as avg_age
         FROM patients p
         LEFT JOIN (
-            SELECT h1.*
-            FROM health_examinations h1
+            SELECT mr1.*
+            FROM medical_records mr1
             INNER JOIN (
                 SELECT patient_id, MAX(updated_at) as max_updated, MAX(id) as max_id
-                FROM health_examinations
+                FROM medical_records
                 GROUP BY patient_id
-            ) h2 ON h1.patient_id = h2.patient_id AND h1.updated_at = h2.max_updated AND h1.id = h2.max_id
-        ) h ON p.id = h.patient_id
+            ) mr2 ON mr1.patient_id = mr2.patient_id AND mr1.updated_at = mr2.max_updated AND mr1.id = mr2.max_id
+        ) mr ON p.id = mr.patient_id
         WHERE p.address IS NOT NULL AND p.address != ''
-        GROUP BY barangay
+        GROUP BY SUBSTRING_INDEX(p.address, ',', 1)
         ORDER BY total_cases DESC
         LIMIT 20
     ";
     
     $locationResult = $conn->query($locationSql);
+    if (!$locationResult) {
+        throw new Exception("Location query failed: " . $conn->error);
+    }
     while ($row = $locationResult->fetch_assoc()) {
         $locationStats[] = [
             'barangay' => $row['barangay'],
@@ -139,17 +134,17 @@ try {
         $trendSql = "
             SELECT 
                 COUNT(*) as total_patients,
-                SUM(CASE WHEN h.previous_illness IS NOT NULL AND h.previous_illness != '' THEN 1 ELSE 0 END) as infected_patients
+                SUM(CASE WHEN mr.diagnosis IS NOT NULL AND mr.diagnosis != '' THEN 1 ELSE 0 END) as infected_patients
             FROM patients p
             LEFT JOIN (
-                SELECT h1.*
-                FROM health_examinations h1
+                SELECT mr1.*
+                FROM medical_records mr1
                 INNER JOIN (
                     SELECT patient_id, MAX(updated_at) as max_updated, MAX(id) as max_id
-                    FROM health_examinations
+                    FROM medical_records
                     GROUP BY patient_id
-                ) h2 ON h1.patient_id = h2.patient_id AND h1.updated_at = h2.max_updated AND h1.id = h2.max_id
-            ) h ON p.id = h.patient_id
+                ) mr2 ON mr1.patient_id = mr2.patient_id AND mr1.updated_at = mr2.max_updated AND mr1.id = mr2.max_id
+            ) mr ON p.id = mr.patient_id
             WHERE DATE(p.created_at) = ?
         ";
         

@@ -5,6 +5,7 @@ import Return from '../components/Return';
 import AddPatient from '../components/AddPatient';
 import Toast from '../components/Toast';
 import MedicalRecords from '../components/MedicalRecords';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { FaIdCard, FaMapMarkerAlt, FaCalendarAlt, FaEdit, FaTrash, FaStethoscope, FaFilter } from 'react-icons/fa';
 import { formatPatientID } from '../utils/patientUtils';
 

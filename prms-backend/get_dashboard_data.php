@@ -127,7 +127,7 @@ try {
                     }
                 }
                 
-                // Use only real database data
+                // real data
                 if ($existingData) {
                     $trendsData[] = [
                         'date' => $dateStr,
@@ -135,7 +135,7 @@ try {
                         'patients' => $existingData['patients']
                     ];
                 } else {
-                    // For missing days, use 0 values (no fake data)
+                    // For missing days, use 0 values
                     $trendsData[] = [
                         'date' => $dateStr,
                         'cases' => 0,

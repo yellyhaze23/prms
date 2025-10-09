@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   FaUsers, 
+  FaUser,
   FaFileAlt, 
   FaStethoscope, 
   FaMapMarkerAlt, 
@@ -210,6 +211,18 @@ const Dashboard = () => {
 
   const trendsChartData = processTrendsData();
 
+  // Calculate smart Y-axis max value
+  const calculateYAxisMax = () => {
+    if (!trends_data || trends_data.length === 0) return 10;
+    
+    const maxCases = Math.max(...trends_data.map(item => parseInt(item.cases)));
+    const maxPatients = Math.max(...trends_data.map(item => parseInt(item.patients)));
+    const maxValue = Math.max(maxCases, maxPatients);
+    
+    // Show 1-10 by default, but auto-adjust if data exceeds 10
+    return Math.max(10, maxValue + 2);
+  };
+
   // Chart data for age distribution
   const ageChartData = {
     labels: age_distribution.map(item => item.age_group),
@@ -264,9 +277,10 @@ const Dashboard = () => {
       y: {
         beginAtZero: true,
         min: 0,
-        max: 10,
+        max: calculateYAxisMax(),
         ticks: {
           stepSize: 1,
+          maxTicksLimit: 11,
           callback: function(value) {
             return value;
           }
@@ -532,22 +546,30 @@ const Dashboard = () => {
               <FaCog className="mr-2 text-blue-600" />
               Quick Actions
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               <a href="/patient" className="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200 group">
-                <FaUsers className="h-6 w-6 text-blue-600 mr-3 group-hover:scale-110 transition-transform" />
-                <span className="text-blue-800 font-medium">Manage Patients</span>
-              </a>
-              <a href="/diseases" className="flex items-center p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors duration-200 group">
-                <FaStethoscope className="h-6 w-6 text-red-600 mr-3 group-hover:scale-110 transition-transform" />
-                <span className="text-red-800 font-medium">Track Diseases</span>
+                <FaUser className="h-6 w-6 text-blue-600 mr-3 group-hover:scale-110 transition-transform" />
+                <span className="text-blue-800 font-medium">Patient</span>
               </a>
               <a href="/records" className="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors duration-200 group">
                 <FaFileAlt className="h-6 w-6 text-green-600 mr-3 group-hover:scale-110 transition-transform" />
-                <span className="text-green-800 font-medium">View Records</span>
+                <span className="text-green-800 font-medium">Records</span>
+              </a>
+              <a href="/diseases" className="flex items-center p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors duration-200 group">
+                <FaStethoscope className="h-6 w-6 text-red-600 mr-3 group-hover:scale-110 transition-transform" />
+                <span className="text-red-800 font-medium">Diseases</span>
               </a>
               <a href="/tracker" className="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors duration-200 group">
                 <FaMapMarkerAlt className="h-6 w-6 text-purple-600 mr-3 group-hover:scale-110 transition-transform" />
-                <span className="text-purple-800 font-medium">Disease Tracker</span>
+                <span className="text-purple-800 font-medium">Tracker</span>
+              </a>
+              <a href="/arima-forecast" className="flex items-center p-4 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors duration-200 group">
+                <FaChartLine className="h-6 w-6 text-indigo-600 mr-3 group-hover:scale-110 transition-transform" />
+                <span className="text-indigo-800 font-medium">Forecast</span>
+              </a>
+              <a href="/reports" className="flex items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors duration-200 group">
+                <FaChartBar className="h-6 w-6 text-orange-600 mr-3 group-hover:scale-110 transition-transform" />
+                <span className="text-orange-800 font-medium">Reports</span>
               </a>
             </div>
           </div>
