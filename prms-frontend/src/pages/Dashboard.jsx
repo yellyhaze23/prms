@@ -52,6 +52,7 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedTimeframe, setSelectedTimeframe] = useState('weekly');
   const [lastUpdated, setLastUpdated] = useState(null);
   const [syncing, setSyncing] = useState(false);
 
@@ -62,7 +63,7 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (timeframe = selectedTimeframe) => {
     try {
       // Only show loading spinner on initial load, not on auto-refresh
       if (!dashboardData) {
@@ -71,7 +72,7 @@ const Dashboard = () => {
         setSyncing(true);
       }
       
-      const response = await axios.get("http://localhost/prms/prms-backend/get_dashboard_data.php");
+      const response = await axios.get(`http://localhost/prms/prms-backend/get_dashboard_data.php?timeframe=${timeframe}`);
       
       if (response.data.success) {
         setDashboardData(response.data);
@@ -87,6 +88,11 @@ const Dashboard = () => {
       setLoading(false);
       setSyncing(false);
     }
+  };
+
+  const handleTimeframeChange = (timeframe) => {
+    setSelectedTimeframe(timeframe);
+    fetchDashboardData(timeframe);
   };
 
   const getAlertIcon = (type) => {
@@ -142,48 +148,67 @@ const Dashboard = () => {
 
   if (!dashboardData) return null;
 
-  const { stats, disease_stats, recent_activities, weekly_stats, age_distribution, gender_distribution, top_locations, system_health, alerts, performance_metrics } = dashboardData;
+  const { stats, disease_stats, recent_activities, trends_data, current_timeframe, age_distribution, gender_distribution, top_locations, recent_consultations, alerts } = dashboardData;
 
-  // Build a 7-day window to ensure at least 7 points (curved lines need >=3 points)
-  const dayKey = (d) => new Date(d).toISOString().slice(0,10);
-  const today = new Date();
-  const last7 = Array.from({ length: 7 }).map((_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() - (6 - i));
-    return d;
-  });
-  const weeklyMap = new Map(weekly_stats.map(d => [dayKey(d.date), d]));
+  // Process trends data based on selected timeframe
+  const processTrendsData = () => {
+    if (!trends_data || trends_data.length === 0) {
+      return {
+        labels: [],
+        datasets: []
+      };
+    }
 
-  const labels7 = last7.map(d => d.toLocaleDateString('en-US', { weekday: 'short' }));
-  const cases7 = last7.map(d => (weeklyMap.get(dayKey(d))?.daily_cases) ?? 0);
-  const patients7 = last7.map(d => (weeklyMap.get(dayKey(d))?.daily_patients) ?? 0);
-
-  // Chart data for weekly trends
-  const weeklyChartData = {
-    labels: labels7,
-    datasets: [
-      {
-        label: 'Daily Cases',
-        data: cases7,
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        tension: 0.4,
-        cubicInterpolationMode: 'monotone',
-        pointRadius: 3,
-        fill: true
-      },
-      {
-        label: 'Daily Patients',
-        data: patients7,
-        borderColor: 'rgb(16, 185, 129)',
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        tension: 0.4,
-        cubicInterpolationMode: 'monotone',
-        pointRadius: 3,
-        fill: true
+    const labels = trends_data.map(item => {
+      if (selectedTimeframe === 'weekly') {
+        return new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' });
+      } else {
+        return item.date;
       }
-    ]
+    });
+
+    return {
+      labels: labels,
+      datasets: [
+        {
+          label: selectedTimeframe === 'weekly' ? 'Daily Cases' : 'Cases',
+          data: trends_data.map(item => parseInt(item.cases)),
+          borderColor: 'rgb(99, 102, 241)',
+          backgroundColor: 'rgba(99, 102, 241, 0.1)',
+          tension: 0.4,
+          cubicInterpolationMode: 'monotone',
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: 'rgb(99, 102, 241)',
+          pointBorderColor: 'rgb(99, 102, 241)',
+          pointBorderWidth: 2,
+          fill: true,
+          borderWidth: 3,
+          spanGaps: false,
+          stepped: false
+        },
+        {
+          label: selectedTimeframe === 'weekly' ? 'Daily Patients' : 'Patients',
+          data: trends_data.map(item => parseInt(item.patients)),
+          borderColor: 'rgb(16, 185, 129)',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          tension: 0.4,
+          cubicInterpolationMode: 'monotone',
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: 'rgb(16, 185, 129)',
+          pointBorderColor: 'rgb(16, 185, 129)',
+          pointBorderWidth: 2,
+          fill: false,
+          borderWidth: 3,
+          spanGaps: false,
+          stepped: false
+        }
+      ]
+    };
   };
+
+  const trendsChartData = processTrendsData();
 
   // Chart data for age distribution
   const ageChartData = {
@@ -225,22 +250,46 @@ const Dashboard = () => {
     }]
   };
 
+
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top',
+        display: true
       },
     },
     scales: {
       y: {
-        beginAtZero: true
+        beginAtZero: true,
+        min: 0,
+        max: 10,
+        ticks: {
+          stepSize: 1,
+          callback: function(value) {
+            return value;
+          }
+        }
       }
     },
+    interaction: {
+      intersect: false,
+      mode: 'index'
+    },
     elements: {
-      line: { tension: 0.4 },
-      point: { radius: 3 }
+      line: {
+        tension: 0.4,
+        cubicInterpolationMode: 'monotone'
+      },
+      point: {
+        radius: 4,
+        hoverRadius: 6
+      }
+    },
+    animation: {
+      duration: 1000,
+      easing: 'easeInOutQuart'
     }
   };
 
@@ -306,7 +355,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Statistics Cards */}
+        {/* Essential Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div className="flex items-center">
@@ -357,28 +406,78 @@ const Dashboard = () => {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <FaCheckCircle className="h-6 w-6 text-green-600" />
+                  <FaUserMd className="h-6 w-6 text-green-600" />
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Healthy Patients</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.healthy_patients}</p>
-                <p className="text-xs text-gray-500">No active diseases</p>
+                <p className="text-sm font-medium text-gray-500">New This Month</p>
+                <p className="text-2xl font-semibold text-gray-900">{stats.new_patients_this_month}</p>
+                <p className="text-xs text-gray-500">New patients</p>
               </div>
             </div>
           </div>
+
         </div>
+
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Weekly Trends Chart */}
+          {/* Dynamic Trends Chart */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <FaChartLine className="mr-2 text-blue-600" />
-              Weekly Trends
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <FaChartLine className="mr-2 text-blue-600" />
+                Trends Analysis
+              </h3>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handleTimeframeChange('weekly')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    selectedTimeframe === 'weekly'
+                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Weekly
+                </button>
+                <button
+                  onClick={() => handleTimeframeChange('monthly')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    selectedTimeframe === 'monthly'
+                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Monthly
+                </button>
+                <button
+                  onClick={() => handleTimeframeChange('quarterly')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    selectedTimeframe === 'quarterly'
+                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Quarterly
+                </button>
+                <button
+                  onClick={() => handleTimeframeChange('yearly')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    selectedTimeframe === 'yearly'
+                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Yearly
+                </button>
+              </div>
+            </div>
             <div className="h-64">
-              <Line data={weeklyChartData} options={chartOptions} />
+              <Line 
+                key={`trends-chart-${selectedTimeframe}`}
+                data={trendsChartData} 
+                options={chartOptions} 
+              />
             </div>
           </div>
 
@@ -488,8 +587,41 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Top Locations */}
-        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+        {/* Recent Consultations */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <FaStethoscope className="mr-2 text-teal-600" />
+              Recent Consultations (Last 7 Days)
+            </h3>
+            <div className="space-y-3">
+              {recent_consultations.length > 0 ? (
+                recent_consultations.map((consultation, index) => (
+                  <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center">
+                      <FaUserMd className="h-4 w-4 text-teal-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">{consultation.full_name}</p>
+                      <p className="text-xs text-gray-500">
+                        Diagnosis: {consultation.diagnosis || 'No diagnosis'}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {consultation.chief_complaint ? `Complaint: ${consultation.chief_complaint}` : 'No complaint recorded'}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(consultation.date_of_consultation).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <FaClock className="h-4 w-4 text-gray-400" />
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">No recent consultations</p>
+              )}
+            </div>
+          </div>
+
           {/* Top Locations */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -520,6 +652,7 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );
