@@ -145,3 +145,4 @@ public
 # Temporary folders
 tmp/
 temp/
+forecasting/forecast_result.csv

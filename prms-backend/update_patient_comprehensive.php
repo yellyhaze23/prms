@@ -81,7 +81,15 @@ try {
         'health_provider_medical', 'medical_remarks'
     ];
 
+    // Key medical fields that should trigger a new consultation entry
+    $criticalMedicalFields = [
+        'diagnosis', 'chief_complaint', 'health_provider', 'prescribed_medicine', 
+        'medical_advice', 'laboratory_procedure', 'medical_remarks'
+    ];
+
     $updateFields = [];
+    $hasMedicalChanges = false;
+    
     foreach ($medicalFields as $field) {
         if (isset($data[$field])) {
             if (in_array($field, ['height', 'weight'])) {
@@ -97,52 +105,62 @@ try {
                     $updateFields[] = "$field = '$value'";
                 }
             }
-            // error_log("Processing field: $field = " . $data[$field]);
+            
+            // Check if this is a critical medical field with actual content
+            if (in_array($field, $criticalMedicalFields) && !empty(trim($data[$field]))) {
+                $hasMedicalChanges = true;
+            }
         }
     }
     
-    // error_log("Total fields to update: " . count($updateFields));
+    error_log("Medical changes detected: " . ($hasMedicalChanges ? 'YES' : 'NO'));
+    error_log("Total fields to update: " . count($updateFields));
 
     if (!empty($updateFields)) {
         $updateFields[] = "updated_at = NOW()";
         
-        // Automatically set consultation date to today if not explicitly provided
-        // This ensures Last Visit updates when any medical record is modified
-        if (!isset($data['date_of_consultation']) || empty($data['date_of_consultation'])) {
-            // Only add if not already in the fields
-            $hasDateOfConsultation = false;
-            foreach ($updateFields as $field) {
-                if (strpos($field, 'date_of_consultation') === 0) {
-                    $hasDateOfConsultation = true;
-                    break;
+        // Only create new consultation entry if there are actual medical changes
+        if ($hasMedicalChanges) {
+            error_log("Creating new consultation entry due to medical changes");
+            
+            // Automatically set consultation date to today if not explicitly provided
+            if (!isset($data['date_of_consultation']) || empty($data['date_of_consultation'])) {
+                // Only add if not already in the fields
+                $hasDateOfConsultation = false;
+                foreach ($updateFields as $field) {
+                    if (strpos($field, 'date_of_consultation') === 0) {
+                        $hasDateOfConsultation = true;
+                        break;
+                    }
+                }
+                if (!$hasDateOfConsultation) {
+                    $updateFields[] = "date_of_consultation = CURDATE()";
                 }
             }
-            if (!$hasDateOfConsultation) {
-                $updateFields[] = "date_of_consultation = CURDATE()";
+            
+            // INSERT a new medical record for new consultation
+            $insertFields = ['patient_id'];
+            $insertValues = [$patient_id];
+            
+            foreach ($updateFields as $field) {
+                if (strpos($field, ' = ') !== false) {
+                    $fieldName = trim(explode(' = ', $field)[0]);
+                    $fieldValue = trim(explode(' = ', $field)[1]);
+                    $insertFields[] = $fieldName;
+                    $insertValues[] = $fieldValue;
+                }
             }
-        }
-        
-        // Always INSERT a new medical record to avoid collation conflicts
-        // This creates a new consultation record each time
-        $insertFields = ['patient_id'];
-        $insertValues = [$patient_id];
-        
-        foreach ($updateFields as $field) {
-            if (strpos($field, ' = ') !== false) {
-                $fieldName = trim(explode(' = ', $field)[0]);
-                $fieldValue = trim(explode(' = ', $field)[1]);
-                $insertFields[] = $fieldName;
-                $insertValues[] = $fieldValue;
-            }
-        }
-        
-        $medicalSql = "INSERT INTO medical_records (" . implode(', ', $insertFields) . ") VALUES (" . implode(', ', $insertValues) . ")";
+            
+            $medicalSql = "INSERT INTO medical_records (" . implode(', ', $insertFields) . ") VALUES (" . implode(', ', $insertValues) . ")";
 
-        if (!mysqli_query($conn, $medicalSql)) {
-            throw new Exception('Failed to update medical records: ' . mysqli_error($conn));
+            if (!mysqli_query($conn, $medicalSql)) {
+                throw new Exception('Failed to create new consultation record: ' . mysqli_error($conn));
+            }
+        } else {
+            error_log("No medical changes detected - skipping new consultation entry");
         }
     } else {
-        // error_log("No medical fields to update");
+        error_log("No medical fields to update");
     }
 
     // Commit transaction

@@ -22,18 +22,19 @@ try {
             p.sex,
             p.address,
             mr.diagnosis,
-            mr.diagnosis_date,
-            mr.onset_date,
-            mr.symptoms,
-            mr.treatment,
+            mr.chief_complaint,
+            mr.health_provider,
+            mr.prescribed_medicine,
             mr.medical_advice,
-            mr.notes,
+            mr.medical_remarks,
+            mr.treatment,
             mr.date_of_consultation,
+            mr.created_at,
             mr.updated_at
         FROM patients p
         INNER JOIN medical_records mr ON p.id = mr.patient_id
         WHERE mr.diagnosis = ?
-        ORDER BY mr.diagnosis_date DESC, mr.updated_at DESC
+        ORDER BY mr.date_of_consultation DESC, mr.created_at DESC
     ";
     
     $stmt = $conn->prepare($sql);
@@ -58,13 +59,14 @@ try {
             'sex' => $row['sex'],
             'address' => $row['address'],
             'diagnosis' => $row['diagnosis'],
-            'diagnosis_date' => $row['diagnosis_date'],
-            'onset_date' => $row['onset_date'],
-            'symptoms' => $row['symptoms'],
-            'treatment' => $row['treatment'],
+            'chief_complaint' => $row['chief_complaint'],
+            'health_provider' => $row['health_provider'],
+            'prescribed_medicine' => $row['prescribed_medicine'],
             'medical_advice' => $row['medical_advice'],
-            'notes' => $row['notes'],
+            'medical_remarks' => $row['medical_remarks'],
+            'treatment' => $row['treatment'],
             'consultation_date' => $row['date_of_consultation'],
+            'created_at' => $row['created_at'],
             'last_updated' => $row['updated_at']
         ];
     }

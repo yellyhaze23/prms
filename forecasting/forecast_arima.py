@@ -83,8 +83,11 @@ def main():
                 forecast = model_fit.forecast(steps=forecast_period)
                 
                 # Store results - ROUND TO WHOLE NUMBERS for panelist presentation
+                # Use current date for forecasting instead of last historical data point
+                current_date = datetime.now()
                 for i, val in enumerate(forecast):
-                    next_month = ts.index[-1] + pd.DateOffset(months=i + 1)
+                    # Calculate forecast date from current date, not from last historical data
+                    next_month = pd.Timestamp(current_date) + pd.DateOffset(months=i + 1)
                     forecast_results.append({
                         "disease_name": disease,
                         "forecast_month": next_month.strftime("%Y-%m"),
@@ -94,7 +97,8 @@ def main():
                 # Plot actual vs forecast
                 plt.figure(figsize=(8, 4))
                 plt.plot(ts, label="Actual Cases", marker='o')
-                forecast_dates = pd.date_range(ts.index[-1], periods=4, freq="M")[1:]
+                # Use current date for forecast dates in plot
+                forecast_dates = pd.date_range(pd.Timestamp(current_date), periods=forecast_period+1, freq="M")[1:]
                 plt.plot(forecast_dates, forecast, label="Forecast", linestyle="--", marker='s')
                 plt.title(f"Disease Forecast: {disease}")
                 plt.xlabel("Date")
