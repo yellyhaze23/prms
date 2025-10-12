@@ -1,4 +1,9 @@
 <?php
+// Start session BEFORE any headers
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once __DIR__ . '/_init.php';
 $user = current_user_or_401();
 
@@ -32,7 +37,7 @@ $where = 'WHERE ' . implode(' AND ', $whereParts);
 $totalRes = $conn->query("SELECT COUNT(*) as c FROM patients $where");
 $total = $totalRes ? intval($totalRes->fetch_assoc()['c']) : 0;
 
-$sql = "SELECT id, full_name, age, sex, address FROM patients $where ORDER BY id LIMIT $pageSize OFFSET $offset";
+$sql = "SELECT id, full_name, age, sex, date_of_birth, address, created_at FROM patients $where ORDER BY id LIMIT $pageSize OFFSET $offset";
 $res = $conn->query($sql);
 $list = [];
 if ($res) {

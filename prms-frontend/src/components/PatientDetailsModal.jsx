@@ -71,7 +71,36 @@ const PatientDetailsModal = ({ isVisible, onClose, patient }) => {
     );
   }
 
-  const data = patientData || patient;
+  // Parse full_name into individual components if not available
+  const parseFullName = (fullName) => {
+    if (!fullName) return { surname: '', first_name: '', middle_name: '', suffix: '' };
+    
+    const parts = fullName.trim().split(' ');
+    if (parts.length === 1) {
+      return { surname: parts[0], first_name: '', middle_name: '', suffix: '' };
+    } else if (parts.length === 2) {
+      return { surname: parts[1], first_name: parts[0], middle_name: '', suffix: '' };
+    } else if (parts.length === 3) {
+      return { surname: parts[2], first_name: parts[0], middle_name: parts[1], suffix: '' };
+    } else {
+      // 4 or more parts - assume last is surname, first is first name, rest is middle name
+      return { 
+        surname: parts[parts.length - 1], 
+        first_name: parts[0], 
+        middle_name: parts.slice(1, -1).join(' '), 
+        suffix: '' 
+      };
+    }
+  };
+
+  const rawData = patientData || patient;
+  const parsedName = parseFullName(rawData.full_name);
+  
+  // Merge data with parsed name components
+  const data = {
+    ...rawData,
+    ...parsedName
+  };
 
   const modalContent = (
     <div 

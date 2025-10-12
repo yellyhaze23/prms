@@ -8,7 +8,7 @@ export default function Layout({ title = 'RHU PRS', subtitle = 'Staff Portal', n
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar nav={nav} brandTitle={title} brandSubtitle={subtitle} />
-      <main className="lg:mmax-w-7xl mx-auto px-4 sm:px-6 lg:px-8l-64">
+      <main className="lg:mmax-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
        {/* <Header title={headerTitle} subtitle={headerSubtitle} /> */}
         <div className="p-4 sm:p-6">
           <Outlet />
