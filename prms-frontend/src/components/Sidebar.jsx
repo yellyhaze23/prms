@@ -13,6 +13,7 @@ import {
   FaHospital,
   FaStethoscope,
   FaChartLine, // Added FaChartLine icon for ARIMA Forecasting
+  FaShieldAlt, // Added FaShieldAlt icon for Audit Logs
 } from "react-icons/fa";
 import ConfirmationModal from "./ConfirmationModal";
 
@@ -36,6 +37,7 @@ function Sidebar() {
         { path: "/tracker", icon: FaMapMarkerAlt, label: "Tracker" },
         { path: "/arima-forecast", icon: FaChartLine, label: "Forecast" },
         { path: "/reports", icon: FaChartBar, label: "Reports" },
+        { path: "/audit-logs", icon: FaShieldAlt, label: "Audit Logs" },
         { path: "/settings", icon: FaCog, label: "Settings" },
       ];
 

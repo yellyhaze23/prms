@@ -9,6 +9,7 @@ import Diseases from "./pages/Diseases";
 import Tracker from "./pages/Tracker";
 import ARIMAForecast from "./pages/ARIMAForecast";
 import Reports from "./pages/Reports";
+import AuditLogs from "./pages/AuditLogs";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import "./App.css";
@@ -68,6 +69,7 @@ function App() {
           <Route path="/tracker" element={<Tracker />} />
           <Route path="/arima-forecast" element={<ARIMAForecast />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/audit-logs" element={<AuditLogs />} />
           <Route path="/settings" element={<Settings />} />
           {/** Staff Portal */}
           <Route

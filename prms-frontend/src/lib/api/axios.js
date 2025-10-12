@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-const baseURL = (import.meta?.env?.VITE_API_BASE_URL || 'http://localhost/prms/prms-backend/api') + '/staff';
+const baseURL = (import.meta?.env?.VITE_API_BASE_URL || 'http://localhost/prms/prms-backend/api/staff');
 
 export const api = axios.create({
   baseURL,
-  withCredentials: false,
+  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {

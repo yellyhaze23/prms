@@ -6,6 +6,7 @@ ini_set('display_errors', 0);
 // Use proper CORS handling
 require 'cors.php';
 require 'config.php';
+require 'audit_logger.php';
 
 // Set connection collation to avoid collation conflicts
 mysqli_query($conn, "SET NAMES utf8mb4 COLLATE utf8mb4_general_ci");
@@ -166,6 +167,18 @@ try {
     // Commit transaction
     mysqli_commit($conn);
 
+    // Log successful patient update
+    $auditLogger->logPatientOperation(
+        1, // Default user ID - you may want to get this from session
+        'admin', // Default user type - you may want to get this from session
+        'system', // Default username - you may want to get this from session
+        'update_patient',
+        $patient_id,
+        null, // old_data - you can store this before the update
+        $data, // new_data
+        'success'
+    );
+    
     echo json_encode([
         'success' => true,
         'message' => 'Patient and medical records updated successfully'

@@ -3,7 +3,7 @@ import { FaEdit, FaTrash, FaIdCard, FaMapMarkerAlt, FaCalendarAlt, FaVenusMars }
 import PatientDetailsModal from "./PatientDetailsModal";
 import { formatPatientID } from "../utils/patientUtils";
 
-function PatientList({ patients, onSelect, onEdit, onDelete }) {
+function PatientList({ patients, onSelect, onEdit, onDelete, loading, error }) {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
@@ -19,7 +19,18 @@ function PatientList({ patients, onSelect, onEdit, onDelete }) {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden" style={{backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', border: '1px solid #e5e7eb', overflow: 'hidden'}}>
-      {patients.length === 0 ? (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-12 px-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-500 text-lg font-medium">Loading patients...</p>
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-12 px-6">
+          <FaIdCard className="text-6xl text-red-300 mb-4" />
+          <p className="text-red-500 text-lg font-medium">Error loading patients</p>
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      ) : patients.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 px-6">
           <FaIdCard className="text-6xl text-gray-300 mb-4" />
           <p className="text-gray-500 text-lg font-medium">No patients found</p>
@@ -116,19 +127,28 @@ function PatientList({ patients, onSelect, onEdit, onDelete }) {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-2">
                       <button
+                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150"
+                        title="View Patient Details"
+                        onClick={() => handleViewDetails(patient)}
+                      >
+                        <FaIdCard className="h-4 w-4" />
+                      </button>
+                      <button
                         className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-150"
-                        title="Edit Medical Records"
+                        title="Edit Patient"
                         onClick={() => onEdit(patient)}
                       >
                         <FaEdit className="h-4 w-4" />
                       </button>
-                      <button
-                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-150"
-                        title="Delete Patient"
-                        onClick={() => onDelete(patient.id)}
-                      >
-                        <FaTrash className="h-4 w-4" />
-                      </button>
+                      {onDelete && (
+                        <button
+                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-150"
+                          title="Delete Patient"
+                          onClick={() => onDelete(patient.id)}
+                        >
+                          <FaTrash className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

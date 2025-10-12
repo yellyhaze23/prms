@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { FaCog, FaEdit, FaTrash } from "react-icons/fa";
+import { FaCog, FaEdit, FaTrash, FaClock, FaUser, FaShieldAlt } from "react-icons/fa";
 import SettingsToolbar from "../components/SettingsToolbar";
 import UserModal from "../components/AddUser";
 import Toast from "../components/Toast";
@@ -9,8 +9,9 @@ import ConfirmationModal from "../components/ConfirmationModal";
 import "./Settings.css";
 
 function Settings() {
-  const [activeTab, setActiveTab] = useState("users"); // users | account
+  const [activeTab, setActiveTab] = useState("users"); // users | account | activity
   const [users, setUsers] = useState([]);
+  const [activityLogs, setActivityLogs] = useState([]);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState("id");
   const [sortOrder, setSortOrder] = useState("asc");
@@ -40,16 +41,28 @@ function Settings() {
     if (res.data.success) setUsers(res.data.users);
   };
 
+  const fetchActivityLogs = async () => {
+    try {
+      const response = await axios.get("http://localhost/prms/prms-backend/get_activity_logs.php");
+      setActivityLogs(response.data);
+    } catch (error) {
+      console.error('Error fetching activity logs:', error);
+    }
+  };
+
   // (Clinic settings removed)
 
   useEffect(() => {
     fetchUsers();
+    if (activeTab === 'activity') {
+      fetchActivityLogs();
+    }
     // preload username if available from storage
     const storedUser = localStorage.getItem("prms_username");
     if (storedUser) {
       setAccount((a) => ({ ...a, username: storedUser }));
     }
-  }, []);
+  }, [activeTab]);
 
   const handleOpenAddModal = () => {
     setEditing(false);
@@ -125,22 +138,35 @@ function Settings() {
           </div>
         </div>
       </div>
-      <div className="mt-4 mb-4">
-        <SettingsToolbar
-          onSearch={setSearch}
-          onSort={setSortKey}
-          sortOrder={sortOrder}
-          onToggleSortOrder={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-          onAdd={handleOpenAddModal}
-          disableAdd={false}
-        />
-      </div>
 
       {/* Tabs */}
       <div className="flex items-center justify-start gap-2 mb-4">
-        <button onClick={() => setActiveTab('users')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab==='users' ? 'bg-blue-600 text-white shadow' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}>Users</button>
-        <button onClick={() => setActiveTab('account')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab==='account' ? 'bg-blue-600 text-white shadow' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}>Account</button>
+        <button onClick={() => setActiveTab('users')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab==='users' ? 'bg-blue-600 text-white shadow' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}>
+          <FaUser className="inline mr-2" />
+          Users
+        </button>
+        <button onClick={() => setActiveTab('account')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab==='account' ? 'bg-blue-600 text-white shadow' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}>
+          <FaCog className="inline mr-2" />
+          Account
+        </button>
+        <button onClick={() => setActiveTab('activity')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab==='activity' ? 'bg-blue-600 text-white shadow' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}>
+          <FaClock className="inline mr-2" />
+          Activity Logs
+        </button>
       </div>
+
+      {activeTab === 'users' && (
+        <div className="mt-4 mb-4">
+          <SettingsToolbar
+            onSearch={setSearch}
+            onSort={setSortKey}
+            sortOrder={sortOrder}
+            onToggleSortOrder={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+            onAdd={handleOpenAddModal}
+            disableAdd={false}
+          />
+        </div>
+      )}
 
       {activeTab === 'users' && (
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -235,6 +261,72 @@ function Settings() {
               }}
               className="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow"
             >Change Password</button>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'activity' && (
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">Activity Logs</h3>
+            <p className="text-sm text-gray-500">Monitor user activities and system events</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activity</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {activityLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                      <div className="flex flex-col items-center">
+                        <FaClock className="h-12 w-12 text-gray-300 mb-4" />
+                        <p className="text-lg font-medium text-gray-900">No activity logs found</p>
+                        <p className="text-sm text-gray-500">User activities will appear here</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  activityLogs.map((log, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div className="flex items-center">
+                          <FaClock className="h-4 w-4 text-gray-400 mr-2" />
+                          {new Date(log.created_at).toLocaleString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <FaUser className="h-4 w-4 text-gray-400 mr-2" />
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{log.username || 'Unknown'}</div>
+                            <div className="text-sm text-gray-500 capitalize">{log.user_type}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {log.activity_type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{log.description}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                          {log.ip_address || 'Unknown'}
+                        </code>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
