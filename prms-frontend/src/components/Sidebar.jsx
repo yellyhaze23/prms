@@ -16,6 +16,7 @@ import {
   FaShieldAlt, // Added FaShieldAlt icon for Audit Logs
 } from "react-icons/fa";
 import ConfirmationModal from "./ConfirmationModal";
+import { preloadRoute } from '../utils/routePreloader';
 
 function Sidebar() {
   const location = useLocation();
@@ -27,6 +28,16 @@ function Sidebar() {
     sessionStorage.removeItem("isLoggedIn");
     navigate("/"); 
     window.location.reload(); 
+  };
+
+  const handleNavClick = (path) => {
+    // Preload the target route for instant switching
+    preloadRoute(path);
+  };
+
+  const handleNavHover = (path) => {
+    // Preload on hover for even faster switching
+    preloadRoute(path);
   };
 
       const navItems = [
@@ -67,6 +78,8 @@ function Sidebar() {
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={() => handleNavClick(item.path)}
+                onMouseEnter={() => handleNavHover(item.path)}
                 className={`group flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                   active
                     ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"

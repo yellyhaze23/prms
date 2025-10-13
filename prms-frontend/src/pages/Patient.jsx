@@ -5,10 +5,14 @@ import PatientList from "../components/PatientList";
 import AddPatient from "../components/AddPatient";
 import ConfirmationModal from "../components/ConfirmationModal";
 import Toast from "../components/Toast";
+// Performance optimizations
+import { getCachedData, setCachedData, shouldRefreshInBackground, markAsRefreshed } from '../utils/cache';
+import { preloadData } from '../utils/dataPreloader';
+import { useInstantSearch } from '../hooks/useInstantSearch';
 
 function Patient() {
   const [patients, setPatients] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(false); // Start with false for instant display
   const [sortBy, setSortBy] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -16,52 +20,83 @@ function Patient() {
   const [toast, setToast] = useState(null); 
   const [confirmModal, setConfirmModal] = useState(null); 
 
+  // Instant search with local filtering
+  const {
+    searchTerm,
+    setSearchTerm,
+    filteredData: filteredPatients,
+    clearSearch
+  } = useInstantSearch(patients, ['full_name', 'address', 'sex']);
+
   useEffect(() => {
     fetchPatients();
   }, []);
 
-  const fetchPatients = () => {
-    axios
-      .get("http://localhost/prms/prms-backend/get_patients.php")
-      .then((res) => {
-        setPatients(res.data);
-      })
-      .catch((err) => {
-        console.error("Error fetching patients:", err);
-      });
+  const fetchPatients = async (forceRefresh = false) => {
+    // Check cache first - INSTANT DISPLAY
+    const cached = getCachedData('patients');
+    if (cached && !forceRefresh) {
+      setPatients(cached);
+      setLoading(false);
+      
+      // Background refresh if needed
+      if (shouldRefreshInBackground('patients')) {
+        refreshInBackground();
+      }
+      return;
+    }
+
+    // Only show loading if no cached data
+    if (!cached) {
+      setLoading(true);
+    }
+
+    try {
+      // Use preloaded data if available
+      const data = await preloadData('patients', () => 
+        fetch('http://localhost/prms/prms-backend/get_patients.php').then(r => r.json())
+      );
+      
+      setPatients(data);
+    } catch (err) {
+      console.error("Error fetching patients:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshInBackground = async () => {
+    try {
+      const response = await axios.get("http://localhost/prms/prms-backend/get_patients.php");
+      setPatients(response.data);
+      setCachedData('patients', response.data);
+      markAsRefreshed('patients');
+    } catch (err) {
+      console.error("Background refresh failed:", err);
+    }
   };
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
-  const filteredPatients = [...patients]
-    .filter((p) => {
-      const term = searchTerm.toLowerCase();
-      return (
-        (p.full_name || "").toLowerCase().includes(term) ||
-        (p.patient_id || "").toLowerCase().includes(term) ||
-        (p.course_year_section || "").toLowerCase().includes(term) ||
-        (p.department || "").toLowerCase().includes(term)
-      );
-    })
-    
-    .sort((a, b) => {
-      if (!sortBy) return 0;
+  // Sort the filtered patients
+  const sortedPatients = [...filteredPatients].sort((a, b) => {
+    if (!sortBy) return 0;
 
-      const valA = a[sortBy] ?? "";
-      const valB = b[sortBy] ?? "";
+    const valA = a[sortBy] ?? "";
+    const valB = b[sortBy] ?? "";
 
-      let result;
+    let result;
 
-      if (sortBy === "id") {
-        result = Number(valA) - Number(valB);
-      } else {
-        result = valA.toString().toLowerCase().localeCompare(valB.toString().toLowerCase());
-      }
+    if (sortBy === "id") {
+      result = Number(valA) - Number(valB);
+    } else {
+      result = valA.toString().toLowerCase().localeCompare(valB.toString().toLowerCase());
+    }
 
-      return sortOrder === "asc" ? result : -result;
-    });
+    return sortOrder === "asc" ? result : -result;
+  });
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -128,7 +163,8 @@ function Patient() {
 
         {/* Patient List */}
         <PatientList
-          patients={filteredPatients}
+          patients={sortedPatients}
+          loading={loading}
           onEdit={handleEditPatient}
           onDelete={handleDeletePatient}
         />

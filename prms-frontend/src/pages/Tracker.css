@@ -187,3 +187,54 @@
 .overflow-x-auto::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Barangay Hotspot Styles */
+.barangay-hotspot {
+  animation: pulse 2s infinite;
+}
+
+.barangay-hotspot-wrapper {
+  background: transparent !important;
+  border: none !important;
+}
+
+.barangay-popup {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.barangay-popup .leaflet-popup-content {
+  margin: 0;
+  padding: 0;
+}
+
+.barangay-popup .leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+/* Tracker specific styles */
+.tracker-container {
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+.tracker-map {
+  height: 500px;
+  width: 100%;
+  border-radius: 8px;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .tracker-map {
+    height: 500px;
+  }
+  
+  .grid-cols-1.md\\:grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  
+  .grid-cols-1.md\\:grid-cols-4.gap-4 {
+    gap: 1rem;
+  }
+}

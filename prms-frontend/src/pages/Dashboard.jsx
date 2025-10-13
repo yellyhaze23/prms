@@ -34,6 +34,9 @@ import {
 } from 'chart.js';
 import axios from "axios";
 import "./Dashboard.css";
+// Performance optimizations
+import { getCachedData, setCachedData, shouldRefreshInBackground, markAsRefreshed } from '../utils/cache';
+import { preloadData } from '../utils/dataPreloader';
 
 // Register Chart.js components
 ChartJS.register(
@@ -51,7 +54,7 @@ ChartJS.register(
 
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start with false for instant display
   const [error, setError] = useState(null);
   const [selectedTimeframe, setSelectedTimeframe] = useState('weekly');
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -64,23 +67,40 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const fetchDashboardData = async (timeframe = selectedTimeframe) => {
-    try {
-      // Only show loading spinner on initial load, not on auto-refresh
-      if (!dashboardData) {
-        setLoading(true);
-      } else {
-        setSyncing(true);
+  const fetchDashboardData = async (timeframe = selectedTimeframe, forceRefresh = false) => {
+    // Check cache first - INSTANT DISPLAY
+    const cacheKey = `dashboard_${timeframe}`;
+    const cached = getCachedData(cacheKey);
+    if (cached && !forceRefresh) {
+      setDashboardData(cached);
+      setLoading(false);
+      
+      // Background refresh if needed
+      if (shouldRefreshInBackground(cacheKey)) {
+        refreshInBackground(timeframe);
       }
+      return;
+    }
+
+    // Only show loading if no cached data
+    if (!cached) {
+      setLoading(true);
+    } else {
+      setSyncing(true);
+    }
+
+    try {
+      // Use preloaded data if available
+      const data = await preloadData(cacheKey, () => 
+        fetch(`http://localhost/prms/prms-backend/get_dashboard_data.php?timeframe=${timeframe}`).then(r => r.json())
+      );
       
-      const response = await axios.get(`http://localhost/prms/prms-backend/get_dashboard_data.php?timeframe=${timeframe}`);
-      
-      if (response.data.success) {
-        setDashboardData(response.data);
+      if (data.success) {
+        setDashboardData(data);
         setLastUpdated(new Date());
         setError(null);
       } else {
-        setError(response.data.error || "Failed to fetch dashboard data");
+        setError(data.error || "Failed to fetch dashboard data");
       }
     } catch (err) {
       setError("Server error. Please check your connection.");
@@ -88,6 +108,20 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
       setSyncing(false);
+    }
+  };
+
+  const refreshInBackground = async (timeframe) => {
+    try {
+      const response = await axios.get(`http://localhost/prms/prms-backend/get_dashboard_data.php?timeframe=${timeframe}`);
+      if (response.data.success) {
+        setDashboardData(response.data);
+        setCachedData(`dashboard_${timeframe}`, response.data);
+        markAsRefreshed(`dashboard_${timeframe}`);
+        setLastUpdated(new Date());
+      }
+    } catch (err) {
+      console.error("Background refresh failed:", err);
     }
   };
 
