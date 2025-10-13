@@ -121,8 +121,8 @@ def main():
                 })
         
         # Save forecast results
-        forecast_df = pd.DataFrame(forecast_results)
-        forecast_df.to_csv("forecast_result.csv", index=False)
+        #forecast_df = pd.DataFrame(forecast_results)
+        #forecast_df.to_csv("forecast_result.csv", index=False)
         
         # Return JSON output for PHP
         result_data = {
