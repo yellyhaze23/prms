@@ -4,8 +4,9 @@ import Toolbar from "../components/Toolbar";
 import PatientList from "../components/PatientList";
 import AddPatient from "../components/AddPatient";
 import ConfirmationModal from "../components/ConfirmationModal";
-import Toast from "../components/Toast";
+import ModernToast from "../components/ModernToast";
 import Pagination from "../components/Pagination";
+import notificationService from "../utils/notificationService";
 // Performance optimizations
 import { getCachedData, setCachedData, shouldRefreshInBackground, markAsRefreshed } from '../utils/cache';
 import { preloadData } from '../utils/dataPreloader';
@@ -19,6 +20,7 @@ function Patient() {
   const [editPatient, setEditPatient] = useState(null);
   const [toast, setToast] = useState(null); 
   const [confirmModal, setConfirmModal] = useState(null);
+  const [error, setError] = useState(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -52,9 +54,11 @@ function Patient() {
         setError(null);
       } else {
         setError("Failed to fetch patients");
+        showToast("Failed to fetch patients", "error");
       }
     } catch (err) {
       setError("Server error. Please check your connection.");
+      showToast("Server error. Please check your connection.", "error");
       console.error("Error fetching patients:", err);
     } finally {
       setLoading(false);
@@ -89,23 +93,43 @@ function Patient() {
   };
 
 
-  const showToast = (message, type = "success") => {
-    setToast({ message, type });
+  const showToast = (message, type = "success", title = null) => {
+    setToast({ 
+      isVisible: true, 
+      message, 
+      type,
+      title: title || (type === 'success' ? 'Success!' : type === 'error' ? 'Error!' : 'Info!')
+    });
   };
 
-  const handleAddPatient = (newPatient) => {
+  const handleAddPatient = async (newPatient) => {
     setPatients([...patients, newPatient]);
     showToast("Patient added successfully", "success");
+    
+    // Send notification
+    try {
+      await notificationService.notifyPatientAdded(newPatient.full_name || 'New Patient');
+    } catch (error) {
+      console.error('Error sending notification:', error);
+    }
   };
 
-  const handleUpdatePatient = (updatedPatient) => {
+  const handleUpdatePatient = async (updatedPatient) => {
     setPatients((prev) =>
       prev.map((p) => (p.id === updatedPatient.id ? updatedPatient : p))
     );
     showToast("Patient updated successfully", "success");
+    
+    // Send notification
+    try {
+      await notificationService.notifyPatientUpdated(updatedPatient.full_name || 'Patient');
+    } catch (error) {
+      console.error('Error sending notification:', error);
+    }
   };
 
   const handleDeletePatient = (id) => {
+    const patient = patients.find(p => p.id === id);
     setConfirmModal({
       message: "Are you sure you want to delete this patient?",
       onConfirm: async () => {
@@ -114,7 +138,14 @@ function Patient() {
             id,
           });
           setPatients((prev) => prev.filter((p) => p.id !== id));
-          showToast("Patient deleted successfully", "error");
+          showToast("Patient deleted successfully", "delete", "Deleted!");
+          
+          // Send notification
+          try {
+            await notificationService.notifyPatientDeleted(patient?.full_name || 'Patient');
+          } catch (error) {
+            console.error('Error sending notification:', error);
+          }
         } catch (err) {
           showToast("Failed to delete patient", "error");
           console.error(err);
@@ -190,9 +221,11 @@ function Patient() {
       )}
 
       {toast && (
-        <Toast
+        <ModernToast
+          isVisible={toast.isVisible}
           message={toast.message}
           type={toast.type}
+          title={toast.title}
           onClose={() => setToast(null)}
         />
       )}

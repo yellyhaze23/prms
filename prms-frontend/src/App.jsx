@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
+import TopBar from "./components/TopBar";
 import Login from "./pages/Login";
 import "./App.css";
 import "./index.css";
@@ -19,6 +20,7 @@ const ARIMAForecast = lazy(() => import('./pages/ARIMAForecast'));
 const Reports = lazy(() => import('./pages/Reports'));
 const AuditLogs = lazy(() => import('./pages/AuditLogs'));
 const Settings = lazy(() => import('./pages/Settings'));
+const NotificationCenter = lazy(() => import('./components/NotificationCenter'));
 
 // Staff portal lazy loading
 const RequireStaff = lazy(() => import('./staff/components/RequireStaff'));
@@ -96,6 +98,7 @@ function App() {
   return (
     <div className="app-layout">
       {!isStaffRoute && <Sidebar />}
+      {!isStaffRoute && <TopBar userId={1} userName="Admin" userRole="Administrator" />}
       <div className="main-content">
         <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -108,6 +111,7 @@ function App() {
             <Route path="/reports" element={<Reports />} />
             <Route path="/audit-logs" element={<AuditLogs />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/notifications" element={<NotificationCenter />} />
             {/** Staff Portal */}
             <Route
               path="/staff/*"

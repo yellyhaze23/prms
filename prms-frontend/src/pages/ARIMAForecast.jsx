@@ -13,8 +13,9 @@ import {
   FaFileImage
 } from 'react-icons/fa';
 import RecentForecasts from '../components/RecentForecasts';
-import SuccessAlert from '../components/SuccessAlert';
 import ForecastChart from '../components/ForecastChart';
+import ModernToast from '../components/ModernToast';
+import notificationService from '../utils/notificationService';
 
 const ARIMAForecast = () => {
   const [selectedDisease, setSelectedDisease] = useState('');
@@ -26,7 +27,7 @@ const ARIMAForecast = () => {
   const [error, setError] = useState('');
   const [showCharts, setShowCharts] = useState(false);
   const [activeTab, setActiveTab] = useState('generate');
-  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const diseases = [
     'Chickenpox', 'Dengue', 'Hepatitis', 'Measles', 'Tuberculosis'
@@ -116,14 +117,39 @@ const ARIMAForecast = () => {
         
         setForecastData(data.data);
         setShowCharts(true);
+        setToast({
+          isVisible: true,
+          type: 'success',
+          title: 'Forecast Generated!',
+          message: 'ARIMA forecast completed successfully!'
+        });
+        
+        // Send notification
+        try {
+          await notificationService.notifyForecastGenerated(
+            selectedDisease || 'All Diseases'
+          );
+        } catch (error) {
+          console.error('Error sending notification:', error);
+        }
         // Training data is now included in forecast response
-        console.log('Showing custom success alert...');
-        setShowSuccessAlert(true);
       } else {
         setError(data.error || 'Failed to generate forecast');
+        setToast({
+          isVisible: true,
+          type: 'error',
+          title: 'Forecast Failed!',
+          message: data.error || 'Failed to generate forecast'
+        });
       }
     } catch (err) {
       setError(`Error: ${err.message}`);
+      setToast({
+        isVisible: true,
+        type: 'error',
+        title: 'Connection Error!',
+        message: `Error: ${err.message}`
+      });
     } finally {
       setIsLoading(false);
       setLoadingStep('');
@@ -434,14 +460,16 @@ const ARIMAForecast = () => {
         )}
       </div>
 
-      {/* Beautiful Success Alert */}
-      <SuccessAlert
-        isVisible={showSuccessAlert}
-        onClose={() => setShowSuccessAlert(false)}
-        title="Success!"
-        message="Forecast generated successfully!"
-        duration={500}
-      />
+      {/* Modern Toast Notifications */}
+      {toast && (
+        <ModernToast
+          isVisible={toast.isVisible}
+          onClose={() => setToast(null)}
+          type={toast.type}
+          title={toast.title}
+          message={toast.message}
+        />
+      )}
     </div>
   );
 };

@@ -19,6 +19,7 @@ import {
   FaChartPie
 } from "react-icons/fa";
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
+import ModernAlert from '../components/ModernAlert';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -378,7 +379,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Alerts */}
+        {/* Modern Alerts */}
         {alerts && alerts.length > 0 && (
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -387,17 +388,18 @@ const Dashboard = () => {
             </h3>
             <div className="space-y-3">
               {alerts.map((alert, index) => (
-                <div key={index} className={`border rounded-lg p-4 ${getAlertColor(alert.type)}`}>
-                  <div className="flex items-center">
-                    {getAlertIcon(alert.type)}
-                    <span className="ml-3 font-medium text-gray-900">{alert.message}</span>
-                    {alert.count && (
-                      <span className="ml-auto bg-white px-3 py-1 rounded-full text-sm font-semibold">
-                        {alert.count}
-                      </span>
-                    )}
-                  </div>
-                </div>
+                <ModernAlert
+                  key={index}
+                  type={alert.type === 'danger' ? 'error' : alert.type === 'warning' ? 'warning' : 'info'}
+                  title={alert.type === 'danger' ? 'Outbreak Alert' : alert.type === 'warning' ? 'System Warning' : 'System Info'}
+                  message={alert.message}
+                  onClose={() => setAlerts(prev => prev.filter((_, i) => i !== index))}
+                  action={alert.count && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 text-gray-800">
+                      {alert.count} cases
+                    </span>
+                  )}
+                />
               ))}
             </div>
           </div>

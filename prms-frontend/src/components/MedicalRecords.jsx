@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { FaEdit, FaSave, FaUser, FaCalendarAlt, FaVenusMars, FaPhone, FaEnvelope, FaMapMarkerAlt, FaHeartbeat, FaWeight, FaEye, FaStethoscope, FaFileMedicalAlt, FaTimes, FaUserMd, FaFlask, FaPills, FaCommentMedical, FaHistory, FaEye as FaView } from "react-icons/fa";
-import Toast from "./Toast";
+import ModernToast from "./ModernToast";
 import { formatPatientID } from "../utils/patientUtils";
+import notificationService from "../utils/notificationService";
 
 function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
   const [medicalRecord, setMedicalRecord] = useState({});
@@ -11,10 +12,15 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [toast, setToast] = useState({ message: "", type: "success", visible: false });
+  const [toast, setToast] = useState(null);
 
-  const showToast = (message, type = "success") => {
-    setToast({ message, type, visible: true });
+  const showToast = (message, type = "success", title = null) => {
+    setToast({ 
+      isVisible: true, 
+      message, 
+      type,
+      title: title || (type === 'success' ? 'Success!' : type === 'error' ? 'Error!' : 'Info!')
+    });
   };
 
   useEffect(() => {
@@ -111,7 +117,7 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
         console.log('Response from server:', response.data);
 
         if (response.data.success) {
-          showToast("Patient and medical records updated successfully.", "success");
+          showToast("Patient and medical records updated successfully.", "success", "Updated!");
           
           // Update local state with the saved data
           setMedicalRecord(formData);
@@ -121,15 +127,24 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
             onPatientUpdate(formData);
           }
           
+          // Send notification
+          try {
+            await notificationService.notifyMedicalRecordUpdated(
+              formData.full_name || patient?.full_name || 'Patient'
+            );
+          } catch (error) {
+            console.error('Error sending notification:', error);
+          }
+          
           // Toggle to read-only mode after successful save
           setIsEditing(false);
         } else {
-          showToast("Save failed: " + (response.data.error || "Unknown error"), "error");
+          showToast("Save failed: " + (response.data.error || "Unknown error"), "error", "Update Failed!");
           // Don't toggle if save failed
         }
       } catch (error) {
         console.error("Save error:", error);
-        showToast("An error occurred while saving: " + error.message, "error");
+        showToast("An error occurred while saving: " + error.message, "error", "Connection Error!");
         // Don't toggle if save failed
       }
     } else {
@@ -864,11 +879,13 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
         </div>
       )}
 
-      {toast.visible && (
-        <Toast
-          message={toast.message}
+      {toast && (
+        <ModernToast
+          isVisible={toast.isVisible}
+          onClose={() => setToast(null)}
           type={toast.type}
-          onClose={() => setToast((prev) => ({ ...prev, visible: false }))}
+          title={toast.title}
+          message={toast.message}
         />
       )}
     </div>

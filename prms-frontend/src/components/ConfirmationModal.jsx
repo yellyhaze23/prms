@@ -23,14 +23,14 @@ function ConfirmationModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       onClick={onBackdropClick}
     >
-      <div className="bg-white w-full max-w-md rounded-xl shadow-2xl ring-1 ring-slate-900/10">
+      <div className="bg-white w-full max-w-md rounded-xl shadow-2xl ring-1 ring-slate-900/10 transform transition-all duration-300 scale-100 animate-in fade-in-0 zoom-in-95">
         <div className="px-6 pt-6 flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600 animate-pulse">
             <FaExclamationTriangle className="h-5 w-5" />
           </div>
           <div className="flex-1">
@@ -42,14 +42,14 @@ function ConfirmationModal({
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
+            className="px-4 py-2 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100 transition-all duration-200 hover:scale-105"
           >
             {cancelLabel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="px-4 py-2 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 shadow"
+            className="px-4 py-2 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 shadow transition-all duration-200 hover:scale-105 hover:shadow-lg"
           >
             {confirmLabel}
           </button>

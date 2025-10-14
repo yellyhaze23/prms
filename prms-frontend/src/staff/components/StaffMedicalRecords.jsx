@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { FaEdit, FaSave, FaUser, FaCalendarAlt, FaVenusMars, FaPhone, FaEnvelope, FaMapMarkerAlt, FaHeartbeat, FaWeight, FaEye, FaStethoscope, FaFileMedicalAlt, FaTimes, FaUserMd, FaFlask, FaPills, FaCommentMedical, FaHistory, FaEye as FaView, FaIdCard, FaCog, FaWeightHanging, FaThermometer, FaRuler, FaComment, FaMapMarkerAlt as FaLocationDot, FaStethoscope as FaStethoscopeIcon, FaCalendar, FaUserMd as FaUserDoctor } from "react-icons/fa";
-import Toast from "../../components/Toast";
+import ModernToast from "../../components/ModernToast";
 import { formatPatientID } from "../../utils/patientUtils";
 
 function StaffMedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
@@ -11,10 +11,15 @@ function StaffMedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [toast, setToast] = useState({ message: "", type: "success", visible: false });
+  const [toast, setToast] = useState(null);
 
-  const showToast = (message, type = "success") => {
-    setToast({ message, type, visible: true });
+  const showToast = (message, type = "success", title = null) => {
+    setToast({ 
+      isVisible: true, 
+      message, 
+      type,
+      title: title || (type === 'success' ? 'Success!' : type === 'error' ? 'Error!' : 'Info!')
+    });
   };
 
   useEffect(() => {
@@ -92,7 +97,7 @@ function StaffMedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
         );
         
         if (response.data.success) {
-          showToast("Medical record updated successfully", "success");
+          showToast("Medical record updated successfully", "success", "Updated!");
           setIsEditing(false);
           
           // Refresh data
@@ -103,11 +108,11 @@ function StaffMedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
           };
           setMedicalRecord(mergedData);
         } else {
-          showToast("Failed to update medical record", "error");
+          showToast("Failed to update medical record", "error", "Update Failed!");
         }
       } catch (error) {
         console.error("Error updating medical record:", error);
-        showToast("Error updating medical record", "error");
+        showToast("Error updating medical record", "error", "Connection Error!");
       }
     } else {
       setIsEditing(true);
@@ -850,11 +855,13 @@ function StaffMedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
         </div>
       )}
 
-      {toast.visible && (
-        <Toast
-          message={toast.message}
+      {toast && (
+        <ModernToast
+          isVisible={toast.isVisible}
+          onClose={() => setToast(null)}
           type={toast.type}
-          onClose={() => setToast((prev) => ({ ...prev, visible: false }))}
+          title={toast.title}
+          message={toast.message}
         />
       )}
     </div>
