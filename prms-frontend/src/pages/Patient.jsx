@@ -5,74 +5,59 @@ import PatientList from "../components/PatientList";
 import AddPatient from "../components/AddPatient";
 import ConfirmationModal from "../components/ConfirmationModal";
 import Toast from "../components/Toast";
+import Pagination from "../components/Pagination";
 // Performance optimizations
 import { getCachedData, setCachedData, shouldRefreshInBackground, markAsRefreshed } from '../utils/cache';
 import { preloadData } from '../utils/dataPreloader';
-import { useInstantSearch } from '../hooks/useInstantSearch';
 
 function Patient() {
   const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(false); // Start with false for instant display
-  const [sortBy, setSortBy] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sortBy, setSortBy] = useState("id");
   const [sortOrder, setSortOrder] = useState("asc");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editPatient, setEditPatient] = useState(null);
   const [toast, setToast] = useState(null); 
-  const [confirmModal, setConfirmModal] = useState(null); 
-
-  // Instant search with local filtering
-  const {
-    searchTerm,
-    setSearchTerm,
-    filteredData: filteredPatients,
-    clearSearch
-  } = useInstantSearch(patients, ['full_name', 'address', 'sex']);
+  const [confirmModal, setConfirmModal] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchPatients();
-  }, []);
+  }, [currentPage, itemsPerPage, sortBy, sortOrder, searchTerm]);
 
   const fetchPatients = async (forceRefresh = false) => {
-    // Check cache first - INSTANT DISPLAY
-    const cached = getCachedData('patients');
-    if (cached && !forceRefresh) {
-      setPatients(cached);
-      setLoading(false);
-      
-      // Background refresh if needed
-      if (shouldRefreshInBackground('patients')) {
-        refreshInBackground();
-      }
-      return;
-    }
-
-    // Only show loading if no cached data
-    if (!cached) {
-      setLoading(true);
-    }
+    setLoading(true);
 
     try {
-      // Use preloaded data if available
-      const data = await preloadData('patients', () => 
-        fetch('http://localhost/prms/prms-backend/get_patients.php').then(r => r.json())
-      );
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit: itemsPerPage,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        search: searchTerm
+      });
+
+      const response = await axios.get(`http://localhost/prms/prms-backend/get_patients.php?${params}`);
       
-      setPatients(data);
+      if (response.data.success) {
+        setPatients(response.data.data);
+        setTotalPages(response.data.pagination.totalPages);
+        setTotalRecords(response.data.pagination.totalRecords);
+        setError(null);
+      } else {
+        setError("Failed to fetch patients");
+      }
     } catch (err) {
+      setError("Server error. Please check your connection.");
       console.error("Error fetching patients:", err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const refreshInBackground = async () => {
-    try {
-      const response = await axios.get("http://localhost/prms/prms-backend/get_patients.php");
-      setPatients(response.data);
-      setCachedData('patients', response.data);
-      markAsRefreshed('patients');
-    } catch (err) {
-      console.error("Background refresh failed:", err);
     }
   };
 
@@ -80,23 +65,29 @@ function Patient() {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
-  // Sort the filtered patients
-  const sortedPatients = [...filteredPatients].sort((a, b) => {
-    if (!sortBy) return 0;
-
-    const valA = a[sortBy] ?? "";
-    const valB = b[sortBy] ?? "";
-
-    let result;
-
-    if (sortBy === "id") {
-      result = Number(valA) - Number(valB);
-    } else {
-      result = valA.toString().toLowerCase().localeCompare(valB.toString().toLowerCase());
+  const handlePageChange = (page, newItemsPerPage) => {
+    setCurrentPage(page);
+    if (newItemsPerPage !== itemsPerPage) {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1); // Reset to first page when changing page size
     }
+  };
 
-    return sortOrder === "asc" ? result : -result;
-  });
+  const handleSearch = (term) => {
+    setSearchTerm(term);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      toggleSortOrder();
+    } else {
+      setSortBy(field);
+      setSortOrder("asc");
+    }
+    setCurrentPage(1); // Reset to first page when sorting
+  };
+
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -151,8 +142,8 @@ function Patient() {
 
         {/* Toolbar */}
         <Toolbar
-          onSearch={setSearchTerm}
-          onSort={setSortBy}
+          onSearch={handleSearch}
+          onSort={handleSort}
           sortOrder={sortOrder}
           onToggleSortOrder={toggleSortOrder}
           onAdd={() => {
@@ -163,11 +154,24 @@ function Patient() {
 
         {/* Patient List */}
         <PatientList
-          patients={sortedPatients}
+          patients={patients}
           loading={loading}
           onEdit={handleEditPatient}
           onDelete={handleDeletePatient}
         />
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            itemsPerPage={itemsPerPage}
+            totalItems={totalRecords}
+            showPageSizeSelector={true}
+            pageSizeOptions={[10, 25, 50, 100]}
+          />
+        )}
       </div>
       {showAddModal && (
         <AddPatient

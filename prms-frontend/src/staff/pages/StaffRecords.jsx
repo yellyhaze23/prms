@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import StaffMedicalRecords from '../components/StaffMedicalRecords';
+import Pagination from '../../components/Pagination';
 import { FaSearch, FaUser, FaFileMedicalAlt, FaIdCard, FaCalendarAlt, FaMapMarkerAlt, FaStethoscope, FaSort, FaEye, FaAddressCard } from 'react-icons/fa';
 import Toast from '../../components/Toast';
 import { formatPatientID } from '../../utils/patientUtils';
@@ -12,6 +13,12 @@ export default function StaffRecords() {
   const [diseaseFilter, setDiseaseFilter] = useState('All Patients');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success', visible: false });
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type, visible: true });
@@ -19,14 +26,23 @@ export default function StaffRecords() {
 
   useEffect(() => {
     fetchPatients();
-  }, []);
+  }, [currentPage, itemsPerPage, searchTerm, diseaseFilter]);
 
   const fetchPatients = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost/prms/prms-backend/api/staff/patients.php');
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit: itemsPerPage,
+        q: searchTerm,
+        disease: diseaseFilter === 'All Patients' ? '' : diseaseFilter
+      });
+
+      const response = await axios.get(`http://localhost/prms/prms-backend/api/staff/patients.php?${params}`);
       if (response.data.success) {
         setPatients(response.data.data || []);
+        setTotalPages(response.data.pagination.totalPages);
+        setTotalRecords(response.data.pagination.totalRecords);
       } else {
         showToast('Error fetching patients', 'error');
       }
@@ -38,19 +54,23 @@ export default function StaffRecords() {
     }
   };
 
-  const filteredPatients = patients.filter(patient => {
-    const term = searchTerm.toLowerCase();
-    const matchesSearch = (
-      (patient.full_name || '').toLowerCase().includes(term) ||
-      (patient.id || '').toString().includes(term) ||
-      (patient.address || '').toLowerCase().includes(term)
-    );
-    
-    const matchesDisease = diseaseFilter === 'All Patients' || 
-      (patient.diagnosis && patient.diagnosis.toLowerCase().includes(diseaseFilter.toLowerCase()));
-    
-    return matchesSearch && matchesDisease;
-  });
+  const handlePageChange = (page, newItemsPerPage) => {
+    setCurrentPage(page);
+    if (newItemsPerPage !== itemsPerPage) {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1); // Reset to first page when changing page size
+    }
+  };
+
+  const handleSearch = (term) => {
+    setSearchTerm(term);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleDiseaseFilter = (disease) => {
+    setDiseaseFilter(disease);
+    setCurrentPage(1); // Reset to first page when filtering
+  };
 
   const handlePatientSelect = (patient) => {
     setSelectedPatient(patient);
@@ -103,7 +123,7 @@ export default function StaffRecords() {
               type="text"
               placeholder="Search patients by name, contact, address, or disease..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -112,7 +132,7 @@ export default function StaffRecords() {
             <span className="text-sm font-medium text-gray-700">Filter by Disease:</span>
             <select
               value={diseaseFilter}
-              onChange={(e) => setDiseaseFilter(e.target.value)}
+              onChange={(e) => handleDiseaseFilter(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="All Patients">All Patients</option>
@@ -186,8 +206,8 @@ export default function StaffRecords() {
                     </div>
                   </td>
                 </tr>
-              ) : filteredPatients.length > 0 ? (
-                filteredPatients.map((patient) => (
+              ) : patients.length > 0 ? (
+                patients.map((patient) => (
                   <tr key={patient.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       #{formatPatientID(patient.id)}
@@ -247,6 +267,19 @@ export default function StaffRecords() {
           </table>
         </div>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          itemsPerPage={itemsPerPage}
+          totalItems={totalRecords}
+          showPageSizeSelector={true}
+          pageSizeOptions={[10, 25, 50, 100]}
+        />
+      )}
 
       {toast.visible && (
         <Toast

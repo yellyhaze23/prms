@@ -6,6 +6,7 @@ import AddPatient from '../components/AddPatient';
 import Toast from '../components/Toast';
 import MedicalRecords from '../components/MedicalRecords';
 import ConfirmationModal from '../components/ConfirmationModal';
+import Pagination from '../components/Pagination';
 import { FaIdCard, FaMapMarkerAlt, FaCalendarAlt, FaEdit, FaTrash, FaStethoscope, FaFilter } from 'react-icons/fa';
 import { formatPatientID } from '../utils/patientUtils';
 
@@ -13,37 +14,94 @@ function Records() {
   const [patients, setPatients] = useState([]);
   const [diseases, setDiseases] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("");
-  const [sortOrder, setSortOrder] = useState("asc"); 
+  const [sortBy, setSortBy] = useState("updated_at");
+  const [sortOrder, setSortOrder] = useState("desc"); 
   const [selectedDisease, setSelectedDisease] = useState("all");
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editPatient, setEditPatient] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
   const [toast, setToast] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Fetch patients
-    axios.get("http://localhost/prms/prms-backend/get_patients.php")
-      .then((res) => {
-        setPatients(res.data);
-      })
-      .catch((err) => {
-        console.error("Error fetching patients:", err);
+    fetchMedicalRecords();
+    fetchDiseases();
+  }, [currentPage, itemsPerPage, sortBy, sortOrder, searchTerm, selectedDisease]);
+
+  const fetchMedicalRecords = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit: itemsPerPage,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        search: searchTerm,
+        disease: selectedDisease
       });
 
-    // Fetch diseases
-    axios.get("http://localhost/prms/prms-backend/get_diseases.php")
-      .then((res) => {
-        setDiseases(res.data);
-      })
-      .catch((err) => {
-        console.error("Error fetching diseases:", err);
-      });
-  }, []);
+      const response = await axios.get(`http://localhost/prms/prms-backend/get_all_medical_records.php?${params}`);
+      
+      if (response.data.success) {
+        setPatients(response.data.data);
+        setTotalPages(response.data.pagination.totalPages);
+        setTotalRecords(response.data.pagination.totalRecords);
+      } else {
+        console.error("Failed to fetch medical records");
+      }
+    } catch (err) {
+      console.error("Error fetching medical records:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDiseases = async () => {
+    try {
+      const response = await axios.get("http://localhost/prms/prms-backend/get_diseases.php");
+      setDiseases(response.data);
+    } catch (err) {
+      console.error("Error fetching diseases:", err);
+    }
+  };
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+  };
+
+  const handlePageChange = (page, newItemsPerPage) => {
+    setCurrentPage(page);
+    if (newItemsPerPage !== itemsPerPage) {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1); // Reset to first page when changing page size
+    }
+  };
+
+  const handleSearch = (term) => {
+    setSearchTerm(term);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      toggleSortOrder();
+    } else {
+      setSortBy(field);
+      setSortOrder("asc");
+    }
+    setCurrentPage(1); // Reset to first page when sorting
+  };
+
+  const handleDiseaseFilter = (disease) => {
+    setSelectedDisease(disease);
+    setCurrentPage(1); // Reset to first page when filtering
   };
 
   const showToast = (message, type = "success") => {
@@ -97,46 +155,7 @@ function Records() {
     showToast("Patient updated successfully", "success");
   };
 
-  const filteredPatients = [...patients]
-    .filter((p) => {
-      const term = searchTerm.toLowerCase();
-      const matchesSearch = (
-        (p.full_name || "").toLowerCase().includes(term) ||
-        (p.contact_number || "").toLowerCase().includes(term) ||
-        (p.email || "").toLowerCase().includes(term) ||
-        (p.address || "").toLowerCase().includes(term) ||
-        (p.sex || "").toLowerCase().includes(term) ||
-        (p.diagnosis || "").toLowerCase().includes(term) ||
-        (p.status || "").toLowerCase().includes(term) ||
-        (p.severity || "").toLowerCase().includes(term)
-      );
-
-      // Filter by disease
-      if (selectedDisease === "all") {
-        return matchesSearch;
-      } else if (selectedDisease === "healthy") {
-        return matchesSearch && (!p.diagnosis || p.diagnosis.trim() === '');
-      } else {
-        return matchesSearch && p.diagnosis && p.diagnosis.toLowerCase() === selectedDisease.toLowerCase();
-      }
-    })
-
-    .sort((a, b) => {
-      if (!sortBy) return 0;
-
-      const valA = a[sortBy] ?? "";
-      const valB = b[sortBy] ?? "";
-
-      let result;
-
-      if (sortBy === "id") {
-        result = Number(valA) - Number(valB);
-      } else {
-        result = valA.toString().toLowerCase().localeCompare(valB.toString().toLowerCase());
-      }
-
-      return sortOrder === "asc" ? result : -result;
-    });
+  // Server-side filtering and pagination, no client-side filtering needed
 
   return (
     <div className="min-h-screen bg-gray-50 py-6">
@@ -162,7 +181,7 @@ function Records() {
                         className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         placeholder="Search patients by name, contact, address, or disease..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => handleSearch(e.target.value)}
                       />
                     </div>
 
@@ -175,7 +194,7 @@ function Records() {
                       <select
                         className="block px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         value={selectedDisease}
-                        onChange={(e) => setSelectedDisease(e.target.value)}
+                        onChange={(e) => handleDiseaseFilter(e.target.value)}
                       >
                         <option value="all">All Patients</option>
                         <option value="healthy">Healthy Patients</option>
@@ -192,7 +211,7 @@ function Records() {
                       <div className="relative">
                         <button
                           className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                          onClick={toggleSortOrder}
+                          onClick={() => handleSort(sortBy)}
                           title={`Sort ${sortOrder === "asc" ? "Ascending" : "Descending"}`}
                         >
                           {sortOrder === "asc" ? "↑" : "↓"}
@@ -204,7 +223,7 @@ function Records() {
 
             {/* Records Table */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              {filteredPatients.length === 0 ? (
+              {patients.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 px-6">
                   <FaIdCard className="text-6xl text-gray-300 mb-4" />
                   <p className="text-gray-500 text-lg font-medium">No medical records found</p>
@@ -257,7 +276,7 @@ function Records() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredPatients.map((patient, index) => (
+                      {patients.map((patient, index) => (
                         <tr
                           key={patient.id || index}
                           onClick={() => setSelectedPatient(patient)}
@@ -344,6 +363,19 @@ function Records() {
                 </div>
               )}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                totalItems={totalRecords}
+                showPageSizeSelector={true}
+                pageSizeOptions={[10, 25, 50, 100]}
+              />
+            )}
           </>
         ) : (
           <>

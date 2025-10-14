@@ -5,6 +5,7 @@ import SettingsToolbar from "../components/SettingsToolbar";
 import UserModal from "../components/AddUser";
 import Toast from "../components/Toast";
 import ConfirmationModal from "../components/ConfirmationModal";
+import Pagination from "../components/Pagination";
 
 import "./Settings.css";
 
@@ -15,6 +16,15 @@ function Settings() {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState("id");
   const [sortOrder, setSortOrder] = useState("asc");
+  
+  // Activity logs pagination state
+  const [activityCurrentPage, setActivityCurrentPage] = useState(1);
+  const [activityItemsPerPage, setActivityItemsPerPage] = useState(25);
+  const [activityTotalPages, setActivityTotalPages] = useState(1);
+  const [activityTotalRecords, setActivityTotalRecords] = useState(0);
+  const [activitySearchTerm, setActivitySearchTerm] = useState('');
+  const [activitySortBy, setActivitySortBy] = useState('created_at');
+  const [activitySortOrder, setActivitySortOrder] = useState('desc');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -43,10 +53,26 @@ function Settings() {
 
   const fetchActivityLogs = async () => {
     try {
-      const response = await axios.get("http://localhost/prms/prms-backend/get_activity_logs.php");
-      setActivityLogs(response.data);
+      const params = new URLSearchParams({
+        page: activityCurrentPage,
+        limit: activityItemsPerPage,
+        sortBy: activitySortBy,
+        sortOrder: activitySortOrder,
+        search: activitySearchTerm
+      });
+
+      const response = await axios.get(`http://localhost/prms/prms-backend/get_activity_logs.php?${params}`);
+      
+      if (response.data.success) {
+        setActivityLogs(response.data.data);
+        setActivityTotalPages(response.data.pagination.totalPages);
+        setActivityTotalRecords(response.data.pagination.totalRecords);
+      } else {
+        setActivityLogs([]);
+      }
     } catch (error) {
       console.error('Error fetching activity logs:', error);
+      setActivityLogs([]);
     }
   };
 
@@ -62,7 +88,31 @@ function Settings() {
     if (storedUser) {
       setAccount((a) => ({ ...a, username: storedUser }));
     }
-  }, [activeTab]);
+  }, [activeTab, activityCurrentPage, activityItemsPerPage, activitySortBy, activitySortOrder, activitySearchTerm]);
+
+  // Activity logs pagination handlers
+  const handleActivityPageChange = (page, newItemsPerPage) => {
+    setActivityCurrentPage(page);
+    if (newItemsPerPage !== activityItemsPerPage) {
+      setActivityItemsPerPage(newItemsPerPage);
+      setActivityCurrentPage(1); // Reset to first page when changing page size
+    }
+  };
+
+  const handleActivitySearch = (term) => {
+    setActivitySearchTerm(term);
+    setActivityCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleActivitySort = (field) => {
+    if (activitySortBy === field) {
+      setActivitySortOrder(activitySortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setActivitySortBy(field);
+      setActivitySortOrder('desc');
+    }
+    setActivityCurrentPage(1); // Reset to first page when sorting
+  };
 
   const handleOpenAddModal = () => {
     setEditing(false);
@@ -271,6 +321,20 @@ function Settings() {
             <h3 className="text-lg font-medium text-gray-900">Activity Logs</h3>
             <p className="text-sm text-gray-500">Monitor user activities and system events</p>
           </div>
+          
+          {/* Search */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search activity logs..."
+                value={activitySearchTerm}
+                onChange={(e) => handleActivitySearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <FaClock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -328,6 +392,19 @@ function Settings() {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination */}
+          {activityTotalPages > 1 && (
+            <Pagination
+              currentPage={activityCurrentPage}
+              totalPages={activityTotalPages}
+              onPageChange={handleActivityPageChange}
+              itemsPerPage={activityItemsPerPage}
+              totalItems={activityTotalRecords}
+              showPageSizeSelector={true}
+              pageSizeOptions={[10, 25, 50, 100]}
+            />
+          )}
         </div>
       )}
 

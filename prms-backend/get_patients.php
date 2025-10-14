@@ -2,7 +2,51 @@
 require 'cors.php';
 require 'config.php';
 
-// Get patients with their most recent medical activity (consultation dates or any medical record update)
+// Get pagination parameters
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 25;
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$sortBy = isset($_GET['sortBy']) ? $_GET['sortBy'] : 'id';
+$sortOrder = isset($_GET['sortOrder']) ? $_GET['sortOrder'] : 'asc';
+
+// Validate parameters
+$page = max(1, $page);
+$limit = max(1, min(100, $limit)); // Limit between 1 and 100
+$offset = ($page - 1) * $limit;
+
+// Validate sort fields
+$allowedSortFields = ['id', 'full_name', 'age', 'sex', 'address', 'created_at', 'last_visit_date'];
+if (!in_array($sortBy, $allowedSortFields)) {
+    $sortBy = 'id';
+}
+
+$sortOrder = strtoupper($sortOrder) === 'DESC' ? 'DESC' : 'ASC';
+
+// Build search condition
+$searchCondition = '';
+if (!empty($search)) {
+    $search = mysqli_real_escape_string($conn, $search);
+    $searchCondition = "WHERE p.full_name LIKE '%$search%' OR p.address LIKE '%$search%' OR p.sex LIKE '%$search%'";
+}
+
+// Get total count for pagination
+$countSql = "
+    SELECT COUNT(*) as total
+    FROM patients p
+    LEFT JOIN (
+        SELECT 
+            patient_id,
+            ROW_NUMBER() OVER (PARTITION BY patient_id ORDER BY updated_at DESC) as rn
+        FROM medical_records
+    ) mr ON p.id = mr.patient_id AND mr.rn = 1
+    $searchCondition
+";
+
+$countResult = mysqli_query($conn, $countSql);
+$totalRecords = mysqli_fetch_assoc($countResult)['total'];
+$totalPages = ceil($totalRecords / $limit);
+
+// Get patients with pagination
 $sql = "
     SELECT 
         p.*,
@@ -24,7 +68,9 @@ $sql = "
             ROW_NUMBER() OVER (PARTITION BY patient_id ORDER BY updated_at DESC) as rn
         FROM medical_records
     ) mr ON p.id = mr.patient_id AND mr.rn = 1
-    ORDER BY p.id
+    $searchCondition
+    ORDER BY p.$sortBy $sortOrder
+    LIMIT $limit OFFSET $offset
 ";
 
 $result = mysqli_query($conn, $sql);
@@ -40,5 +86,17 @@ while ($row = mysqli_fetch_assoc($result)) {
     $patients[] = $row;
 }
 
-echo json_encode($patients);
+// Return paginated response
+echo json_encode([
+    'success' => true,
+    'data' => $patients,
+    'pagination' => [
+        'currentPage' => $page,
+        'totalPages' => $totalPages,
+        'totalRecords' => $totalRecords,
+        'limit' => $limit,
+        'hasNext' => $page < $totalPages,
+        'hasPrev' => $page > 1
+    ]
+]);
 ?>

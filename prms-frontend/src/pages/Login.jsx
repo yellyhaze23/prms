@@ -134,6 +134,7 @@ function Login({ onLogin }) {
                     required
                     disabled={loading}
                     className="form-input"
+                    autoComplete="username"
                   />
                 </div>
               </div>
@@ -153,6 +154,7 @@ function Login({ onLogin }) {
                     required
                     disabled={loading}
                     className="form-input"
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"

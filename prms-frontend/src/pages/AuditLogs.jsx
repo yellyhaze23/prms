@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaEye, FaDownload, FaFilter, FaSearch, FaUser, FaClock, FaShieldAlt, FaExclamationTriangle, FaCheckCircle, FaTimes } from 'react-icons/fa';
+import Pagination from '../components/Pagination';
 import axios from 'axios';
 
 const AuditLogs = () => {
@@ -11,18 +12,44 @@ const AuditLogs = () => {
     date_from: '',
     date_to: ''
   });
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   useEffect(() => {
     fetchAuditLogs();
-  }, [filters]);
+  }, [currentPage, itemsPerPage, sortBy, sortOrder, searchTerm, filters]);
 
   const fetchAuditLogs = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost/prms/prms-backend/get_audit_logs.php?${new URLSearchParams(filters)}`);
-      setAuditLogs(response.data);
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit: itemsPerPage,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        search: searchTerm,
+        ...filters
+      });
+
+      const response = await axios.get(`http://localhost/prms/prms-backend/get_audit_logs.php?${params}`);
+      
+      if (response.data.success) {
+        setAuditLogs(response.data.data);
+        setTotalPages(response.data.pagination.totalPages);
+        setTotalRecords(response.data.pagination.totalRecords);
+      } else {
+        setAuditLogs([]);
+      }
     } catch (error) {
       console.error('Error fetching audit logs:', error);
+      setAuditLogs([]);
     } finally {
       setLoading(false);
     }
@@ -54,6 +81,34 @@ const AuditLogs = () => {
     }
   };
 
+  const handlePageChange = (page, newItemsPerPage) => {
+    setCurrentPage(page);
+    if (newItemsPerPage !== itemsPerPage) {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1); // Reset to first page when changing page size
+    }
+  };
+
+  const handleSearch = (term) => {
+    setSearchTerm(term);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+    setCurrentPage(1); // Reset to first page when sorting
+  };
+
+  const handleFilterChange = (filterName, value) => {
+    setFilters(prev => ({ ...prev, [filterName]: value }));
+    setCurrentPage(1); // Reset to first page when filtering
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -63,14 +118,26 @@ const AuditLogs = () => {
           <p className="mt-2 text-gray-600">Monitor all system activities and user actions</p>
         </div>
 
-        {/* Filters */}
+        {/* Search and Filters */}
         <div className="bg-white p-6 rounded-lg shadow mb-6">
+          <div className="mb-4">
+            <div className="relative">
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Search audit logs..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">User Type</label>
               <select
                 value={filters.user_type}
-                onChange={(e) => setFilters({...filters, user_type: e.target.value})}
+                onChange={(e) => handleFilterChange('user_type', e.target.value)}
                 className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All Users</option>
@@ -84,7 +151,7 @@ const AuditLogs = () => {
               <input
                 type="text"
                 value={filters.action}
-                onChange={(e) => setFilters({...filters, action: e.target.value})}
+                onChange={(e) => handleFilterChange('action', e.target.value)}
                 placeholder="Search actions..."
                 className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               />
@@ -94,7 +161,7 @@ const AuditLogs = () => {
               <input
                 type="date"
                 value={filters.date_from}
-                onChange={(e) => setFilters({...filters, date_from: e.target.value})}
+                onChange={(e) => handleFilterChange('date_from', e.target.value)}
                 className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -103,7 +170,7 @@ const AuditLogs = () => {
               <input
                 type="date"
                 value={filters.date_to}
-                onChange={(e) => setFilters({...filters, date_to: e.target.value})}
+                onChange={(e) => handleFilterChange('date_to', e.target.value)}
                 className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -210,6 +277,19 @@ const AuditLogs = () => {
             </table>
           </div>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            itemsPerPage={itemsPerPage}
+            totalItems={totalRecords}
+            showPageSizeSelector={true}
+            pageSizeOptions={[10, 25, 50, 100]}
+          />
+        )}
       </div>
     </div>
   );
