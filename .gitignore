@@ -146,3 +146,4 @@ public
 tmp/
 temp/
 forecasting/forecast_result.csv
+forecasting/temp_test_data.json
