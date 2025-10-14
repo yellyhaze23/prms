@@ -5,30 +5,54 @@ import PatientList from "../../components/PatientList";
 import AddPatient from "../../components/AddPatient";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import Toast from "../../components/Toast";
+import Pagination from "../../components/Pagination";
 import { FaUserFriends } from "react-icons/fa";
 
 function StaffPatients() {
   const [patients, setPatients] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("");
+  const [sortBy, setSortBy] = useState("id");
   const [sortOrder, setSortOrder] = useState("asc");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editPatient, setEditPatient] = useState(null);
   const [toast, setToast] = useState(null); 
-  const [confirmModal, setConfirmModal] = useState(null); 
+  const [confirmModal, setConfirmModal] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [loading, setLoading] = useState(false); 
 
   useEffect(() => {
     fetchPatients();
-  }, []);
+  }, [currentPage, itemsPerPage, sortBy, sortOrder, searchTerm]);
 
   const fetchPatients = () => {
+    setLoading(true);
+    const params = new URLSearchParams({
+      page: currentPage,
+      limit: itemsPerPage,
+      sortBy: sortBy,
+      sortOrder: sortOrder,
+      q: searchTerm
+    });
+
     axios
-      .get("http://localhost/prms/prms-backend/api/staff/patients.php")
+      .get(`http://localhost/prms/prms-backend/api/staff/patients.php?${params}`)
       .then((res) => {
-        setPatients(res.data.data || []);
+        if (res.data.success) {
+          setPatients(res.data.data || []);
+          setTotalPages(res.data.pagination.totalPages);
+          setTotalRecords(res.data.pagination.totalRecords);
+        }
       })
       .catch((err) => {
         console.error("Error fetching patients:", err);
+      })
+      .finally(() => {
+        setLoading(false);
       });
   };
 
@@ -36,32 +60,28 @@ function StaffPatients() {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
-  const filteredPatients = [...patients]
-    .filter((p) => {
-      const term = searchTerm.toLowerCase();
-      return (
-        (p.full_name || "").toLowerCase().includes(term) ||
-        (p.id || "").toString().includes(term) ||
-        (p.address || "").toLowerCase().includes(term) ||
-        (p.contact_number || "").includes(term)
-      );
-    })
-    .sort((a, b) => {
-      if (!sortBy) return 0;
+  const handlePageChange = (page, newItemsPerPage) => {
+    setCurrentPage(page);
+    if (newItemsPerPage !== itemsPerPage) {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1); // Reset to first page when changing page size
+    }
+  };
 
-      const valA = a[sortBy] ?? "";
-      const valB = b[sortBy] ?? "";
+  const handleSearch = (term) => {
+    setSearchTerm(term);
+    setCurrentPage(1); // Reset to first page when searching
+  };
 
-      let result;
-
-      if (sortBy === "id") {
-        result = Number(valA) - Number(valB);
-      } else {
-        result = valA.toString().toLowerCase().localeCompare(valB.toString().toLowerCase());
-      }
-
-      return sortOrder === "asc" ? result : -result;
-    });
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      toggleSortOrder();
+    } else {
+      setSortBy(field);
+      setSortOrder("asc");
+    }
+    setCurrentPage(1); // Reset to first page when sorting
+  };
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -99,8 +119,8 @@ function StaffPatients() {
 
         {/* Toolbar */}
         <Toolbar
-          onSearch={setSearchTerm}
-          onSort={setSortBy}
+          onSearch={handleSearch}
+          onSort={handleSort}
           sortOrder={sortOrder}
           onToggleSortOrder={toggleSortOrder}
           onAdd={() => {
@@ -111,10 +131,24 @@ function StaffPatients() {
 
         {/* Patient List */}
         <PatientList
-          patients={filteredPatients}
+          patients={patients}
+          loading={loading}
           onEdit={handleEditPatient}
           onDelete={null} // No delete functionality for staff
         />
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            itemsPerPage={itemsPerPage}
+            totalItems={totalRecords}
+            showPageSizeSelector={true}
+            pageSizeOptions={[10, 25, 50, 100]}
+          />
+        )}
       
       {showAddModal && (
         <AddPatient

@@ -21,16 +21,43 @@ if (!$input) {
 $disease = isset($input['disease']) ? $input['disease'] : null;
 $forecast_period = isset($input['forecast_period']) ? (int)$input['forecast_period'] : 3;
 
+// Create cache directory if it doesn't exist
+$cache_dir = __DIR__ . '/../forecasting/cache';
+if (!is_dir($cache_dir)) {
+    mkdir($cache_dir, 0755, true);
+}
+
+// Generate cache key based on disease and forecast period
+$cache_key = md5($disease . '_' . $forecast_period . '_' . date('Y-m'));
+$cache_file = $cache_dir . '/' . $cache_key . '.json';
+
+// Check if cached result exists and is less than 1 hour old
+if (file_exists($cache_file) && (time() - filemtime($cache_file)) < 3600) {
+    $cached_data = json_decode(file_get_contents($cache_file), true);
+    if ($cached_data && isset($cached_data['success']) && $cached_data['success']) {
+        echo json_encode([
+            'success' => true,
+            'data' => $cached_data['data'],
+            'cached' => true,
+            'cache_age' => time() - filemtime($cache_file)
+        ]);
+        exit;
+    }
+}
+
 try {
-    // Get disease data from disease_summary table
+    // Get disease data from disease_summary table with data limiting for performance
+    // For large datasets, limit to last 6 months of data for faster training
     $sql = "SELECT disease_name, year, month, total_cases 
             FROM disease_summary 
+            WHERE (year * 12 + month) >= (YEAR(CURDATE()) * 12 + MONTH(CURDATE()) - 6)
             ORDER BY disease_name, year, month";
     
     if ($disease) {
         $sql = "SELECT disease_name, year, month, total_cases 
                 FROM disease_summary 
                 WHERE disease_name = ? 
+                AND (year * 12 + month) >= (YEAR(CURDATE()) * 12 + MONTH(CURDATE()) - 6)
                 ORDER BY year, month";
     }
     
@@ -113,13 +140,19 @@ try {
         unlink($json_file);
     }
     
-    echo json_encode([
+    // Prepare response data
+    $response_data = [
         'success' => true,
         'data' => [
             'forecast_results' => $forecast_data['forecast_results'],
             'summary' => $forecast_data['summary']
         ]
-    ]);
+    ];
+    
+    // Cache the results for future requests
+    file_put_contents($cache_file, json_encode($response_data));
+    
+    echo json_encode($response_data);
     
 } catch (Exception $e) {
     http_response_code(500);

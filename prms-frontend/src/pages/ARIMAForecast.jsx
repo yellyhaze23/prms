@@ -20,6 +20,7 @@ const ARIMAForecast = () => {
   const [selectedDisease, setSelectedDisease] = useState('');
   const [forecastPeriod, setForecastPeriod] = useState(3);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState('');
   const [forecastData, setForecastData] = useState(null);
   const [historicalData, setHistoricalData] = useState(null);
   const [error, setError] = useState('');
@@ -31,31 +32,8 @@ const ARIMAForecast = () => {
     'Chickenpox', 'Dengue', 'Hepatitis', 'Measles', 'Tuberculosis'
   ];
 
-  // Fetch historical data for chart
-  const fetchHistoricalData = async () => {
-    try {
-      const response = await fetch('http://localhost/prms/prms-backend/get_historical_data.php');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setHistoricalData(data.data);
-        } else {
-          console.warn('No historical data available:', data.error);
-          setHistoricalData([]);
-        }
-      } else {
-        console.warn('Failed to fetch historical data, using empty array');
-        setHistoricalData([]);
-      }
-    } catch (error) {
-      console.error('Error fetching historical data:', error);
-      setHistoricalData([]);
-    }
-  };
-
-  useEffect(() => {
-    fetchHistoricalData();
-  }, []);
+  // Note: Historical data is now included in forecast response as training_data
+  // No separate fetch needed - training data comes with forecast results
 
   // Function to get color scheme for each disease
   const getDiseaseColor = (diseaseName) => {
@@ -103,8 +81,18 @@ const ARIMAForecast = () => {
   const handleGenerateForecast = async () => {
     setIsLoading(true);
     setError('');
+    setLoadingStep('Preparing data...');
 
     try {
+      // Simulate loading steps for better UX
+      setLoadingStep('Loading historical data...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setLoadingStep('Training ARIMA model...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setLoadingStep('Generating forecast...');
+      
       const response = await fetch('http://localhost/prms/prms-backend/arima_forecast_disease_summary.php', {
         method: 'POST',
         headers: {
@@ -123,10 +111,12 @@ const ARIMAForecast = () => {
       const data = await response.json();
       
       if (data.success) {
+        setLoadingStep('Finalizing results...');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
         setForecastData(data.data);
         setShowCharts(true);
-        // Refresh historical data for chart
-        await fetchHistoricalData();
+        // Training data is now included in forecast response
         console.log('Showing custom success alert...');
         setShowSuccessAlert(true);
       } else {
@@ -136,6 +126,7 @@ const ARIMAForecast = () => {
       setError(`Error: ${err.message}`);
     } finally {
       setIsLoading(false);
+      setLoadingStep('');
     }
   };
 
@@ -265,7 +256,7 @@ const ARIMAForecast = () => {
                     >
                       {isLoading ? (
                         <>
-                          <FaSync className="animate-spin" /> Generating...
+                          <FaSync className="animate-spin" /> {loadingStep || 'Generating...'}
                         </>
                       ) : (
                         <>
@@ -291,6 +282,23 @@ const ARIMAForecast = () => {
                   <FaExclamationTriangle className="mr-2" />
                   <strong className="font-bold">Error!</strong>
                   <span className="ml-2">{error}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Loading Overlay */}
+            {isLoading && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-xl p-8 max-w-md mx-4 text-center shadow-2xl">
+                  <div className="flex flex-col items-center space-y-4">
+                    <FaSync className="animate-spin text-4xl text-blue-600" />
+                    <h3 className="text-xl font-semibold text-gray-900">Generating Forecast</h3>
+                    <p className="text-gray-600">{loadingStep}</p>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
+                    </div>
+                    <p className="text-sm text-gray-500">This may take a few moments...</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -354,7 +362,7 @@ const ARIMAForecast = () => {
                   </div>
                 )}
 
-                {/* Forecast Results - Now with Disease-Specific Colors */}
+                {/* Forecast Results - Now with Disease-Specific Colors and Accuracy Metrics */}
                 <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
                   <h3 className="text-xl font-semibold text-gray-700 mb-6">Forecast Results</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -368,6 +376,16 @@ const ARIMAForecast = () => {
                             {result.forecast_cases} 
                             <span className={`text-lg font-normal ${colors.text} ml-1`}>predicted cases</span>
                           </p>
+                          
+                          {/* Accuracy Metrics */}
+                          {(result.accuracy_rmse > 0 || result.accuracy_mape > 0) && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <div className="flex justify-between text-xs">
+                                <span className={`${colors.text}`}>RMSE: {result.accuracy_rmse?.toFixed(2) || 'N/A'}</span>
+                                <span className={`${colors.text}`}>MAPE: {result.accuracy_mape?.toFixed(1) || 'N/A'}%</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
