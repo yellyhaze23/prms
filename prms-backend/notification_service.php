@@ -45,13 +45,35 @@ class NotificationService {
         $newPatients = $stmt->fetch(PDO::FETCH_ASSOC)['new_patients'];
         
         if ($newPatients > 0) {
-            $notifications[] = [
-                'type' => 'success',
-                'title' => 'New Patients Today',
-                'message' => "{$newPatients} new patient(s) registered today",
-                'action_url' => '/patient',
-                'action_text' => 'View Patients'
-            ];
+            // Get the actual patient names for dynamic content
+            $patientStmt = $this->conn->prepare("
+                SELECT full_name, id 
+                FROM patients 
+                WHERE DATE(created_at) = CURDATE()
+                ORDER BY created_at DESC 
+                LIMIT 3
+            ");
+            $patientStmt->execute();
+            $recentPatients = $patientStmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (count($recentPatients) == 1) {
+                $notifications[] = [
+                    'type' => 'success',
+                    'title' => 'New Patient Registered',
+                    'message' => "Patient {$recentPatients[0]['full_name']} has been successfully registered in the system.",
+                    'action_url' => "/patient/{$recentPatients[0]['id']}",
+                    'action_text' => 'View Patient'
+                ];
+            } else {
+                $patientNames = array_column($recentPatients, 'full_name');
+                $notifications[] = [
+                    'type' => 'success',
+                    'title' => 'New Patients Registered',
+                    'message' => "{$newPatients} new patients registered today: " . implode(', ', $patientNames),
+                    'action_url' => '/patient',
+                    'action_text' => 'View Patients'
+                ];
+            }
         }
         
         // 2. Check for high disease cases
@@ -115,13 +137,53 @@ class NotificationService {
             ];
         }
         
-        // 5. Outbreak alerts disabled - too repetitive and spammy
-        // Only generate high-priority system notifications
+        // 5. Check for potential outbreaks (with proper duplicate prevention)
+        $stmt = $this->conn->prepare("
+            SELECT 
+                mr.diagnosis,
+                COUNT(*) as cases,
+                COUNT(DISTINCT mr.patient_id) as unique_patients
+            FROM medical_records mr
+            WHERE mr.updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            AND mr.diagnosis IS NOT NULL AND mr.diagnosis != ''
+            AND mr.diagnosis IN ('Hepatitis', 'Tuberculosis', 'Dengue', 'Chickenpox', 'Measles')
+            GROUP BY mr.diagnosis
+            HAVING cases >= 5 AND unique_patients >= 3
+        ");
+        $stmt->execute();
+        $outbreaks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        foreach ($outbreaks as $outbreak) {
+            // Check if outbreak notification already exists today
+            $checkStmt = $this->conn->prepare("
+                SELECT COUNT(*) as notification_exists 
+                FROM notifications 
+                WHERE user_id = :user_id 
+                AND title = 'Outbreak Alert'
+                AND message LIKE :message_pattern
+                AND DATE(created_at) = CURDATE()
+            ");
+            $messagePattern = "%{$outbreak['diagnosis']}%";
+            $checkStmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+            $checkStmt->bindParam(':message_pattern', $messagePattern);
+            $checkStmt->execute();
+            $exists = $checkStmt->fetch(PDO::FETCH_ASSOC)['notification_exists'];
+            
+            if ($exists == 0) {
+                $notifications[] = [
+                    'type' => 'urgent',
+                    'title' => 'Outbreak Alert',
+                    'message' => "Potential outbreak: {$outbreak['diagnosis']} with {$outbreak['cases']} cases this week",
+                    'action_url' => '/tracker',
+                    'action_text' => 'View Tracker'
+                ];
+            }
+        }
         
         return $notifications;
     }
     
-    // Auto-generate notifications for all users (with limits)
+    // Auto-generate notifications for all users (with proper limits and outbreak alerts)
     public function autoGenerateNotifications() {
         // Get all users
         $stmt = $this->conn->prepare("SELECT id FROM users");
@@ -129,21 +191,21 @@ class NotificationService {
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         foreach ($users as $user) {
-            // Check if user already has too many notifications (limit to 5)
+            // Check if user already has too many notifications (limit to 10)
             $countStmt = $this->conn->prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = :user_id");
             $countStmt->bindParam(':user_id', $user['id'], PDO::PARAM_INT);
             $countStmt->execute();
             $currentCount = $countStmt->fetch(PDO::FETCH_ASSOC)['count'];
             
-            if ($currentCount >= 5) {
+            if ($currentCount >= 10) {
                 continue; // Skip this user, they already have enough notifications
             }
             
             $notifications = $this->generateSystemNotifications($user['id']);
             
-            // Limit to maximum 2 new notifications per user per day
+            // Limit to maximum 3 new notifications per user per day
             $newNotifications = 0;
-            $maxNew = 2;
+            $maxNew = 3;
             
             foreach ($notifications as $notification) {
                 if ($newNotifications >= $maxNew) {

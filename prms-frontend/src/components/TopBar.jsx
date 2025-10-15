@@ -21,8 +21,8 @@ const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", onToggleSid
       {/* Desktop TopBar */}
       <div className={`fixed top-0 right-0 bg-white shadow-sm border-b border-gray-200 z-40 hidden lg:block transition-all duration-300 ${sidebarCollapsed ? 'left-20' : 'left-64'}`}>
         <div className="flex items-center justify-between px-6 py-4">
-          {/* Left side - Toggle button and greeting */}
-          <div className="flex items-center space-x-4">
+          {/* Left side - Toggle button */}
+          <div className="flex items-center">
             <button
               onClick={onToggleSidebar}
               className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
@@ -30,9 +30,6 @@ const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", onToggleSid
             >
               <FaBars className="w-5 h-5" />
             </button>
-            <div className="flex flex-col">
-              <h1 className="text-lg font-semibold text-gray-900">Hello, {userName}!</h1>
-            </div>
           </div>
 
           {/* Right side - Date/Time and User actions */}
@@ -74,8 +71,8 @@ const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", onToggleSid
               <span className="text-white font-bold text-sm">RHU</span>
             </div>
             <div className="flex flex-col">
-              <h2 className="text-base font-semibold text-gray-900">Hello, {userName}!</h2>
-              <p className="text-gray-600 text-xs">Welcome to PRMS, {userRole}</p>
+              <h2 className="text-base font-semibold text-gray-900">PRMS</h2>
+              <p className="text-gray-600 text-xs">Health Management System</p>
             </div>
           </div>
           

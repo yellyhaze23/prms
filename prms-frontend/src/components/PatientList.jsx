@@ -72,42 +72,45 @@ function PatientList({ patients, onSelect, onEdit, onDelete, loading, error }) {
           <p className="text-gray-400 text-sm">Add a new patient to get started</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto bg-white rounded-xl shadow-lg border border-gray-100">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-100">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                   <div className="flex items-center gap-2">
-                    <FaIdCard className="text-gray-400" />
+                    <FaIdCard className="text-blue-600" />
                     Patient ID
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                   <div className="flex items-center gap-2">
-                    <FaIdCard className="text-gray-400" />
+                    <FaIdCard className="text-blue-600" />
                     Patient Name
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                   <div className="flex items-center gap-2">
-                    <FaCalendarAlt className="text-gray-400" />
+                    <FaVenusMars className="text-blue-600" />
                     Age & Gender
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                   <div className="flex items-center gap-2">
-                    <FaMapMarkerAlt className="text-gray-400" />
+                    <FaMapMarkerAlt className="text-blue-600" />
                     Address
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                   <div className="flex items-center gap-2">
-                    <FaCalendarAlt className="text-gray-400" />
+                    <FaCalendarAlt className="text-blue-600" />
                     Last Visit
                   </div>
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                <th className="px-6 py-4 text-right text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                  <div className="flex items-center justify-end gap-2">
+                    <FaEllipsisV className="text-blue-600" />
+                    Action
+                  </div>
                 </th>
               </tr>
             </thead>

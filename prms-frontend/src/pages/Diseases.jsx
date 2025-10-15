@@ -131,22 +131,25 @@ function Diseases() {
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8 bg-gradient-to-r from-red-600 to-red-700 p-6 rounded-lg shadow-lg">
-          <div className="flex items-center justify-between">
+        {/* Modern Header with Controls */}
+        <div className="mb-5">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-white flex items-center">
-                <FaStethoscope className="h-8 w-8 mr-3" />
-                Disease Management
-              </h1>
-              <p className="text-red-100 mt-2">Manage communicable diseases and track cases</p>
+              <h1 className="text-3xl font-bold text-blue-600">Disease Management</h1>
+              <p className="text-gray-700 mt-2">Manage communicable diseases and track cases</p>
             </div>
-            <button
-              onClick={handleAddDisease}
-              className="inline-flex items-center px-4 py-2 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-colors duration-200 font-medium"
-            >
-              <FaPlus className="h-4 w-4 mr-2" />
-              Add Disease
-            </button>
+            
+            {/* Controls on the right */}
+            <div className="flex items-center space-x-4">
+              {/* Add Disease Button */}
+              <button
+                onClick={handleAddDisease}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              >
+                <FaPlus className="h-4 w-4" />
+                <span>Add Disease</span>
+              </button>
+            </div>
           </div>
         </div>
 

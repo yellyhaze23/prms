@@ -7,7 +7,7 @@ import {
   FaFilter, 
   FaSearch,
   FaTrash,
-  FaRefresh
+  FaSync
 } from 'react-icons/fa';
 import axios from 'axios';
 import ModernToast from './ModernToast';
@@ -190,7 +190,7 @@ const NotificationCenter = ({ userId = 1 }) => {
                 className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 title="Refresh"
               >
-                <FaRefresh className="w-5 h-5" />
+                <FaSync className="w-5 h-5" />
               </button>
               <button
                 onClick={markAllAsRead}

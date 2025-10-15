@@ -277,28 +277,8 @@ try {
         ];
     }
     
-    // Check for recent outbreaks (diseases with 5+ cases in last week) - Only create notifications, not dashboard alerts
-    $stmt = $conn->prepare("
-        SELECT 
-            mr.diagnosis as disease,
-            COUNT(*) as recent_cases
-        FROM medical_records mr
-        WHERE mr.updated_at >= ? AND mr.diagnosis IS NOT NULL AND mr.diagnosis != ''
-        GROUP BY mr.diagnosis
-        HAVING recent_cases >= 5
-    ");
-    $stmt->execute([$lastWeek]);
-    $outbreakData = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Create notifications for outbreaks (but don't show as dashboard alerts)
-    foreach ($outbreakData as $outbreak) {
-        // Create notification for this outbreak
-        $notificationStmt = $conn->prepare("
-            INSERT INTO notifications (user_id, type, title, message, action_url, action_text) 
-            VALUES (1, 'urgent', 'Outbreak Alert', 'Potential outbreak: {$outbreak['disease']} with {$outbreak['recent_cases']} cases this week', '/tracker', 'View Tracker')
-        ");
-        $notificationStmt->execute();
-    }
+    // Outbreak notification generation removed - was causing 99+ spam every 30 seconds
+    // Dashboard data fetching should not generate notifications
 
     // Compile all data
     $dashboardData = [

@@ -182,20 +182,20 @@ const ARIMAForecast = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
+        {/* Modern Header with Controls */}
+        <div className="mb-5">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <FaChartLine className="text-blue-600" />
-                Disease Forecasting
-              </h1>
-              <p className="text-gray-600 mt-2">
-                Generate ARIMA-based disease forecasts
-              </p>
+              <h1 className="text-3xl font-bold text-blue-600">Disease Forecasting</h1>
+              <p className="text-gray-700 mt-2">Generate ARIMA-based disease forecasts</p>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <FaInfoCircle />
-              <span>ARIMA Model</span>
+            
+            {/* Controls on the right */}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <FaInfoCircle />
+                <span>ARIMA Model</span>
+              </div>
             </div>
           </div>
           

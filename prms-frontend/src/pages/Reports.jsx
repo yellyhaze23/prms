@@ -50,16 +50,20 @@ ChartJS.register(
 
 function Reports() {
   const [reportData, setReportData] = useState(null);
+  const [forecastData, setForecastData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedDisease, setSelectedDisease] = useState('All');
   const [dateRange, setDateRange] = useState('30');
-  const [viewMode, setViewMode] = useState('overview'); // overview, detailed, trends
+  const [viewMode, setViewMode] = useState('overview'); // overview, detailed, trends, forecast
   const [showFilters, setShowFilters] = useState(false);
+  const [diseases, setDiseases] = useState([]);
 
   // Fetch data on component mount
   useEffect(() => {
     fetchData();
+    fetchDiseases();
+    fetchForecastData();
   }, []);
 
   const fetchData = async () => {
@@ -80,6 +84,34 @@ function Reports() {
       setError('Failed to load report data. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDiseases = async () => {
+    try {
+      const response = await fetch('http://localhost/prms/prms-backend/get_diseases.php');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setDiseases(data.diseases || []);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching diseases:', err);
+    }
+  };
+
+  const fetchForecastData = async () => {
+    try {
+      const response = await fetch('http://localhost/prms/prms-backend/get_recent_forecasts.php');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setForecastData(data.forecasts || []);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching forecast data:', err);
     }
   };
 
@@ -277,24 +309,40 @@ function Reports() {
 
   // Export functions
   const exportToCSV = () => {
-    const csvContent = [
-      ['Patient ID', 'Name', 'Age', 'Gender', 'Disease', 'Address', 'Last Visit'],
-      ...filteredPatients.map(patient => [
-        patient.id,
-        patient.full_name,
-        patient.age,
-        patient.sex,
-        patient.disease || 'Healthy',
-        patient.address,
-        patient.last_visit || patient.created_at
-      ])
-    ].map(row => row.join(',')).join('\n');
+    let csvContent = '';
+    let filename = '';
+
+    if (viewMode === 'forecast') {
+      // Export forecast data
+      csvContent = 'Disease,Forecast Month,Predicted Cases,Confidence Interval,Generated At\n';
+      forecastData?.forEach(forecast => {
+        forecast.forecast_data?.forEach(data => {
+          csvContent += `${forecast.disease},${data.month},${data.predicted_cases},${data.confidence_interval || 'N/A'},${forecast.created_at}\n`;
+        });
+      });
+      filename = `disease_forecast_${new Date().toISOString().split('T')[0]}.csv`;
+    } else {
+      // Export patient data
+      csvContent = [
+        ['Patient ID', 'Name', 'Age', 'Gender', 'Disease', 'Address', 'Last Visit'],
+        ...filteredPatients.map(patient => [
+          patient.id,
+          patient.full_name,
+          patient.age,
+          patient.sex,
+          patient.disease || 'Healthy',
+          patient.address,
+          patient.last_visit || patient.created_at
+        ])
+      ].map(row => row.join(',')).join('\n');
+      filename = `patient-reports-${new Date().toISOString().split('T')[0]}.csv`;
+    }
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `patient-reports-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = filename;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -331,26 +379,32 @@ function Reports() {
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8 bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-lg shadow-lg">
-          <div className="flex justify-between items-center">
+        {/* Modern Header with Controls */}
+        <div className="mb-5">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-white">Disease Reports & Analytics</h1>
-              <p className="text-blue-100 mt-2">Comprehensive health data analysis and insights</p>
+              <h1 className="text-3xl font-bold text-blue-600">Disease Reports & Analytics</h1>
+              <p className="text-gray-700 mt-2">Comprehensive health data analysis and insights</p>
             </div>
-            <div className="flex space-x-3">
+            
+            {/* Controls on the right */}
+            <div className="flex items-center space-x-4">
+              {/* Filter Button */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="bg-white bg-opacity-20 text-white px-4 py-2 rounded-md hover:bg-opacity-30 flex items-center"
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2"
               >
-                <FaFilter className="mr-2" />
-                Filters
+                <FaFilter className="h-4 w-4" />
+                <span>Filters</span>
               </button>
+              
+              {/* Export Button */}
               <button
                 onClick={exportToCSV}
-                className="bg-white bg-opacity-20 text-white px-4 py-2 rounded-md hover:bg-opacity-30 flex items-center"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
               >
-                <FaDownload className="mr-2" />
-                Export CSV
+                <FaDownload className="h-4 w-4" />
+                <span>Export CSV</span>
               </button>
             </div>
           </div>
@@ -397,6 +451,7 @@ function Reports() {
                   <option value="overview">Overview</option>
                   <option value="detailed">Detailed</option>
                   <option value="trends">Trends</option>
+                  <option value="forecast">ARIMA Forecasts</option>
                 </select>
               </div>
             </div>
@@ -567,6 +622,75 @@ function Reports() {
             </table>
           </div>
         </div>
+
+        {/* ARIMA Forecast View */}
+        {viewMode === 'forecast' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <FaChartLine className="mr-2 text-blue-600" />
+                ARIMA Disease Forecasts
+              </h3>
+              
+              {forecastData && forecastData.length > 0 ? (
+                <div className="space-y-4">
+                  {forecastData.map((forecast, index) => (
+                    <div key={index} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-md font-semibold text-gray-800">{forecast.disease}</h4>
+                        <span className="text-sm text-gray-500">
+                          Generated: {new Date(forecast.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      
+                      {forecast.forecast_data && forecast.forecast_data.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Month</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Predicted Cases</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Confidence Interval</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Risk Level</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {forecast.forecast_data.map((data, dataIndex) => (
+                                <tr key={dataIndex} className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 text-sm text-gray-900">{data.month}</td>
+                                  <td className="px-4 py-2 text-sm font-medium text-gray-900">{data.predicted_cases}</td>
+                                  <td className="px-4 py-2 text-sm text-gray-900">{data.confidence_interval || 'N/A'}</td>
+                                  <td className="px-4 py-2 text-sm">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      data.predicted_cases > 50 ? 'bg-red-100 text-red-800' :
+                                      data.predicted_cases > 20 ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-green-100 text-green-800'
+                                    }`}>
+                                      {data.predicted_cases > 50 ? 'High Risk' :
+                                       data.predicted_cases > 20 ? 'Medium Risk' : 'Low Risk'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-sm">No forecast data available</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FaChartLine className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Forecasts Available</h3>
+                  <p className="text-gray-500">Generate ARIMA forecasts from the Forecasting page to view them here.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

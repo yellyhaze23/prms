@@ -212,14 +212,12 @@ function Settings() {
   return (
     <div className="min-h-screen bg-gray-50 px-4 sm:px-6 lg:px-8 py-6">
 
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 shadow-lg mb-6 text-white">
-        <div className="flex items-center">
-          <div className="flex items-center justify-center w-12 h-12 bg-white/10 rounded-lg mr-4">
-            <FaCog className="text-white text-2xl" />
-          </div>
+      {/* Modern Header with Controls */}
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-semibold leading-tight">Settings</h1>
-            <p className="text-blue-100 text-sm">Manage users, and your account</p>
+            <h1 className="text-3xl font-bold text-blue-600">Settings</h1>
+            <p className="text-gray-700 mt-2">Manage users, and your account</p>
           </div>
         </div>
       </div>

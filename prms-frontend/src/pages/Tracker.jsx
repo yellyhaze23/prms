@@ -199,14 +199,17 @@ function Tracker() {
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8 bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-lg shadow-lg">
-          <div className="flex items-center justify-between">
+        {/* Modern Header with Controls */}
+        <div className="mb-5">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-white">Disease Hotspot Tracker</h1>
-              <p className="text-blue-100 mt-2">Real-time barangay-level disease monitoring across Los Baños</p>
+              <h1 className="text-3xl font-bold text-blue-600">Disease Hotspot Tracker</h1>
+              <p className="text-gray-700 mt-2">Real-time barangay-level disease monitoring across Los Baños</p>
             </div>
+            
+            {/* Controls on the right */}
             <div className="flex items-center space-x-4">
-              <div className="text-blue-100 text-sm">
+              <div className="text-gray-600 text-sm flex items-center">
                 <span className="inline mr-1">🗺️</span>
                 {filteredData.length} areas monitored
               </div>

@@ -63,11 +63,13 @@ const Dashboard = () => {
   const [syncing, setSyncing] = useState(false);
   const [alerts, setAlerts] = useState([]);
   const [alertCountdown, setAlertCountdown] = useState(10); // 10 seconds countdown
+  const [currentUser, setCurrentUser] = useState({ name: 'Admin' });
 
   useEffect(() => {
+    fetchCurrentUser();
     fetchDashboardData();
-    // Auto-refresh every 30 seconds for real-time updates
-    const interval = setInterval(fetchDashboardData, 30000);
+    // Auto-refresh every 5 minutes for real-time updates (reduced from 30 seconds)
+    const interval = setInterval(fetchDashboardData, 300000);
     return () => clearInterval(interval);
   }, []);
 
@@ -83,6 +85,18 @@ const Dashboard = () => {
       setAlerts([]);
     }
   }, [alerts.length, alertCountdown]);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch('http://localhost/prms/prms-backend/get_current_user.php');
+      const data = await response.json();
+      if (data.success) {
+        setCurrentUser(data.user);
+      }
+    } catch (err) {
+      console.error("Error fetching current user:", err);
+    }
+  };
 
   const fetchDashboardData = async (timeframe = selectedTimeframe, forceRefresh = false) => {
     // Check cache first - INSTANT DISPLAY
@@ -172,7 +186,7 @@ const Dashboard = () => {
 
   if (loading && !dashboardData) {
     return (
-      <div className="min-h-screen bg-gray-50 py-6">
+      <div className="min-h-screen bg-gray-50 py-6=">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -185,7 +199,7 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 py-6">
+      <div className="min-h-screen bg-gray-50 py-3.5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <FaExclamationTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
@@ -279,43 +293,47 @@ const Dashboard = () => {
     return Math.max(10, maxValue + 2);
   };
 
-  // Chart data for age distribution
+  // Chart data for age distribution - Modern design
   const ageChartData = {
     labels: age_distribution.map(item => item.age_group),
     datasets: [{
       data: age_distribution.map(item => item.count),
       backgroundColor: [
-        'rgba(59, 130, 246, 0.8)',
-        'rgba(16, 185, 129, 0.8)',
-        'rgba(245, 158, 11, 0.8)',
-        'rgba(239, 68, 68, 0.8)',
-        'rgba(139, 92, 246, 0.8)'
+        '#3B82F6', // Blue
+        '#10B981', // Green  
+        '#F59E0B', // Orange
+        '#EF4444', // Red
+        '#8B5CF6'  // Purple
       ],
       borderColor: [
-        'rgb(59, 130, 246)',
-        'rgb(16, 185, 129)',
-        'rgb(245, 158, 11)',
-        'rgb(239, 68, 68)',
-        'rgb(139, 92, 246)'
+        '#1E40AF', // Darker blue
+        '#059669', // Darker green
+        '#D97706', // Darker orange
+        '#DC2626', // Darker red
+        '#7C3AED'  // Darker purple
       ],
-      borderWidth: 2
+      borderWidth: 0,
+      cutout: '60%',
+      spacing: 2
     }]
   };
 
-  // Chart data for gender distribution
+  // Chart data for gender distribution - Modern design
   const genderChartData = {
     labels: gender_distribution.map(item => item.sex),
     datasets: [{
       data: gender_distribution.map(item => item.count),
       backgroundColor: [
-        'rgba(59, 130, 246, 0.8)',
-        'rgba(236, 72, 153, 0.8)'
+        '#3B82F6', // Blue
+        '#EC4899'  // Pink
       ],
       borderColor: [
-        'rgb(59, 130, 246)',
-        'rgb(236, 72, 153)'
+        '#1E40AF', // Darker blue
+        '#BE185D'  // Darker pink
       ],
-      borderWidth: 2
+      borderWidth: 0,
+      cutout: '60%',
+      spacing: 2
     }]
   };
 
@@ -381,13 +399,43 @@ const Dashboard = () => {
         labels: {
           usePointStyle: true,
           pointStyle: 'circle',
-          padding: 20,
+          padding: 15,
           font: {
-            size: 11,
-            family: "'Inter', sans-serif"
-          }
+            size: 12,
+            family: "'Inter', sans-serif",
+            weight: '500'
+          },
+          color: '#374151'
         }
       },
+      tooltip: {
+        enabled: true,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: '#e5e7eb',
+        borderWidth: 1,
+        cornerRadius: 8,
+        displayColors: true,
+        callbacks: {
+          label: function(context) {
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = ((context.parsed / total) * 100).toFixed(1);
+            return `${context.label}: ${context.parsed} (${percentage}%)`;
+          }
+        }
+      }
+    },
+    elements: {
+      arc: {
+        borderWidth: 0
+      }
+    },
+    animation: {
+      animateRotate: true,
+      animateScale: true,
+      duration: 1000,
+      easing: 'easeInOutQuart'
     }
   };
 
@@ -403,15 +451,20 @@ const Dashboard = () => {
     }
   };
 
+  // Get current user name from database
+  const getCurrentUserName = () => {
+    return currentUser.name || "Admin";
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Modern Header */}
-        <div className="mb-8">
+        <div className="mb-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {getGreeting()}, <span className="text-blue-600">Admin</span>
+              <h1 className="text-3xl font-bold text-blue-600">
+                {getGreeting()}, {getCurrentUserName()}
               </h1>
               <p className="text-gray-700 font-bold text-lg mt-1">Dashboard</p>
             </div>

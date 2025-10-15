@@ -197,64 +197,77 @@ function Records() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {!selectedPatient ? (
           <>
-            {/* Header */}
-            <div className="mb-8 bg-blue-600 p-4 rounded-lg">
-              <h1 className="text-3xl font-bold text-white">Medical Records</h1>
-              <p className="mt-2 text-blue-100">View and manage patient medical records</p>
-            </div>
+            {/* Modern Header with Controls */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-blue-600">Medical Records</h1>
+                  <p className="text-gray-700 mt-2">View and manage patient medical records</p>
+                </div>
+                
+                {/* Controls on the right */}
+                <div className="flex items-center space-x-4">
+                  {/* Search Input */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search patients by name, contact, address, or disease..."
+                      value={searchTerm}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      className="w-80 px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <svg className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
 
-                {/* Toolbar */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                  <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-                    {/* Search Input */}
-                    <div className="relative flex-1 max-w-md">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FaIdCard className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="Search patients by name, contact, address, or disease..."
-                        value={searchTerm}
-                        onChange={(e) => handleSearch(e.target.value)}
-                      />
+                  {/* Disease Filter */}
+                  <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2">
+                    {/*  <FaStethoscope className="h-4 w-4 text-gray-400" /> */}
+                      <span className="text-sm font-medium text-gray-700">Filter:</span>
                     </div>
+                    <select
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={selectedDisease}
+                      onChange={(e) => handleDiseaseFilter(e.target.value)}
+                    >
+                      <option value="all">All Patients</option>
+                      <option value="healthy">Healthy Patients</option>
+                      {diseases.map((disease) => (
+                        <option key={disease.id} value={disease.name}>
+                          {disease.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                    {/* Disease Filter */}
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <FaStethoscope className="h-5 w-5 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-700">Filter by Disease:</span>
-                      </div>
-                      <select
-                        className="block px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        value={selectedDisease}
-                        onChange={(e) => handleDiseaseFilter(e.target.value)}
-                      >
-                        <option value="all">All Patients</option>
-                        <option value="healthy">Healthy Patients</option>
-                        {diseases.map((disease) => (
-                          <option key={disease.id} value={disease.name}>
-                            {disease.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Sort Controls */}
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <button
-                          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                          onClick={() => handleSort(sortBy)}
-                          title={`Sort ${sortOrder === "asc" ? "Ascending" : "Descending"}`}
-                        >
-                          {sortOrder === "asc" ? "↑" : "↓"}
-                        </button>
-                      </div>
-                    </div>
+                  {/* Sort Controls */}
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleSort(sortBy)}
+                      className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      title={`Sort ${sortOrder === "asc" ? "Ascending" : "Descending"}`}
+                    >
+                      <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                      </svg>
+                    </button>
+                    
+                    <select
+                      value={sortBy}
+                      onChange={(e) => handleSort(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="updated_at">Sort by: Last Updated</option>
+                      <option value="created_at">Sort by: Date Added</option>
+                      <option value="full_name">Sort by: Name</option>
+                      <option value="diagnosis">Sort by: Diagnosis</option>
+                    </select>
                   </div>
                 </div>
+              </div>
+            </div>
 
             {/* Records Table */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -265,48 +278,51 @@ function Records() {
                   <p className="text-gray-400 text-sm">Patient records will appear here</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto bg-white rounded-xl shadow-lg border border-gray-100">
                   <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-100">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
-                            <FaIdCard className="text-gray-400" />
+                            <FaIdCard className="text-blue-600" />
                             Patient ID
                           </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
-                            <FaIdCard className="text-gray-400" />
+                            <FaIdCard className="text-blue-600" />
                             Patient Name
                           </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
-                            <FaCalendarAlt className="text-gray-400" />
+                            <FaCalendarAlt className="text-blue-600" />
                             Age & Gender
                           </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
-                            <FaMapMarkerAlt className="text-gray-400" />
+                            <FaMapMarkerAlt className="text-blue-600" />
                             Address
                           </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
-                            <FaStethoscope className="text-gray-400" />
+                            <FaStethoscope className="text-blue-600" />
                             Diagnosis
                           </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
-                            <FaCalendarAlt className="text-gray-400" />
+                            <FaCalendarAlt className="text-blue-600" />
                             Last Visit
                           </div>
                         </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
+                        <th className="px-6 py-4 text-right text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                          <div className="flex items-center justify-end gap-2">
+                            <FaEllipsisV className="text-blue-600" />
+                            Action
+                          </div>
                         </th>
                       </tr>
                     </thead>

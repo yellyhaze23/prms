@@ -21,7 +21,7 @@
   
   /* Collapsed sidebar styles */
   .main-content.sidebar-collapsed {
-    margin-left: 5rem; /* 80px - matches w-20 in Tailwind */
-    width: calc(100% - 5rem);
+    margin-left: 4rem; /* 64px - matches w-16 in Tailwind */
+    width: calc(100% - 4rem);
   }
 }
