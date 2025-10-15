@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FaBell, FaTimes, FaCheck, FaCheckCircle, FaExclamationCircle, FaInfoCircle, FaTrashAlt } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
+import NotificationDrawer from './NotificationDrawer';
 
 const NotificationBell = ({ userId = 1 }) => {
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
@@ -97,6 +99,19 @@ const NotificationBell = ({ userId = 1 }) => {
     }
   };
 
+  // Handle action button click
+  const handleActionClick = (notification, event) => {
+    event.stopPropagation(); // Prevent notification click
+    if (notification.action_url) {
+      // Navigate to the action URL
+      if (notification.action_url.startsWith('/')) {
+        window.location.href = notification.action_url;
+      } else {
+        window.open(notification.action_url, '_blank');
+      }
+    }
+  };
+
   // Format notification time
   const formatTime = (createdAt) => {
     try {
@@ -130,14 +145,15 @@ const NotificationBell = ({ userId = 1 }) => {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Notification Bell Button */}
+      {/* Modern Notification Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+        className="relative inline-flex items-center justify-center w-8 h-8 text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        title="Notifications"
       >
-        <FaBell className="h-6 w-6" />
+        <FaBell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -145,7 +161,7 @@ const NotificationBell = ({ userId = 1 }) => {
 
       {/* Notification Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 transform -translate-x-4">
+        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-[99999] transform -translate-x-4" style={{zIndex: 99999}}>
           {/* Header */}
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
@@ -215,9 +231,12 @@ const NotificationBell = ({ userId = 1 }) => {
                           {formatTime(notification.created_at)}
                         </span>
                         {notification.action_text && (
-                          <span className="text-xs text-blue-600 font-medium">
+                          <button
+                            onClick={(e) => handleActionClick(notification, e)}
+                            className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+                          >
                             {notification.action_text}
-                          </span>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -233,7 +252,7 @@ const NotificationBell = ({ userId = 1 }) => {
               <button
                 onClick={() => {
                   setIsOpen(false);
-                  window.location.href = '/notifications';
+                  setIsDrawerOpen(true);
                 }}
                 className="w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium"
               >
@@ -243,6 +262,13 @@ const NotificationBell = ({ userId = 1 }) => {
           )}
         </div>
       )}
+
+      {/* Notification Drawer */}
+      <NotificationDrawer 
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        userId={userId}
+      />
     </div>
   );
 };

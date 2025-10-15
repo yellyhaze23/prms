@@ -18,7 +18,7 @@ import {
 import ConfirmationModal from "./ConfirmationModal";
 import { preloadRoute } from '../utils/routePreloader';
 
-function Sidebar() {
+function Sidebar({ collapsed = false }) {
   const location = useLocation();
   const navigate = useNavigate();
   const isActive = (path) => location.pathname === path;
@@ -54,22 +54,24 @@ function Sidebar() {
 
   return (
     <>
-      <div className="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 shadow-2xl border-r border-slate-700/50 z-50 hidden lg:block">
+      <div className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 shadow-2xl border-r border-slate-700/50 z-50 hidden lg:block transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'}`}>
         {/* Header Section */}
-        <div className="p-6 border-b border-slate-700/50">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-              <FaHospital className="text-white text-xl" />
+        <div className={`border-b border-slate-700/50 ${collapsed ? 'p-4' : 'p-6'}`}>
+          <div className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'}`}>
+            <div className={`bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg ${collapsed ? 'w-8 h-8' : 'w-12 h-12'}`}>
+              <FaHospital className={`text-white ${collapsed ? 'text-sm' : 'text-xl'}`} />
             </div>
-            <div>
-              <h1 className="text-white font-bold text-lg">RHU</h1>
-              <p className="text-slate-400 text-xs">Patient Record System</p>
-            </div>
+            {!collapsed && (
+              <div>
+                <h1 className="text-white font-bold text-lg">RHU</h1>
+                <p className="text-slate-400 text-xs">Patient Record System</p>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Navigation Section */}
-        <nav className="flex-1 px-4 py-6 space-y-2">
+        <nav className={`flex-1 py-6 space-y-2 ${collapsed ? 'px-2' : 'px-4'}`}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -80,20 +82,29 @@ function Sidebar() {
                 to={item.path}
                 onClick={() => handleNavClick(item.path)}
                 onMouseEnter={() => handleNavHover(item.path)}
-                className={`group flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                className={`group flex items-center rounded-xl text-sm font-medium transition-all duration-200 ${
+                  collapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'
+                } ${
                   active
                     ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
                     : "text-slate-300 hover:text-white hover:bg-slate-700/50"
                 }`}
+                title={collapsed ? item.label : ''}
               >
                 <Icon 
-                  className={`mr-3 text-lg transition-transform duration-200 ${
+                  className={`text-lg transition-transform duration-200 ${
+                    collapsed ? '' : 'mr-3'
+                  } ${
                     active ? "text-white" : "text-slate-400 group-hover:text-white"
                   }`} 
                 />
-                <span className="flex-1">{item.label}</span>
-                {active && (
-                  <FaChevronRight className="text-white text-xs opacity-70" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1">{item.label}</span>
+                    {active && (
+                      <FaChevronRight className="text-white text-xs opacity-70" />
+                    )}
+                  </>
                 )}
               </Link>
             );
@@ -101,13 +112,18 @@ function Sidebar() {
         </nav>
 
         {/* Footer Section */}
-        <div className="p-4 border-t border-slate-700/50">
+        <div className={`border-t border-slate-700/50 ${collapsed ? 'p-2' : 'p-4'}`}>
           <button
             onClick={() => setShowModal(true)}
-            className="w-full flex items-center px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-red-500/10 transition-all duration-200 group"
+            className={`w-full flex items-center rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-red-500/10 transition-all duration-200 group ${
+              collapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'
+            }`}
+            title={collapsed ? 'Logout' : ''}
           >
-            <FaSignOutAlt className="mr-3 text-lg text-slate-400 group-hover:text-red-400 transition-colors duration-200" />
-            <span>Logout</span>
+            <FaSignOutAlt className={`text-lg text-slate-400 group-hover:text-red-400 transition-colors duration-200 ${
+              collapsed ? '' : 'mr-3'
+            }`} />
+            {!collapsed && <span>Logout</span>}
           </button>
         </div>
       </div>

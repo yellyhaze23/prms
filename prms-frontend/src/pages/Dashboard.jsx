@@ -16,7 +16,8 @@ import {
   FaDatabase,
   FaServer,
   FaChartLine,
-  FaChartPie
+  FaChartPie,
+  FaTimes
 } from "react-icons/fa";
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import ModernAlert from '../components/ModernAlert';
@@ -60,6 +61,8 @@ const Dashboard = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState('weekly');
   const [lastUpdated, setLastUpdated] = useState(null);
   const [syncing, setSyncing] = useState(false);
+  const [alerts, setAlerts] = useState([]);
+  const [alertCountdown, setAlertCountdown] = useState(10); // 10 seconds countdown
 
   useEffect(() => {
     fetchDashboardData();
@@ -67,6 +70,19 @@ const Dashboard = () => {
     const interval = setInterval(fetchDashboardData, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Countdown timer for alerts
+  useEffect(() => {
+    if (alerts.length > 0 && alertCountdown > 0) {
+      const timer = setTimeout(() => {
+        setAlertCountdown(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (alerts.length > 0 && alertCountdown === 0) {
+      // Auto-hide alerts after countdown
+      setAlerts([]);
+    }
+  }, [alerts.length, alertCountdown]);
 
   const fetchDashboardData = async (timeframe = selectedTimeframe, forceRefresh = false) => {
     // Check cache first - INSTANT DISPLAY
@@ -98,8 +114,13 @@ const Dashboard = () => {
       
       if (data.success) {
         setDashboardData(data);
+        setAlerts(data.alerts || []);
         setLastUpdated(new Date());
         setError(null);
+        // Reset countdown when new alerts arrive
+        if (data.alerts && data.alerts.length > 0) {
+          setAlertCountdown(10);
+        }
       } else {
         setError(data.error || "Failed to fetch dashboard data");
       }
@@ -184,7 +205,7 @@ const Dashboard = () => {
 
   if (!dashboardData) return null;
 
-  const { stats, disease_stats, recent_activities, trends_data, current_timeframe, age_distribution, gender_distribution, top_locations, recent_consultations, alerts } = dashboardData;
+  const { stats, disease_stats, recent_activities, trends_data, current_timeframe, age_distribution, gender_distribution, top_locations, recent_consultations } = dashboardData;
 
   // Process trends data based on selected timeframe
   const processTrendsData = () => {
@@ -305,7 +326,16 @@ const Dashboard = () => {
     plugins: {
       legend: {
         position: 'top',
-        display: true
+        display: true,
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 7,
+          font: {
+            size: 11,
+            family: "'Inter', sans-serif"
+          }
+        }
       },
     },
     scales: {
@@ -348,30 +378,53 @@ const Dashboard = () => {
     plugins: {
       legend: {
         position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 20,
+          font: {
+            size: 11,
+            family: "'Inter', sans-serif"
+          }
+        }
       },
+    }
+  };
+
+  // Get greeting based on current time
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8 bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-lg shadow-lg">
-          <div className="flex items-center justify-between">
+        {/* Modern Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-white">RHU Patient Record System</h1>
-              <p className="text-blue-100 mt-2">Welcome to the Rural Health Unit Patient Management System</p>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {getGreeting()}, <span className="text-blue-600">Admin</span>
+              </h1>
+              <p className="text-gray-700 font-bold text-lg mt-1">Dashboard</p>
             </div>
             <div className="flex items-center space-x-4">
               {lastUpdated && (
-                <div className="text-blue-100 text-sm">
+                <div className="text-gray-500 text-sm">
                   <FaClock className="inline mr-1" />
                   Last updated: {lastUpdated.toLocaleTimeString()}
                 </div>
               )}
               {syncing && (
-                <div className="text-blue-100 text-sm flex items-center">
-                  <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-100 rounded-full animate-spin mr-2"></div>
+                <div className="text-gray-500 text-sm flex items-center">
+                  <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mr-2"></div>
                   Syncing...
                 </div>
               )}
@@ -382,10 +435,12 @@ const Dashboard = () => {
         {/* Modern Alerts */}
         {alerts && alerts.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <FaBell className="mr-2 text-yellow-500" />
-              System Alerts
-            </h3>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <FaBell className="mr-2 text-yellow-500" />
+                System Alerts
+              </h3>
+            </div>
             <div className="space-y-3">
               {alerts.map((alert, index) => (
                 <ModernAlert
@@ -482,9 +537,9 @@ const Dashboard = () => {
               <div className="flex space-x-2">
                 <button
                   onClick={() => handleTimeframeChange('weekly')}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                     selectedTimeframe === 'weekly'
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      ? 'bg-blue-600 text-white shadow-md'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -492,9 +547,9 @@ const Dashboard = () => {
                 </button>
                 <button
                   onClick={() => handleTimeframeChange('monthly')}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                     selectedTimeframe === 'monthly'
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      ? 'bg-blue-600 text-white shadow-md'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -502,9 +557,9 @@ const Dashboard = () => {
                 </button>
                 <button
                   onClick={() => handleTimeframeChange('quarterly')}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                     selectedTimeframe === 'quarterly'
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      ? 'bg-blue-600 text-white shadow-md'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -512,9 +567,9 @@ const Dashboard = () => {
                 </button>
                 <button
                   onClick={() => handleTimeframeChange('yearly')}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                     selectedTimeframe === 'yearly'
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      ? 'bg-blue-600 text-white shadow-md'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >

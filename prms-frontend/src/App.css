@@ -8,6 +8,7 @@
   min-height: 100vh;
   background-color: #f8fafc; /* slate-50 */
   padding-top: 4rem; /* 64px - space for mobile TopBar */
+  transition: margin-left 0.3s ease, width 0.3s ease; /* Smooth transitions */
 }
 
 /* Desktop styles */
@@ -16,5 +17,11 @@
     margin-left: 16rem; /* 256px - matches w-64 in Tailwind */
     width: calc(100% - 16rem);
     padding-top: 4rem; /* 64px - space for TopBar */
+  }
+  
+  /* Collapsed sidebar styles */
+  .main-content.sidebar-collapsed {
+    margin-left: 5rem; /* 80px - matches w-20 in Tailwind */
+    width: calc(100% - 5rem);
   }
 }

@@ -277,7 +277,7 @@ try {
         ];
     }
     
-    // Check for recent outbreaks (diseases with 5+ cases in last week)
+    // Check for recent outbreaks (diseases with 5+ cases in last week) - Only create notifications, not dashboard alerts
     $stmt = $conn->prepare("
         SELECT 
             mr.diagnosis as disease,
@@ -290,13 +290,14 @@ try {
     $stmt->execute([$lastWeek]);
     $outbreakData = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    // Create notifications for outbreaks (but don't show as dashboard alerts)
     foreach ($outbreakData as $outbreak) {
-        $alerts[] = [
-            'type' => 'danger',
-            'message' => "Potential outbreak: {$outbreak['disease']} with {$outbreak['recent_cases']} cases this week",
-            'disease' => $outbreak['disease'],
-            'count' => $outbreak['recent_cases']
-        ];
+        // Create notification for this outbreak
+        $notificationStmt = $conn->prepare("
+            INSERT INTO notifications (user_id, type, title, message, action_url, action_text) 
+            VALUES (1, 'urgent', 'Outbreak Alert', 'Potential outbreak: {$outbreak['disease']} with {$outbreak['recent_cases']} cases this week', '/tracker', 'View Tracker')
+        ");
+        $notificationStmt->execute();
     }
 
     // Compile all data

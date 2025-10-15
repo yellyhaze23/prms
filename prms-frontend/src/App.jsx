@@ -47,6 +47,15 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return sessionStorage.getItem("isLoggedIn") === "true";
   });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem("sidebarCollapsed") === "true";
+  });
+
+  const toggleSidebar = () => {
+    const newState = !sidebarCollapsed;
+    setSidebarCollapsed(newState);
+    localStorage.setItem("sidebarCollapsed", newState.toString());
+  };
 
   // Performance optimization: Preload routes and data on app start
   useEffect(() => {
@@ -97,9 +106,9 @@ function App() {
 
   return (
     <div className="app-layout">
-      {!isStaffRoute && <Sidebar />}
-      {!isStaffRoute && <TopBar userId={1} userName="Admin" userRole="Administrator" />}
-      <div className="main-content">
+      {!isStaffRoute && <Sidebar collapsed={sidebarCollapsed} />}
+      {!isStaffRoute && <TopBar userId={1} userName="Admin" userRole="Administrator" onToggleSidebar={toggleSidebar} sidebarCollapsed={sidebarCollapsed} />}
+      <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />

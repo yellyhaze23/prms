@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { FaCog, FaEdit, FaTrash, FaClock, FaUser, FaShieldAlt } from "react-icons/fa";
+import { FaCog, FaEdit, FaTrash, FaClock, FaUser, FaShieldAlt, FaEllipsisV } from "react-icons/fa";
 import SettingsToolbar from "../components/SettingsToolbar";
 import UserModal from "../components/AddUser";
 import Toast from "../components/Toast";
@@ -32,6 +32,7 @@ function Settings() {
   const [confirmModal, setConfirmModal] = useState({ show: false, userId: null });
   const [isReauthRequired, setIsReauthRequired] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [activeDropdown, setActiveDropdown] = useState(null);
 
   // Account change password state
   const [account, setAccount] = useState({
@@ -138,6 +139,40 @@ function Settings() {
     fetchUsers();
   };
 
+  const toggleDropdown = (userId, e) => {
+    e.stopPropagation();
+    setActiveDropdown(activeDropdown === userId ? null : userId);
+  };
+
+  const handleActionClick = (action, user, e) => {
+    e.stopPropagation();
+    setActiveDropdown(null);
+    
+    switch(action) {
+      case 'edit':
+        handleOpenEditModal(user);
+        break;
+      case 'delete':
+        confirmDelete(user.id);
+        break;
+      default:
+        break;
+    }
+  };
+
+  // Close dropdown when clicking outside
+  const handleClickOutside = (e) => {
+    if (!e.target.closest('.dropdown-container')) {
+      setActiveDropdown(null);
+    }
+  };
+
+  // Add event listener for clicking outside
+  React.useEffect(() => {
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   const handleSubmit = async (formData) => {
     const url = editing
       ? "http://localhost/prms/prms-backend/update_user.php"
@@ -219,7 +254,7 @@ function Settings() {
       )}
 
       {activeTab === 'users' && (
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -236,22 +271,53 @@ function Settings() {
                   <td className="px-4 py-3 text-sm text-gray-900">{u.username}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">{u.created_at}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">
-                    <button
-                      className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-blue-600 hover:bg-blue-50 mr-2"
-                      onClick={() => handleOpenEditModal(u)}
-                      title="Edit"
-                    >
-                      <FaEdit />
-                    </button>
-                    {Number(u.id) !== 1 && (
+                    <div className="relative dropdown-container">
+                      {/* Modern Kebab Menu Button */}
                       <button
-                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-red-600 hover:bg-red-50"
-                        onClick={() => confirmDelete(u.id)}
-                        title="Delete"
+                        className="group inline-flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:shadow-sm"
+                        onClick={(e) => toggleDropdown(u.id, e)}
+                        title="More actions"
                       >
-                        <FaTrash />
+                        <FaEllipsisV className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
                       </button>
-                    )}
+
+                      {/* Modern Dropdown Menu with Animation */}
+                      {activeDropdown === u.id && (
+                        <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl z-[99999] border border-gray-100 overflow-hidden animate-in slide-in-from-top-2 duration-200" style={{zIndex: 99999}}>
+                          <div className="py-2">
+                            {/* Edit User */}
+                            <button
+                              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-all duration-150 group/edit"
+                              onClick={(e) => handleActionClick('edit', u, e)}
+                            >
+                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100 group-hover/edit:bg-emerald-200 transition-colors duration-150 mr-3">
+                                <FaEdit className="h-3.5 w-3.5 text-emerald-600" />
+                              </div>
+                              <div className="flex flex-col items-start">
+                                <span className="font-medium">Edit User</span>
+                                <span className="text-xs text-gray-500">Update user information</span>
+                              </div>
+                            </button>
+                            
+                            {/* Delete User - only show if not admin (ID 1) */}
+                            {Number(u.id) !== 1 && (
+                              <button
+                                className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all duration-150 group/delete"
+                                onClick={(e) => handleActionClick('delete', u, e)}
+                              >
+                                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 group-hover/delete:bg-red-200 transition-colors duration-150 mr-3">
+                                  <FaTrash className="h-3.5 w-3.5 text-red-600" />
+                                </div>
+                                <div className="flex flex-col items-start">
+                                  <span className="font-medium">Delete User</span>
+                                  <span className="text-xs text-gray-500">Remove from system</span>
+                                </div>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
