@@ -23,7 +23,7 @@ const DiseaseCard = ({ disease, totalCases, activeCases, riskLevel }) => {
 
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-blue-300 cursor-pointer transition-all duration-200">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
@@ -54,15 +54,6 @@ const DiseaseCard = ({ disease, totalCases, activeCases, riskLevel }) => {
       </div>
 
 
-      {/* Actions */}
-      <div className="flex space-x-2 mt-4">
-        <button className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors duration-150">
-          View Details
-        </button>
-        <button className="flex-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors duration-150">
-          Add Case
-        </button>
-      </div>
     </div>
   );
 };

@@ -12,7 +12,7 @@ if (session_status() === PHP_SESSION_NONE) {
 // Check if user is logged in
 if (isset($_SESSION['user_id']) && isset($_SESSION['username'])) {
     // Get user details from database
-    $sql = "SELECT id, username FROM users WHERE id = ?";
+    $sql = "SELECT id, username, role FROM users WHERE id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $_SESSION['user_id']);
     $stmt->execute();
@@ -26,7 +26,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['username'])) {
                 'id' => $user['id'],
                 'username' => $user['username'],
                 'name' => $user['username'],
-                'role' => 'admin'
+                'role' => $user['role'] ?? 'admin'
             ]
         ]);
     } else {
@@ -42,8 +42,8 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['username'])) {
         ]);
     }
 } else {
-    // No session, get admin user from database (get the first user as admin)
-    $sql = "SELECT id, username FROM users ORDER BY id LIMIT 1";
+    // No session, get admin user from database (get the first user with admin role)
+    $sql = "SELECT id, username, role FROM users WHERE role = 'admin' ORDER BY id LIMIT 1";
     $result = $conn->query($sql);
     
     if ($result && $result->num_rows > 0) {
@@ -54,7 +54,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['username'])) {
                 'id' => $user['id'],
                 'username' => $user['username'],
                 'name' => $user['username'],
-                'role' => 'admin'
+                'role' => $user['role']
             ]
         ]);
     } else {

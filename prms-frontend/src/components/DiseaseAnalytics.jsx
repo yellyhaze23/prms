@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaStethoscope, FaSync, FaExclamationTriangle } from 'react-icons/fa';
 import axios from 'axios';
 import DiseaseCard from './DiseaseCard';
+import CaseTrendsChart from './CaseTrendsChart';
 import Toast from './Toast';
 
 const DiseaseAnalytics = () => {
@@ -96,6 +97,9 @@ const DiseaseAnalytics = () => {
           </div>
         </div>
       </div>
+
+      {/* Case Trends Chart */}
+      <CaseTrendsChart />
 
       {/* Disease Cards */}
       {diseases.length === 0 ? (
