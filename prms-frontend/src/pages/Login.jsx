@@ -13,6 +13,7 @@ import {
   FaUsers,
   FaSpinner
 } from "react-icons/fa";
+import LoginLoadingModal from "../components/LoginLoadingModal";
 import "./Login.css";
 
 function Login({ onLogin }) {
@@ -22,6 +23,8 @@ function Login({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showLoadingModal, setShowLoadingModal] = useState(false);
+  const [loadingStage, setLoadingStage] = useState('loading');
 
   // Load saved credentials on component mount
   useEffect(() => {
@@ -36,6 +39,8 @@ function Login({ onLogin }) {
     e.preventDefault();
     setError("");
     setLoading(true);
+    setShowLoadingModal(true);
+    setLoadingStage('loading');
 
     try {
       const res = await axios.post("http://localhost/prms/prms-backend/authenticate.php", {
@@ -49,13 +54,22 @@ function Login({ onLogin }) {
         } else {
           localStorage.removeItem('rememberedUsername');
         }
-        onLogin(res.data.user);
+        
+        // Show success animation
+        setLoadingStage('success');
+        
+        // Wait for success animation to complete, then proceed with login
+        setTimeout(() => {
+          onLogin(res.data.user);
+        }, 1500);
       } else {
         setError(res.data.message || "Login failed");
+        setShowLoadingModal(false);
+        setLoading(false);
       }
     } catch (err) {
       setError("Server error. Please check your connection and try again.");
-    } finally {
+      setShowLoadingModal(false);
       setLoading(false);
     }
   };
@@ -66,6 +80,11 @@ function Login({ onLogin }) {
 
   return (
     <div className="login-container">
+      <LoginLoadingModal 
+        isVisible={showLoadingModal} 
+        stage={loadingStage} 
+      />
+      
       {/* Background Animation */}
       <div className="login-background">
         <div className="floating-shapes">
@@ -76,7 +95,7 @@ function Login({ onLogin }) {
         </div>
       </div>
 
-      <div className="login-card">
+      <div className={`login-card ${showLoadingModal ? 'loading' : ''}`}>
         {/* Left Panel - Branding & Features */}
         <div className="login-left-panel">
           <div className="brand-section">

@@ -48,7 +48,7 @@ function Records() {
         disease: selectedDisease
       });
 
-      const response = await axios.get(`http://localhost/prms/prms-backend/get_all_medical_records.php?${params}`);
+      const response = await axios.get(`http://localhost/prms/prms-backend/get_patients.php?${params}`);
       
       if (response.data.success) {
         setPatients(response.data.data);

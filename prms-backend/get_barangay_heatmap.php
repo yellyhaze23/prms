@@ -2,7 +2,7 @@
 require 'cors.php';
 require 'config.php';
 
-// Get barangay heatmap data with patient statistics
+// Get barangay heatmap data with patient statistics and disease information
 $sql = "SELECT 
     b.id,
     b.name as barangay,
@@ -13,7 +13,8 @@ $sql = "SELECT
     ROUND(
         (SUM(CASE WHEN mr.diagnosis IS NOT NULL THEN 1 ELSE 0 END) / COUNT(p.id)) * 100, 2
     ) as sick_rate,
-    COUNT(DISTINCT mr.diagnosis) as disease_types
+    COUNT(DISTINCT mr.diagnosis) as disease_types,
+    GROUP_CONCAT(DISTINCT mr.diagnosis ORDER BY mr.diagnosis SEPARATOR ', ') as diseases
 FROM barangays b
 LEFT JOIN patients p ON p.barangay_id = b.id
 LEFT JOIN medical_records mr ON p.id = mr.patient_id

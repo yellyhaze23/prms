@@ -66,11 +66,24 @@ function Reports() {
     fetchForecastData();
   }, []);
 
+  // Refetch data when filters change
+  useEffect(() => {
+    fetchData();
+  }, [selectedDisease, dateRange, viewMode]);
+
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost/prms/prms-backend/get_reports_data.php');
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (selectedDisease !== 'All') {
+        params.append('disease', selectedDisease);
+      }
+      params.append('days', dateRange);
+      params.append('view_mode', viewMode);
+
+      const response = await fetch(`http://localhost/prms/prms-backend/get_reports_data.php?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch report data');
       const data = await response.json();
       
@@ -308,43 +321,53 @@ function Reports() {
   };
 
   // Export functions
-  const exportToCSV = () => {
-    let csvContent = '';
-    let filename = '';
-
-    if (viewMode === 'forecast') {
-      // Export forecast data
-      csvContent = 'Disease,Forecast Month,Predicted Cases,Confidence Interval,Generated At\n';
-      forecastData?.forEach(forecast => {
-        forecast.forecast_data?.forEach(data => {
-          csvContent += `${forecast.disease},${data.month},${data.predicted_cases},${data.confidence_interval || 'N/A'},${forecast.created_at}\n`;
+  const exportToCSV = async () => {
+    try {
+      setLoading(true);
+      
+      // Build query parameters for RHU export
+      const params = new URLSearchParams();
+      if (selectedDisease !== 'All') {
+        params.append('disease', selectedDisease);
+      }
+      params.append('days', dateRange);
+      
+      const response = await fetch(`http://localhost/prms/prms-backend/get_rhu_export_data.php?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch export data');
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Generate RHU-IS format CSV
+        let csvContent = 'Barangay,Disease,ICD Code,Age,Gender,Month-Year,Case Count\n';
+        
+        data.data.forEach(record => {
+          csvContent += `"${record.barangay}","${record.disease}","${record.icd_code || 'N/A'}","${record.age}","${record.gender}","${record.month_year}","${record.case_count}"\n`;
         });
-      });
-      filename = `disease_forecast_${new Date().toISOString().split('T')[0]}.csv`;
-    } else {
-      // Export patient data
-      csvContent = [
-        ['Patient ID', 'Name', 'Age', 'Gender', 'Disease', 'Address', 'Last Visit'],
-        ...filteredPatients.map(patient => [
-          patient.id,
-          patient.full_name,
-          patient.age,
-          patient.sex,
-          patient.disease || 'Healthy',
-          patient.address,
-          patient.last_visit || patient.created_at
-        ])
-      ].map(row => row.join(',')).join('\n');
-      filename = `patient-reports-${new Date().toISOString().split('T')[0]}.csv`;
+        
+        const filename = `RHU_IS_Export_${selectedDisease === 'All' ? 'All_Diseases' : selectedDisease}_${dateRange}days_${new Date().toISOString().split('T')[0]}.csv`;
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Show success message
+        alert(`Export successful! ${data.total_records} records exported.`);
+      } else {
+        throw new Error(data.error || 'Failed to export data');
+      }
+    } catch (err) {
+      console.error('Export error:', err);
+      alert('Export failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    window.URL.revokeObjectURL(url);
   };
 
   if (loading) {
@@ -460,58 +483,62 @@ function Reports() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <FaUsers className="w-6 h-6 text-blue-600" />
+          {/* Total Diseases Card */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-lg">
+                  <FaVirus className="text-blue-600 text-xl" />
                 </div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Patients</p>
-                <p className="text-2xl font-semibold text-gray-900">{summary.total_patients.toLocaleString()}</p>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Total Diseases</p>
+                  <p className="text-3xl font-bold text-gray-900">{summary.total_diseases || 0}</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                  <FaVirus className="w-6 h-6 text-red-600" />
+          {/* Total Cases Card */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center shadow-lg">
+                  <FaUserInjured className="text-red-600 text-xl" />
                 </div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Infected</p>
-                <p className="text-2xl font-semibold text-gray-900">{summary.infected_patients.toLocaleString()}</p>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Total Cases</p>
+                  <p className="text-3xl font-bold text-gray-900">{summary.total_cases || 0}</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <FaUserCheck className="w-6 h-6 text-green-600" />
+          {/* High Risk Areas Card */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl flex items-center justify-center shadow-lg">
+                  <FaExclamationTriangle className="text-orange-600 text-xl" />
                 </div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Healthy</p>
-                <p className="text-2xl font-semibold text-gray-900">{summary.healthy_patients.toLocaleString()}</p>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">High Risk Areas</p>
+                  <p className="text-3xl font-bold text-gray-900">{summary.high_risk_areas || 0}</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                  <FaUserInjured className="w-6 h-6 text-yellow-600" />
+          {/* Average Cases Card */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-lg">
+                  <FaChartBar className="text-green-600 text-xl" />
                 </div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Infection Rate</p>
-                <p className="text-2xl font-semibold text-gray-900">{summary.infection_rate}%</p>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Avg Cases/Day</p>
+                  <p className="text-3xl font-bold text-gray-900">{summary.avg_cases_per_day || 0}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -639,35 +666,35 @@ function Reports() {
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="text-md font-semibold text-gray-800">{forecast.disease}</h4>
                         <span className="text-sm text-gray-500">
-                          Generated: {new Date(forecast.created_at).toLocaleDateString()}
+                          Generated: {new Date(forecast.generated_at).toLocaleDateString()}
                         </span>
                       </div>
                       
-                      {forecast.forecast_data && forecast.forecast_data.length > 0 ? (
+                      {forecast.forecast_results && forecast.forecast_results.length > 0 ? (
                         <div className="overflow-x-auto">
                           <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                               <tr>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Disease</th>
                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Month</th>
                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Predicted Cases</th>
-                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Confidence Interval</th>
                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Risk Level</th>
                               </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                              {forecast.forecast_data.map((data, dataIndex) => (
+                              {forecast.forecast_results.map((data, dataIndex) => (
                                 <tr key={dataIndex} className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 text-sm text-gray-900">{data.month}</td>
-                                  <td className="px-4 py-2 text-sm font-medium text-gray-900">{data.predicted_cases}</td>
-                                  <td className="px-4 py-2 text-sm text-gray-900">{data.confidence_interval || 'N/A'}</td>
+                                  <td className="px-4 py-2 text-sm text-gray-900 font-medium">{data.disease_name}</td>
+                                  <td className="px-4 py-2 text-sm text-gray-900">{data.forecast_month}</td>
+                                  <td className="px-4 py-2 text-sm font-medium text-gray-900">{data.forecast_cases}</td>
                                   <td className="px-4 py-2 text-sm">
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      data.predicted_cases > 50 ? 'bg-red-100 text-red-800' :
-                                      data.predicted_cases > 20 ? 'bg-yellow-100 text-yellow-800' :
+                                      data.forecast_cases > 10 ? 'bg-red-100 text-red-800' :
+                                      data.forecast_cases > 5 ? 'bg-yellow-100 text-yellow-800' :
                                       'bg-green-100 text-green-800'
                                     }`}>
-                                      {data.predicted_cases > 50 ? 'High Risk' :
-                                       data.predicted_cases > 20 ? 'Medium Risk' : 'Low Risk'}
+                                      {data.forecast_cases > 10 ? 'High Risk' :
+                                       data.forecast_cases > 5 ? 'Medium Risk' : 'Low Risk'}
                                     </span>
                                   </td>
                                 </tr>

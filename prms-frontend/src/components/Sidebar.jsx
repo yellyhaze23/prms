@@ -16,6 +16,7 @@ import {
   FaShieldAlt, // Added FaShieldAlt icon for Audit Logs
 } from "react-icons/fa";
 import ConfirmationModal from "./ConfirmationModal";
+import LogoutAnimationModal from "./LogoutAnimationModal";
 import { preloadRoute } from '../utils/routePreloader';
 
 function Sidebar({ collapsed = false }) {
@@ -23,11 +24,41 @@ function Sidebar({ collapsed = false }) {
   const navigate = useNavigate();
   const isActive = (path) => location.pathname === path;
   const [showModal, setShowModal] = useState(false);
+  const [showLogoutAnimation, setShowLogoutAnimation] = useState(false);
+  const [logoutStage, setLogoutStage] = useState('loading');
 
   const handleLogout = () => {
-    sessionStorage.removeItem("isLoggedIn");
-    navigate("/"); 
-    window.location.reload(); 
+    console.log('Sidebar logout initiated - showing animation');
+    setShowModal(false);
+    
+    // Use setTimeout to ensure state updates are applied
+    setTimeout(() => {
+      console.log('Setting sidebar logout animation to true');
+      setShowLogoutAnimation(true);
+      setLogoutStage('loading');
+      
+      // Simulate logout process
+      setTimeout(() => {
+        console.log('Sidebar logout stage: success');
+        setLogoutStage('success');
+        
+        // Complete logout after success animation
+        setTimeout(() => {
+          console.log('Completing sidebar logout process');
+          sessionStorage.removeItem("isLoggedIn");
+          localStorage.removeItem("sidebarCollapsed");
+          localStorage.removeItem("token");
+          localStorage.removeItem("role");
+          
+          // Dispatch logout event for cleanup
+          window.dispatchEvent(new CustomEvent('logout'));
+          
+          // Navigate to login page
+          navigate("/", { replace: true });
+          window.location.reload();
+        }, 2000);
+      }, 1500);
+    }, 100);
   };
 
   const handleNavClick = (path) => {
@@ -138,6 +169,12 @@ function Sidebar({ collapsed = false }) {
           onCancel={() => setShowModal(false)}
         />
       )}
+
+      {/* Logout Animation Modal */}
+      <LogoutAnimationModal 
+        isVisible={showLogoutAnimation} 
+        stage={logoutStage} 
+      />
     </>
   );
 }

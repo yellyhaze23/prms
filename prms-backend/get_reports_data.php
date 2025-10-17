@@ -5,6 +5,27 @@ require 'config.php';
 header("Content-Type: application/json");
 
 try {
+    // Get filter parameters
+    $disease = isset($_GET['disease']) ? $_GET['disease'] : null;
+    $days = isset($_GET['days']) ? (int)$_GET['days'] : 30;
+    $view_mode = isset($_GET['view_mode']) ? $_GET['view_mode'] : 'overview';
+    
+    // Build WHERE conditions
+    $where_conditions = [];
+    $params = [];
+    
+    // Date range filter - use medical record date instead of patient creation date
+    $where_conditions[] = "mr.updated_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
+    $params[] = $days;
+    
+    // Disease filter
+    if ($disease && $disease !== 'All') {
+        $where_conditions[] = "mr.diagnosis = ?";
+        $params[] = $disease;
+    }
+    
+    $where_clause = !empty($where_conditions) ? "WHERE " . implode(" AND ", $where_conditions) : "";
+    
     // Get comprehensive report data
     $sql = "
         SELECT 
@@ -27,13 +48,25 @@ try {
                 GROUP BY patient_id
             ) mr2 ON mr1.patient_id = mr2.patient_id AND mr1.updated_at = mr2.max_updated AND mr1.id = mr2.max_id
         ) mr ON p.id = mr.patient_id
+        $where_clause
         ORDER BY p.created_at DESC
     ";
     
-    $result = $conn->query($sql);
-    if (!$result) {
-        throw new Exception("Main query failed: " . $conn->error);
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        throw new Exception("Prepare failed: " . $conn->error);
     }
+    
+    if (!empty($params)) {
+        $types = str_repeat('s', count($params));
+        $stmt->bind_param($types, ...$params);
+    }
+    
+    if (!$stmt->execute()) {
+        throw new Exception("Execute failed: " . $stmt->error);
+    }
+    
+    $result = $stmt->get_result();
     $patients = [];
     
     while ($row = $result->fetch_assoc()) {
@@ -50,8 +83,23 @@ try {
         ];
     }
     
-    // Get disease statistics
+    // Get disease statistics with same filters
     $diseaseStats = [];
+    $diseaseWhereConditions = ["mr.diagnosis IS NOT NULL AND mr.diagnosis != ''"];
+    $diseaseParams = [];
+    
+    // Apply same date filter - use medical record date
+    $diseaseWhereConditions[] = "mr.updated_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
+    $diseaseParams[] = $days;
+    
+    // Apply same disease filter
+    if ($disease && $disease !== 'All') {
+        $diseaseWhereConditions[] = "mr.diagnosis = ?";
+        $diseaseParams[] = $disease;
+    }
+    
+    $diseaseWhereClause = "WHERE " . implode(" AND ", $diseaseWhereConditions);
+    
     $diseaseSql = "
         SELECT 
             mr.diagnosis as disease,
@@ -69,15 +117,26 @@ try {
                 GROUP BY patient_id
             ) mr2 ON mr1.patient_id = mr2.patient_id AND mr1.updated_at = mr2.max_updated AND mr1.id = mr2.max_id
         ) mr ON p.id = mr.patient_id
-        WHERE mr.diagnosis IS NOT NULL AND mr.diagnosis != ''
+        $diseaseWhereClause
         GROUP BY mr.diagnosis
         ORDER BY total_cases DESC
     ";
     
-    $diseaseResult = $conn->query($diseaseSql);
-    if (!$diseaseResult) {
-        throw new Exception("Disease query failed: " . $conn->error);
+    $diseaseStmt = $conn->prepare($diseaseSql);
+    if (!$diseaseStmt) {
+        throw new Exception("Disease prepare failed: " . $conn->error);
     }
+    
+    if (!empty($diseaseParams)) {
+        $diseaseTypes = str_repeat('s', count($diseaseParams));
+        $diseaseStmt->bind_param($diseaseTypes, ...$diseaseParams);
+    }
+    
+    if (!$diseaseStmt->execute()) {
+        throw new Exception("Disease execute failed: " . $diseaseStmt->error);
+    }
+    
+    $diseaseResult = $diseaseStmt->get_result();
     while ($row = $diseaseResult->fetch_assoc()) {
         $diseaseStats[] = [
             'disease' => $row['disease'],
@@ -125,11 +184,23 @@ try {
         ];
     }
     
-    // Get trend data (last 30 days)
+    // Get trend data with same filters
     $trendData = [];
-    for ($i = 29; $i >= 0; $i--) {
+    $trendDays = min($days, 30); // Limit to 30 days for performance
+    for ($i = $trendDays - 1; $i >= 0; $i--) {
         $date = date('Y-m-d', strtotime("-$i days"));
-        $nextDate = date('Y-m-d', strtotime("-$i days +1 day"));
+        
+        // Build trend query with same filters
+        $trendWhereConditions = ["DATE(mr.updated_at) = ?"];
+        $trendParams = [$date];
+        
+        // Apply same disease filter
+        if ($disease && $disease !== 'All') {
+            $trendWhereConditions[] = "mr.diagnosis = ?";
+            $trendParams[] = $disease;
+        }
+        
+        $trendWhereClause = "WHERE " . implode(" AND ", $trendWhereConditions);
         
         $trendSql = "
             SELECT 
@@ -145,20 +216,38 @@ try {
                     GROUP BY patient_id
                 ) mr2 ON mr1.patient_id = mr2.patient_id AND mr1.updated_at = mr2.max_updated AND mr1.id = mr2.max_id
             ) mr ON p.id = mr.patient_id
-            WHERE DATE(p.created_at) = ?
+            $trendWhereClause
         ";
         
-        $stmt = $conn->prepare($trendSql);
-        $stmt->bind_param("s", $date);
-        $stmt->execute();
-        $trendResult = $stmt->get_result();
-        $trendRow = $trendResult->fetch_assoc();
-        
-        $trendData[] = [
-            'date' => $date,
-            'total_patients' => (int)$trendRow['total_patients'],
-            'infected_patients' => (int)$trendRow['infected_patients']
-        ];
+        $trendStmt = $conn->prepare($trendSql);
+        if ($trendStmt) {
+            if (!empty($trendParams)) {
+                $trendTypes = str_repeat('s', count($trendParams));
+                $trendStmt->bind_param($trendTypes, ...$trendParams);
+            }
+            
+            if ($trendStmt->execute()) {
+                $trendResult = $trendStmt->get_result();
+                $trendRow = $trendResult->fetch_assoc();
+                $trendData[] = [
+                    'date' => $date,
+                    'total_patients' => (int)$trendRow['total_patients'],
+                    'infected_patients' => (int)$trendRow['infected_patients']
+                ];
+            } else {
+                $trendData[] = [
+                    'date' => $date,
+                    'total_patients' => 0,
+                    'infected_patients' => 0
+                ];
+            }
+        } else {
+            $trendData[] = [
+                'date' => $date,
+                'total_patients' => 0,
+                'infected_patients' => 0
+            ];
+        }
     }
     
     // Calculate summary statistics
@@ -191,11 +280,22 @@ try {
         'Female' => count(array_filter($patients, function($p) { return $p['sex'] === 'Female'; }))
     ];
     
+    // Calculate new summary statistics
+    $totalDiseases = count($diseaseStats);
+    $totalCases = array_sum(array_column($diseaseStats, 'total_cases'));
+    $highRiskAreas = count(array_filter($locationStats, function($loc) { return $loc['total_cases'] > 5; }));
+    $avgCasesPerDay = $days > 0 ? round($totalCases / $days, 1) : 0;
+    
     echo json_encode([
         'success' => true,
         'data' => [
             'patients' => $patients,
             'summary' => [
+                'total_diseases' => $totalDiseases,
+                'total_cases' => $totalCases,
+                'high_risk_areas' => $highRiskAreas,
+                'avg_cases_per_day' => $avgCasesPerDay,
+                // Keep old summary for backward compatibility
                 'total_patients' => $totalPatients,
                 'infected_patients' => $infectedPatients,
                 'healthy_patients' => $healthyPatients,

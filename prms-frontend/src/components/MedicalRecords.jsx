@@ -25,28 +25,72 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
 
   useEffect(() => {
     if (patient?.id) {
+      setLoading(true); // Reset loading state
       // Fetch current medical record (latest)
       axios.get(`http://localhost/prms/prms-backend/get_medical_records.php?patient_id=${patient.id}`)
         .then((res) => {
+          console.log("Medical records response:", res.data);
           // Merge patient basic info with medical records data
+          // Use medical records data to fill in missing patient information
           const mergedData = {
-            ...patient,
-            ...res.data
+            ...patient, // Keep patient's basic info (name, ID, etc.)
+            // Use medical records data to fill missing patient info
+            surname: res.data.surname || patient.surname,
+            first_name: res.data.first_name || patient.first_name,
+            middle_name: res.data.middle_name || patient.middle_name,
+            suffix: res.data.suffix || patient.suffix,
+            date_of_birth: res.data.date_of_birth || patient.date_of_birth,
+            philhealth_id: res.data.philhealth_id || patient.philhealth_id,
+            priority: res.data.priority || patient.priority,
+            address: res.data.address || patient.address,
+            // Medical-specific fields
+            blood_pressure: res.data.blood_pressure,
+            temperature: res.data.temperature,
+            height: res.data.height,
+            weight: res.data.weight,
+            chief_complaint: res.data.chief_complaint,
+            place_of_consultation: res.data.place_of_consultation,
+            type_of_services: res.data.type_of_services,
+            date_of_consultation: res.data.date_of_consultation,
+            health_provider: res.data.health_provider,
+            diagnosis: res.data.diagnosis,
+            laboratory_procedure: res.data.laboratory_procedure,
+            prescribed_medicine: res.data.prescribed_medicine,
+            medical_advice: res.data.medical_advice,
+            place_of_consultation_medical: res.data.place_of_consultation_medical,
+            date_of_consultation_medical: res.data.date_of_consultation_medical,
+            health_provider_medical: res.data.health_provider_medical,
+            medical_remarks: res.data.medical_remarks,
+            created_at: res.data.created_at,
+            updated_at: res.data.updated_at
           };
+          console.log("Merged data:", mergedData);
           setMedicalRecord(mergedData);
+          setLoading(false);
         })
         .catch((err) => {
           console.error("Error fetching medical records:", err);
           // If no medical records exist, use patient data
           setMedicalRecord(patient);
+          setLoading(false);
         });
 
       // Fetch consultation history (all records)
       axios.get(`http://localhost/prms/prms-backend/get_all_medical_records.php?patient_id=${patient.id}`)
         .then((res) => {
           console.log("Consultation history response:", res.data);
-          // Ensure we always have an array
-          const historyData = Array.isArray(res.data) ? res.data : [];
+          // Handle the API response structure properly
+          let historyData = [];
+          if (res.data && res.data.success) {
+            // If response has success property, get data from res.data.data
+            historyData = Array.isArray(res.data.data) ? res.data.data : [];
+          } else if (Array.isArray(res.data)) {
+            // If response is directly an array
+            historyData = res.data;
+          } else {
+            // Fallback to empty array
+            historyData = [];
+          }
           console.log("Processed history data:", historyData);
           setConsultationHistory(historyData);
           setLoading(false);
@@ -181,6 +225,10 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
   }
 
   const r = medicalRecord || {};
+  
+  // Debug logging
+  console.log("Current medicalRecord state:", medicalRecord);
+  console.log("Patient data:", patient);
 
   return (
     <div className="space-y-6">

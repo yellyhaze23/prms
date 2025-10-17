@@ -7,6 +7,7 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const drawerRef = useRef(null);
 
   // Fetch all notifications
@@ -93,6 +94,16 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
     }
   };
 
+  // Handle close with animation
+  const handleClose = () => {
+    setIsAnimating(true);
+    // Wait for animation to complete before actually closing
+    setTimeout(() => {
+      setIsAnimating(false);
+      onClose();
+    }, 300); // Match the animation duration
+  };
+
   // Get notification icon based on type
   const getNotificationIcon = (type) => {
     const iconClass = "w-5 h-5 flex-shrink-0";
@@ -145,22 +156,59 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
 
   return createPortal(
     <>
+      {/* Animation Styles */}
+      <style>
+        {`
+          @keyframes slideInFromRight {
+            0% {
+              opacity: 0;
+              transform: translateX(20px);
+            }
+            100% {
+              opacity: 1;
+              transform: translateX(0);
+            }
+          }
+          
+          @keyframes slideOutToRight {
+            0% {
+              opacity: 1;
+              transform: translateX(0);
+            }
+            100% {
+              opacity: 0;
+              transform: translateX(20px);
+            }
+          }
+        `}
+      </style>
+      
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black bg-opacity-60"
+        className={`fixed inset-0 bg-black transition-opacity duration-300 ${
+          isOpen && !isAnimating ? 'bg-opacity-60 opacity-100' : 'bg-opacity-0 opacity-0'
+        }`}
         style={{ zIndex: 999999 }}
-        onMouseDown={onClose}
+        onMouseDown={handleClose}
       />
 
       {/* Drawer */}
       <div 
         ref={drawerRef}
-        className="fixed top-0 right-0 h-full w-96 bg-white shadow-xl transform transition-transform duration-300 ease-in-out flex flex-col translate-x-0"
+        className={`fixed top-0 right-0 h-full w-96 bg-white shadow-xl transform transition-all duration-300 ease-in-out flex flex-col ${
+          isOpen && !isAnimating ? 'translate-x-0 opacity-100 scale-100' : 'translate-x-full opacity-0 scale-95'
+        }`}
         style={{ zIndex: 9999999 }}
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-6 border-b border-gray-200 bg-gray-50">
+        <div 
+          className="p-6 border-b border-gray-200 bg-gray-50"
+          style={{
+            animation: isOpen && !isAnimating ? 'slideInFromRight 0.3s ease-out forwards' : 
+                      isAnimating ? 'slideOutToRight 0.3s ease-in forwards' : 'none'
+          }}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <FaBell className="w-6 h-6 text-blue-600" />
@@ -170,7 +218,7 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
               </div>
             </div>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <FaTimes className="w-5 h-5" />
@@ -207,12 +255,17 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
             </div>
           ) : (
             <div className="divide-y divide-gray-200">
-              {notifications.map((notification) => (
+              {notifications.map((notification, index) => (
                 <div
                   key={notification.id}
-                  className={`p-4 hover:bg-gray-50 transition-colors ${
+                  className={`p-4 hover:bg-gray-50 transition-all duration-300 ${
                     notification.is_read ? 'bg-gray-50' : 'bg-white'
                   }`}
+                  style={{
+                    animationDelay: isAnimating ? '0ms' : `${index * 50}ms`,
+                    animation: isOpen && !isAnimating ? 'slideInFromRight 0.4s ease-out forwards' : 
+                              isAnimating ? 'slideOutToRight 0.3s ease-in forwards' : 'none'
+                  }}
                 >
                   <div className="flex items-start space-x-3">
                     <div className="flex-shrink-0 mt-1">
@@ -266,7 +319,13 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <div 
+          className="p-4 border-t border-gray-200 bg-gray-50"
+          style={{
+            animation: isOpen && !isAnimating ? 'slideInFromRight 0.4s ease-out forwards' : 
+                      isAnimating ? 'slideOutToRight 0.3s ease-in forwards' : 'none'
+          }}
+        >
           <div className="text-center text-sm text-gray-500">
             {notifications.length > 0 ? (
               <p>Showing {notifications.length} notifications</p>

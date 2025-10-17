@@ -6,6 +6,7 @@ import AddPatient from "../components/AddPatient";
 import ConfirmationModal from "../components/ConfirmationModal";
 import ModernToast from "../components/ModernToast";
 import Pagination from "../components/Pagination";
+import SortControl from "../components/SortControl";
 import notificationService from "../utils/notificationService";
 // Performance optimizations
 import { getCachedData, setCachedData, shouldRefreshInBackground, markAsRefreshed } from '../utils/cache';
@@ -190,28 +191,18 @@ function Patient() {
               </div>
 
               {/* Sort Controls */}
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={toggleSortOrder}
-                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  title={sortOrder === 'asc' ? 'Sort Descending' : 'Sort Ascending'}
-                >
-                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
-                  </svg>
-                </button>
-                
-                <select
-                  value={sortBy}
-                  onChange={(e) => handleSort(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="id">Sort by: ID</option>
-                  <option value="full_name">Sort by: Name</option>
-                  <option value="contact_number">Sort by: Contact</option>
-                  <option value="created_at">Sort by: Date</option>
-                </select>
-              </div>
+              <SortControl
+                value={sortBy}
+                order={sortOrder}
+                onChange={(val) => handleSort(val)}
+                onToggleOrder={toggleSortOrder}
+                options={[
+                  { value: 'id', label: 'Sort by: ID' },
+                  { value: 'full_name', label: 'Sort by: Name' },
+                  { value: 'contact_number', label: 'Sort by: Contact' },
+                  { value: 'created_at', label: 'Sort by: Date' },
+                ]}
+              />
 
               {/* Add Patient Button */}
               <button

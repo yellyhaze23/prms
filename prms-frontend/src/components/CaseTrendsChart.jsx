@@ -29,7 +29,7 @@ ChartJS.register(
 const CaseTrendsChart = () => {
   const [trendsData, setTrendsData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState('30'); // 7, 30, 90, 365 days
+  const [selectedPeriod, setSelectedPeriod] = useState('7'); // Fixed to 7 days only
   const [selectedDiseases, setSelectedDiseases] = useState([]);
   const [availableDiseases, setAvailableDiseases] = useState([]);
 
@@ -210,17 +210,7 @@ const CaseTrendsChart = () => {
         </div>
         
         <div className="flex items-center space-x-3">
-          {/* Period Filter */}
-          <select
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-            <option value="365">Last year</option>
-          </select>
+          <span className="text-sm text-gray-600 font-medium">Last 7 days</span>
         </div>
       </div>
 

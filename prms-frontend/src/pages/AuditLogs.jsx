@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { FaEye, FaDownload, FaFilter, FaSearch, FaUser, FaClock, FaShieldAlt, FaExclamationTriangle, FaCheckCircle, FaTimes, FaFileAlt, FaMapMarkerAlt, FaEllipsisV } from 'react-icons/fa';
+import { FaDownload, FaFilter, FaSearch, FaUser, FaClock, FaShieldAlt, FaExclamationTriangle, FaCheckCircle, FaTimes, FaFileAlt, FaMapMarkerAlt } from 'react-icons/fa';
 import Pagination from '../components/Pagination';
+import AuditLogDetailsModal from '../components/AuditLogDetailsModal';
 import axios from 'axios';
 
 const AuditLogs = () => {
@@ -21,10 +22,16 @@ const AuditLogs = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
+  
+  // Modal state
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
 
   useEffect(() => {
     fetchAuditLogs();
   }, [currentPage, itemsPerPage, sortBy, sortOrder, searchTerm, filters]);
+
 
   const fetchAuditLogs = async () => {
     setLoading(true);
@@ -81,6 +88,17 @@ const AuditLogs = () => {
     }
   };
 
+  const handleViewDetails = (log) => {
+    setSelectedLog(log);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedLog(null);
+  };
+
+
   const handlePageChange = (page, newItemsPerPage) => {
     setCurrentPage(page);
     if (newItemsPerPage !== itemsPerPage) {
@@ -119,55 +137,45 @@ const AuditLogs = () => {
               <h1 className="text-3xl font-bold text-blue-600">Audit Logs</h1>
               <p className="text-gray-700 mt-2">Monitor all system activities and user actions</p>
             </div>
-          </div>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="bg-white p-6 rounded-lg shadow mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
-              <div className="relative">
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            
+            {/* Search and Filters - Top Right */}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
+                <div className="relative">
+                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchTerm}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <select
+                  value={filters.user_type}
+                  onChange={(e) => handleFilterChange('user_type', e.target.value)}
+                  className="w-40 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2"
+                >
+                  <option value="">All Users</option>
+                  <option value="admin">Admin</option>
+                  <option value="staff">Staff</option>
+                  <option value="system">System</option>
+                </select>
                 <input
-                  type="text"
-                  placeholder="Search users, actions, entities..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  type="date"
+                  placeholder="From Date"
+                  value={filters.date_from}
+                  onChange={(e) => handleFilterChange('date_from', e.target.value)}
+                  className="w-40 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2"
+                />
+                <input
+                  type="date"
+                  placeholder="To Date"
+                  value={filters.date_to}
+                  onChange={(e) => handleFilterChange('date_to', e.target.value)}
+                  className="w-40 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2"
                 />
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">User Type</label>
-              <select
-                value={filters.user_type}
-                onChange={(e) => handleFilterChange('user_type', e.target.value)}
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2"
-              >
-                <option value="">All Users</option>
-                <option value="admin">Admin</option>
-                <option value="staff">Staff</option>
-                <option value="system">System</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">From Date</label>
-              <input
-                type="date"
-                value={filters.date_from}
-                onChange={(e) => handleFilterChange('date_from', e.target.value)}
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">To Date</label>
-              <input
-                type="date"
-                value={filters.date_to}
-                onChange={(e) => handleFilterChange('date_to', e.target.value)}
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2"
-              />
             </div>
           </div>
         </div>
@@ -213,18 +221,12 @@ const AuditLogs = () => {
                     IP Address
                   </div>
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-blue-700 uppercase tracking-wider">
-                  <div className="flex items-center justify-end gap-2">
-                    <FaEllipsisV className="text-blue-600" />
-                    Actions
-                  </div>
-                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                       <span className="ml-2">Loading...</span>
@@ -233,7 +235,7 @@ const AuditLogs = () => {
                 </tr>
               ) : auditLogs.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
                     <div className="flex flex-col items-center">
                       <FaShieldAlt className="h-12 w-12 text-gray-300 mb-4" />
                       <p className="text-lg font-medium text-gray-900">No audit logs found</p>
@@ -243,7 +245,11 @@ const AuditLogs = () => {
                 </tr>
               ) : (
                 auditLogs.map((log, index) => (
-                  <tr key={index} className="hover:bg-blue-50 hover:shadow-sm cursor-pointer transition-all duration-200 group">
+                  <tr 
+                    key={index} 
+                    onClick={() => handleViewDetails(log)}
+                    className="hover:bg-blue-50 hover:shadow-sm cursor-pointer transition-all duration-200 group"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div className="flex items-center">
                         <FaClock className="h-4 w-4 text-gray-400 mr-2" />
@@ -286,11 +292,6 @@ const AuditLogs = () => {
                         {log.ip_address || 'Unknown'}
                       </code>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-lg transition-all duration-200">
-                        <FaEye className="h-4 w-4" />
-                      </button>
-                    </td>
                   </tr>
                 ))
               )}
@@ -311,6 +312,13 @@ const AuditLogs = () => {
           />
         )}
       </div>
+
+      {/* Audit Log Details Modal */}
+      <AuditLogDetailsModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        logData={selectedLog}
+      />
     </div>
   );
 };

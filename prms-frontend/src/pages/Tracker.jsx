@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./Tracker.css";
+import { FaBuilding, FaUserInjured, FaShieldAlt, FaPercentage } from 'react-icons/fa';
 
 // Fix for default markers in React Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -218,83 +219,63 @@ function Tracker() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">B</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Total Barangays Card */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-lg">
+                  <FaBuilding className="text-blue-600 text-xl" />
                 </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Total Barangays
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {filteredData.length}
-                  </dd>
-                </dl>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Total Barangays</p>
+                  <p className="text-3xl font-bold text-gray-900">{filteredData.length}</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">P</span>
+          {/* Total Patients Card */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-lg">
+                  <FaUserInjured className="text-green-600 text-xl" />
                 </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Total Patients
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {totalPatients.toLocaleString()}
-                  </dd>
-                </dl>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Total Patients</p>
+                  <p className="text-3xl font-bold text-gray-900">{totalPatients.toLocaleString()}</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">R</span>
+          {/* High Risk Areas Card */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center shadow-lg">
+                  <FaShieldAlt className="text-red-600 text-xl" />
                 </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    High Risk Areas
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {highRiskBarangays}
-                  </dd>
-                </dl>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">High Risk Areas</p>
+                  <p className="text-3xl font-bold text-gray-900">{highRiskBarangays}</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">%</span>
+          {/* Overall Sick Rate Card */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl flex items-center justify-center shadow-lg">
+                  <FaPercentage className="text-yellow-600 text-xl" />
                 </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Overall Sick Rate
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {overallSickRate}%
-                  </dd>
-                </dl>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Overall Sick Rate</p>
+                  <p className="text-3xl font-bold text-gray-900">{overallSickRate}%</p>
+                </div>
               </div>
             </div>
           </div>
@@ -376,7 +357,7 @@ function Tracker() {
 
         {/* Map Container */}
         <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
             <h3 className="text-lg font-medium text-gray-900">
               Barangay Disease Hotspots ({filteredData.length} areas)
             </h3>
@@ -384,8 +365,8 @@ function Tracker() {
               Pulsing dots show disease intensity. Larger dots = more patients. Red = high risk.
             </p>
           </div>
-          <div className="p-6">
-            <div className="h-96 w-full">
+          <div className="p-6 bg-gradient-to-br from-gray-50 to-blue-50">
+            <div className="h-[600px] w-full">
               <MapContainer
                 center={[14.1706, 121.2436]}
                 zoom={13}
@@ -422,24 +403,45 @@ function Tracker() {
                       })}
                     >
                       <Popup>
-                        <div className="p-2">
-                          <h3 className="font-semibold text-gray-900">
+                        <div className="p-3 min-w-[250px]">
+                          <h3 className="font-semibold text-gray-900 text-lg mb-2">
                             {barangay.barangay.split(',')[0]}
                           </h3>
-                          <p className="text-sm text-gray-600">
-                            Total Patients: {barangay.total_patients}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Sick Patients: {barangay.sick_patients}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Disease Rate: {barangay.sick_rate}%
-                          </p>
-                          {barangay.sick_rate >= 70 && <p className="text-sm text-red-600 font-medium">🔴 High Risk</p>}
-                          {barangay.sick_rate >= 50 && barangay.sick_rate < 70 && <p className="text-sm text-orange-600 font-medium">🟠 Medium-High Risk</p>}
-                          {barangay.sick_rate >= 30 && barangay.sick_rate < 50 && <p className="text-sm text-yellow-600 font-medium">🟡 Medium Risk</p>}
-                          {barangay.sick_rate >= 10 && barangay.sick_rate < 30 && <p className="text-sm text-green-600 font-medium">🟢 Low Risk</p>}
-                          {barangay.sick_rate < 10 && <p className="text-sm text-blue-600 font-medium">🔵 Very Low Risk</p>}
+                          
+                          {/* Patient Statistics */}
+                          <div className="space-y-1 mb-3">
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Total Patients:</span> {barangay.total_patients}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Sick Patients:</span> {barangay.sick_patients}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Disease Rate:</span> {barangay.sick_rate}%
+                            </p>
+                          </div>
+
+                          {/* Disease Information */}
+                          {barangay.diseases && barangay.diseases.trim() !== '' && (
+                            <div className="mb-3">
+                              <h4 className="text-sm font-medium text-gray-800 mb-1">Diseases Detected:</h4>
+                              <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded border">
+                                {barangay.diseases}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {barangay.disease_types} disease type{barangay.disease_types !== 1 ? 's' : ''} detected
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Risk Level */}
+                          <div className="pt-2 border-t border-gray-200">
+                            {barangay.sick_rate >= 70 && <p className="text-sm text-red-600 font-medium">🔴 High Risk</p>}
+                            {barangay.sick_rate >= 50 && barangay.sick_rate < 70 && <p className="text-sm text-orange-600 font-medium">🟠 Medium-High Risk</p>}
+                            {barangay.sick_rate >= 30 && barangay.sick_rate < 50 && <p className="text-sm text-yellow-600 font-medium">🟡 Medium Risk</p>}
+                            {barangay.sick_rate >= 10 && barangay.sick_rate < 30 && <p className="text-sm text-green-600 font-medium">🟢 Low Risk</p>}
+                            {barangay.sick_rate < 10 && <p className="text-sm text-blue-600 font-medium">🔵 Very Low Risk</p>}
+                          </div>
                         </div>
                       </Popup>
                     </Marker>

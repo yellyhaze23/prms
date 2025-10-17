@@ -1,19 +1,52 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FaUser, FaCog, FaSignOutAlt, FaBars } from 'react-icons/fa';
 import NotificationBell from './NotificationBell';
+import BackupStatusIndicator from './BackupStatusIndicator';
 import ConfirmationModal from './ConfirmationModal';
 import DateTimeDisplay from './DateTimeDisplay';
+import LogoutAnimationModal from './LogoutAnimationModal';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", onToggleSidebar, sidebarCollapsed }) => {
   const [showModal, setShowModal] = useState(false);
+  const [showLogoutAnimation, setShowLogoutAnimation] = useState(false);
+  const [logoutStage, setLogoutStage] = useState('loading');
   const navigate = useNavigate();
 
+
   const handleLogout = () => {
-    sessionStorage.removeItem("isLoggedIn");
-    navigate("/"); 
-    window.location.reload(); 
+    console.log('Logout initiated - showing animation');
+    setShowModal(false);
+    
+    // Use setTimeout to ensure state updates are applied
+    setTimeout(() => {
+      console.log('Setting logout animation to true');
+      setShowLogoutAnimation(true);
+      setLogoutStage('loading');
+      
+      // Simulate logout process
+      setTimeout(() => {
+        console.log('Logout stage: success');
+        setLogoutStage('success');
+        
+        // Complete logout after success animation
+        setTimeout(() => {
+          console.log('Completing logout process');
+          sessionStorage.removeItem("isLoggedIn");
+          localStorage.removeItem("sidebarCollapsed");
+          localStorage.removeItem("token");
+          localStorage.removeItem("role");
+          
+          // Dispatch logout event for cleanup
+          window.dispatchEvent(new CustomEvent('logout'));
+          
+          // Navigate to login page
+          navigate("/", { replace: true });
+          window.location.reload();
+        }, 2000);
+      }, 1500);
+    }, 100);
   };
 
   return (
@@ -34,6 +67,8 @@ const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", onToggleSid
 
           {/* Right side - Date/Time and User actions */}
           <div className="flex items-center space-x-4">
+            {/* Backup Status Indicator */}
+            <BackupStatusIndicator />
             {/* Date and Time Display */}
             <DateTimeDisplay />
             {/* Notification Bell */}
@@ -58,6 +93,7 @@ const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", onToggleSid
               >
                 <FaSignOutAlt className="w-5 h-5" />
               </button>
+              
             </div>
           </div>
         </div>
@@ -77,6 +113,7 @@ const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", onToggleSid
           </div>
           
           <div className="flex items-center space-x-3">
+            <BackupStatusIndicator />
             <DateTimeDisplay />
             <NotificationBell userId={userId} />
             <button
@@ -101,6 +138,12 @@ const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", onToggleSid
           onCancel={() => setShowModal(false)}
         />
       )}
+
+      {/* Logout Animation Modal */}
+      <LogoutAnimationModal 
+        isVisible={showLogoutAnimation} 
+        stage={logoutStage} 
+      />
     </>
   );
 };

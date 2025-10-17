@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaTimes, FaSearch, FaDownload, FaUser, FaCalendarAlt, FaStethoscope, FaEye } from 'react-icons/fa';
 import axios from 'axios';
 import Toast from './Toast';
+import Pagination from './Pagination';
 import { formatPatientID } from '../utils/patientUtils';
 
 const DiseaseCasesModal = ({ disease, onClose }) => {
@@ -10,6 +11,11 @@ const DiseaseCasesModal = ({ disease, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type, visible: true });
@@ -35,6 +41,25 @@ const DiseaseCasesModal = ({ disease, onClose }) => {
     };
   }, [onClose]);
 
+  // Calculate pagination
+  const calculatePagination = (data) => {
+    const total = data.length;
+    const totalPages = Math.ceil(total / itemsPerPage);
+    setTotalPages(totalPages);
+    
+    // Reset to page 1 if current page is beyond total pages
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  };
+
+  // Get current page data
+  const getCurrentPageData = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredCases.slice(startIndex, endIndex);
+  };
+
   useEffect(() => {
     // Filter cases based on search term
     if (searchTerm) {
@@ -48,6 +73,22 @@ const DiseaseCasesModal = ({ disease, onClose }) => {
       setFilteredCases(cases);
     }
   }, [searchTerm, cases]);
+
+  // Update pagination when filtered cases change
+  useEffect(() => {
+    calculatePagination(filteredCases);
+  }, [filteredCases, itemsPerPage]);
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page
+  };
 
   const fetchDiseaseCases = async () => {
     try {
@@ -134,7 +175,8 @@ const DiseaseCasesModal = ({ disease, onClose }) => {
                 {disease} Cases
               </h2>
               <p className="text-blue-100 mt-1">
-                {cases.length} total case{cases.length !== 1 ? 's' : ''} found
+                {filteredCases.length} case{filteredCases.length !== 1 ? 's' : ''} found
+                {searchTerm && ` (filtered from ${cases.length} total)`}
               </p>
             </div>
             <button
@@ -207,7 +249,7 @@ const DiseaseCasesModal = ({ disease, onClose }) => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredCases.map((case_, index) => (
+                  {getCurrentPageData().map((case_, index) => (
                     <tr key={index} className="hover:bg-gray-50 transition-colors duration-200">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -271,7 +313,21 @@ const DiseaseCasesModal = ({ disease, onClose }) => {
           )}
         </div>
 
-        {/* Footer removed - using X button in header and click-outside-to-close */}
+        {/* Pagination */}
+        {filteredCases.length > 0 && totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              itemsPerPage={itemsPerPage}
+              totalItems={filteredCases.length}
+              showPageSizeSelector={true}
+              pageSizeOptions={[5, 10, 25, 50, 100]}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
+          </div>
+        )}
       </div>
 
       {/* Toast Notification */}

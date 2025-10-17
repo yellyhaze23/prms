@@ -33,8 +33,19 @@ const ARIMAForecast = () => {
     'Chickenpox', 'Dengue', 'Hepatitis', 'Measles', 'Tuberculosis'
   ];
 
-  // Note: Historical data is now included in forecast response as training_data
-  // No separate fetch needed - training data comes with forecast results
+  // Fetch historical data for chart visualization
+  const fetchHistoricalData = async (disease, months = 12) => {
+    try {
+      const response = await fetch(`http://localhost/prms/prms-backend/get_historical_disease_data.php?disease=${encodeURIComponent(disease || '')}&months=${months}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setHistoricalData(data.historical_data);
+      }
+    } catch (error) {
+      console.error('Error fetching historical data:', error);
+    }
+  };
 
   // Function to get color scheme for each disease
   const getDiseaseColor = (diseaseName) => {
@@ -117,6 +128,9 @@ const ARIMAForecast = () => {
         
         setForecastData(data.data);
         setShowCharts(true);
+        
+        // Fetch historical data for chart visualization
+        await fetchHistoricalData(selectedDisease, 12);
         setToast({
           isVisible: true,
           type: 'success',

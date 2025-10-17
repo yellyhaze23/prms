@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
 import Login from "./pages/Login";
+import { BackupProvider } from "./contexts/BackupContext";
 import "./App.css";
 import "./index.css";
 // Performance optimizations
@@ -50,6 +51,8 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem("sidebarCollapsed") === "true";
   });
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const toggleSidebar = () => {
     const newState = !sidebarCollapsed;
@@ -73,6 +76,7 @@ function App() {
     
     // Clear cache on logout
     const handleLogout = () => {
+      setIsLoggingOut(true);
       clearCache();
     };
     
@@ -81,21 +85,32 @@ function App() {
   }, [isLoggedIn]);
 
   const handleLogin = (user) => {
-    sessionStorage.setItem("isLoggedIn", "true");
-    setIsLoggedIn(true);
-    try {
-      if (user?.role === 'staff') {
-        // Set temporary token/role only for staff while backend JWT is not wired
-        localStorage.setItem('token', 'test-staff-token');
-        localStorage.setItem('role', 'staff');
-        navigate('/staff/dashboard', { replace: true });
-      } else {
-        // Ensure admin doesn't inherit staff token/role
-        localStorage.removeItem('token');
-        localStorage.removeItem('role');
-        navigate('/', { replace: true });
-      }
-    } catch {}
+    setIsTransitioning(true);
+    
+    // Small delay to allow the loading modal success animation to complete
+    setTimeout(() => {
+      sessionStorage.setItem("isLoggedIn", "true");
+      setIsLoggedIn(true);
+      
+      try {
+        if (user?.role === 'staff') {
+          // Set temporary token/role only for staff while backend JWT is not wired
+          localStorage.setItem('token', 'test-staff-token');
+          localStorage.setItem('role', 'staff');
+          navigate('/staff/dashboard', { replace: true });
+        } else {
+          // Ensure admin doesn't inherit staff token/role
+          localStorage.removeItem('token');
+          localStorage.removeItem('role');
+          navigate('/', { replace: true });
+        }
+      } catch {}
+      
+      // Reset transition state after navigation
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 300);
+    }, 100);
   };
 
   if (!isLoggedIn) {
@@ -105,12 +120,13 @@ function App() {
   const isStaffRoute = location.pathname.startsWith('/staff');
 
   return (
-    <div className="app-layout">
-      {!isStaffRoute && <Sidebar collapsed={sidebarCollapsed} />}
-      {!isStaffRoute && <TopBar userId={1} userName="Admin" userRole="Administrator" onToggleSidebar={toggleSidebar} sidebarCollapsed={sidebarCollapsed} />}
-      <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
+    <BackupProvider>
+      <div className="app-layout">
+        {!isStaffRoute && <Sidebar collapsed={sidebarCollapsed} />}
+        {!isStaffRoute && <TopBar userId={1} userName="Admin" userRole="Administrator" onToggleSidebar={toggleSidebar} sidebarCollapsed={sidebarCollapsed} />}
+        <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${isTransitioning ? 'page-enter' : ''} ${isLoggingOut ? 'page-exit' : ''}`}>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/records" element={<Records />} />
             <Route path="/patient" element={<Patient />} />
@@ -145,6 +161,7 @@ function App() {
         </Suspense>
       </div>
     </div>
+    </BackupProvider>
   );
 }
 

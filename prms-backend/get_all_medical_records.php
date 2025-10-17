@@ -9,6 +9,7 @@ $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $sortBy = isset($_GET['sortBy']) ? $_GET['sortBy'] : 'updated_at';
 $sortOrder = isset($_GET['sortOrder']) ? $_GET['sortOrder'] : 'desc';
 $diseaseFilter = isset($_GET['disease']) ? trim($_GET['disease']) : '';
+$patientId = isset($_GET['patient_id']) ? (int)$_GET['patient_id'] : null;
 
 // Validate parameters
 $page = max(1, $page);
@@ -36,6 +37,12 @@ if (!empty($search)) {
 if (!empty($diseaseFilter) && $diseaseFilter !== 'all') {
     $diseaseFilter = mysqli_real_escape_string($conn, $diseaseFilter);
     $searchCondition .= " AND mr.diagnosis = '$diseaseFilter'";
+}
+
+// Filter by patient_id if provided
+if (!empty($patientId) && $patientId > 0) {
+    $patientId = (int)$patientId; // Ensure it's an integer
+    $searchCondition .= " AND mr.patient_id = $patientId";
 }
 
 // Get total count for pagination

@@ -524,7 +524,7 @@ const Dashboard = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Total Patients</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.total_patients}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total_patients}</p>
                 <p className="text-xs text-gray-500">Registered patients</p>
               </div>
             </div>
@@ -539,7 +539,7 @@ const Dashboard = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Diseases Tracked</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.total_diseases}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total_diseases}</p>
                 <p className="text-xs text-gray-500">Active diseases</p>
               </div>
             </div>
@@ -554,7 +554,7 @@ const Dashboard = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Active Cases</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.active_cases}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.active_cases}</p>
                 <p className="text-xs text-gray-500">Current patients</p>
               </div>
             </div>
@@ -569,7 +569,7 @@ const Dashboard = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">New This Month</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.new_patients_this_month}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.new_patients_this_month}</p>
                 <p className="text-xs text-gray-500">New patients</p>
               </div>
             </div>
