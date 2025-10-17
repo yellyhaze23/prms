@@ -11,8 +11,15 @@ if ($patient_id <= 0) {
 }
 
 // Get all medical record data including patient info
+// Use only essential columns that exist in the database
 $stmt = $conn->prepare("
-    SELECT mr.*, p.sex, p.full_name, p.age, p.address
+    SELECT mr.patient_id, mr.surname, mr.first_name, mr.middle_name, mr.suffix, mr.date_of_birth, 
+           mr.philhealth_id, mr.priority, mr.blood_pressure, mr.temperature, mr.height, mr.weight, 
+           mr.chief_complaint, mr.place_of_consultation, mr.type_of_services, mr.date_of_consultation, 
+           mr.health_provider, mr.diagnosis, mr.laboratory_procedure, mr.prescribed_medicine, 
+           mr.medical_advice, mr.place_of_consultation_medical, mr.date_of_consultation_medical, 
+           mr.health_provider_medical, mr.medical_remarks, mr.created_at, mr.updated_at,
+           p.sex, p.full_name, p.age, p.address
     FROM medical_records mr
     JOIN patients p ON mr.patient_id = p.id
     WHERE mr.patient_id = ?

@@ -1,280 +1,380 @@
-import React, { useState, useMemo } from 'react';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer,
-  ReferenceLine
-} from 'recharts';
-import { FaDownload, FaChartLine } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { FaChartLine, FaFilter, FaDownload } from 'react-icons/fa';
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const ForecastChart = ({ forecastData, historicalData, diseaseName, forecastPeriod }) => {
-  const [showAllDiseases, setShowAllDiseases] = useState(false);
+  const [selectedDiseases, setSelectedDiseases] = useState([]);
+  const [chartData, setChartData] = useState(null);
+
+  // Get unique diseases from forecast data
+  const availableDiseases = forecastData ? 
+    [...new Set(forecastData.map(result => result.disease_name))] : [];
+
+  // Initialize selected diseases
+  useEffect(() => {
+    if (availableDiseases.length > 0 && selectedDiseases.length === 0) {
+      setSelectedDiseases(availableDiseases);
+    }
+  }, [availableDiseases, selectedDiseases.length]);
 
   // Process data for chart
-  const chartData = useMemo(() => {
-    if (!forecastData) return [];
-    
-    // If no historical data, just show forecast data
-    if (!historicalData || !Array.isArray(historicalData)) {
-      const forecastOnly = forecastData.map(item => ({
-        month: item.forecast_month,
-        date: new Date(item.forecast_month + '-01'),
-        isHistorical: false,
-        [item.disease_name]: item.forecast_cases
-      }));
-      return forecastOnly.sort((a, b) => a.date - b.date);
-    }
+  useEffect(() => {
+    if (!forecastData || forecastData.length === 0) return;
 
-    const processedData = [];
-    const diseaseData = historicalData.filter(item => 
-      diseaseName ? item.disease_name === diseaseName : true
-    );
-
-    // Group by month and year
-    const groupedData = {};
-    
-    // Process historical data
-    diseaseData.forEach(item => {
-      const key = `${item.year}-${String(item.month).padStart(2, '0')}`;
-      if (!groupedData[key]) {
-        groupedData[key] = {
-          month: key,
-          date: new Date(item.year, item.month - 1),
-          isHistorical: true
+    // Group forecast data by disease
+    const diseaseGroups = {};
+    forecastData.forEach(result => {
+      if (!diseaseGroups[result.disease_name]) {
+        diseaseGroups[result.disease_name] = {
+          historical: [],
+          forecast: []
         };
       }
-      groupedData[key][item.disease_name] = item.total_cases;
-    });
-
-    // Process forecast data
-    forecastData.forEach(item => {
-      const key = item.forecast_month;
-      if (!groupedData[key]) {
-        groupedData[key] = {
-          month: key,
-          date: new Date(item.forecast_month + '-01'),
-          isHistorical: false
-        };
-      }
-      groupedData[key][item.disease_name] = item.forecast_cases;
-    });
-
-    // Convert to array and sort by date
-    return Object.values(groupedData).sort((a, b) => a.date - b.date);
-  }, [forecastData, historicalData, diseaseName]);
-
-  // Get unique diseases for legend
-  const diseases = useMemo(() => {
-    if (!chartData.length) return [];
-    const diseaseSet = new Set();
-    chartData.forEach(item => {
-      Object.keys(item).forEach(key => {
-        if (key !== 'month' && key !== 'date' && key !== 'isHistorical') {
-          diseaseSet.add(key);
-        }
+      diseaseGroups[result.disease_name].forecast.push({
+        month: result.forecast_month,
+        cases: result.forecast_cases,
+        confidence_lower: result.confidence_lower || result.forecast_cases * 0.8,
+        confidence_upper: result.confidence_upper || result.forecast_cases * 1.2,
+        type: 'forecast'
       });
     });
-    return Array.from(diseaseSet);
-  }, [chartData]);
 
-  // Color palette for different diseases
-  const getDiseaseColor = (disease) => {
-    const colors = {
-      'chickenpox': '#ef4444', // red-500
-      'dengue': '#f97316', // orange-500
-      'hepatitis': '#eab308', // yellow-500
-      'measles': '#22c55e', // green-500
-      'tuberculosis': '#a855f7', // purple-500
-      'Chickenpox': '#ef4444', // red-500 (capitalized)
-      'Dengue': '#f97316', // orange-500 (capitalized)
-      'Hepatitis': '#eab308', // yellow-500 (capitalized)
-      'Measles': '#22c55e', // green-500 (capitalized)
-      'Tuberculosis': '#a855f7', // purple-500 (capitalized)
-      'All Diseases': '#3b82f6' // blue-500
+    // Add historical data if available
+    if (historicalData) {
+      Object.keys(historicalData).forEach(disease => {
+        if (diseaseGroups[disease]) {
+          diseaseGroups[disease].historical = historicalData[disease].map(data => ({
+            month: data.month,
+            cases: data.cases,
+            type: 'historical'
+          }));
+        }
+      });
+    }
+
+    // Create chart data
+    const colors = [
+      '#3B82F6', // Blue
+      '#EF4444', // Red
+      '#10B981', // Green
+      '#F59E0B', // Yellow
+      '#8B5CF6', // Purple
+      '#EC4899', // Pink
+      '#06B6D4', // Cyan
+      '#84CC16'  // Lime
+    ];
+
+    // Create connected datasets with smooth transitions
+    const datasets = [];
+    
+    selectedDiseases.forEach((disease, index) => {
+      const diseaseData = diseaseGroups[disease];
+      if (!diseaseData) return;
+
+      const color = colors[index % colors.length];
+      const historicalData = (diseaseData.historical || []).sort((a, b) => new Date(a.month) - new Date(b.month));
+      const forecastData = (diseaseData.forecast || []).sort((a, b) => new Date(a.month) - new Date(b.month));
+
+      // Create continuous line by combining historical and forecast data
+      if (historicalData.length > 0 && forecastData.length > 0) {
+        // Combine all data into one continuous line
+        const allData = [...historicalData, ...forecastData].sort((a, b) => new Date(a.month) - new Date(b.month));
+        
+        // Find the transition point (where forecast starts)
+        const forecastStartMonth = forecastData[0].month;
+        
+        datasets.push({
+          label: disease,
+          data: allData.map(d => ({
+            x: d.month,
+            y: d.cases,
+            isForecast: d.month >= forecastStartMonth
+          })),
+          borderColor: color,
+          backgroundColor: color + '20',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: color,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          borderDash: [], // Solid line for entire dataset
+          order: 2
+        });
+      } else if (historicalData.length > 0) {
+        // Only historical data
+        datasets.push({
+          label: disease,
+          data: historicalData.map(d => ({
+            x: d.month,
+            y: d.cases
+          })),
+          borderColor: color,
+          backgroundColor: color + '20',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: color,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          borderDash: [], // Solid line
+          order: 2
+        });
+      } else if (forecastData.length > 0) {
+        // Only forecast data
+        datasets.push({
+          label: disease,
+          data: forecastData.map(d => ({
+            x: d.month,
+            y: d.cases,
+            confidence_lower: d.confidence_lower,
+            confidence_upper: d.confidence_upper,
+            isForecast: true
+          })),
+          borderColor: color,
+          backgroundColor: color + '20',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.4,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: color,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          borderDash: [], // Solid line for forecast too
+          order: 1
+        });
+      }
+    });
+
+
+    // Add division line to mark forecast start
+    const forecastStartMonth = forecastData?.forecast_results?.[0]?.month;
+    const divisionLineDataset = {
+      label: 'Forecast Division',
+      data: forecastStartMonth ? [
+        { x: forecastStartMonth, y: 0 },
+        { x: forecastStartMonth, y: 20 }
+      ] : [],
+      borderColor: '#dc2626',
+      backgroundColor: 'transparent',
+      borderWidth: 3,
+      borderDash: [8, 4],
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      showLine: true,
+      fill: false,
+      tension: 0,
+      order: 0 // Behind everything
     };
-    return colors[disease] || '#6b7280'; // gray-500
+
+    setChartData({
+      datasets: [...datasets, divisionLineDataset]
+    });
+  }, [forecastData, selectedDiseases]);
+
+  const handleDiseaseToggle = (disease) => {
+    setSelectedDiseases(prev => 
+      prev.includes(disease) 
+        ? prev.filter(d => d !== disease)
+        : [...prev, disease]
+    );
   };
 
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-semibold text-gray-900 mb-2">{label}</p>
-          {payload.map((entry, index) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.dataKey}: {entry.value} cases
-            </p>
-          ))}
-        </div>
-      );
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 20,
+          font: {
+            size: 12,
+            weight: '500'
+          },
+          filter: (legendItem) => {
+            // Hide division line from legend
+            return !legendItem.text.includes('Forecast Division');
+          }
+        }
+      },
+      title: {
+        display: true,
+        text: `Disease Forecast: ${diseaseName || 'All Diseases'} (${forecastPeriod} months)`,
+        font: {
+          size: 16,
+          weight: 'bold'
+        },
+        color: '#374151'
+      },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 1,
+        cornerRadius: 8,
+        displayColors: true,
+        callbacks: {
+          title: (context) => {
+            return `Month: ${context[0].label}`;
+          },
+          label: (context) => {
+            if (context.dataset.label.includes('Confidence Interval')) {
+              return null; // Hide confidence interval from tooltip
+            }
+            return `${context.dataset.label}: ${context.parsed.y} predicted cases`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        display: true,
+        title: {
+          display: true,
+          text: 'Forecast Month',
+          font: {
+            size: 12,
+            weight: 'bold'
+          }
+        },
+        grid: {
+          display: false
+        }
+      },
+      y: {
+        display: true,
+        title: {
+          display: true,
+          text: 'Predicted Cases',
+          font: {
+            size: 12,
+            weight: 'bold'
+          }
+        },
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)'
+        }
+      }
+    },
+    interaction: {
+      mode: 'nearest',
+      axis: 'x',
+      intersect: false
+    },
+    elements: {
+      point: {
+        hoverBackgroundColor: '#fff'
+      }
     }
-    return null;
   };
 
-  // Export chart as PNG
-  const exportChart = () => {
-    const chartElement = document.querySelector('.forecast-chart');
-    if (chartElement) {
-      // Create a canvas element
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      
-      // This is a simplified export - in a real implementation, you'd use a library like html2canvas
-      const link = document.createElement('a');
-      link.download = `forecast-chart-${diseaseName || 'all-diseases'}-${new Date().toISOString().split('T')[0]}.png`;
-      link.href = canvas.toDataURL();
-      link.click();
-    }
-  };
-
-  // Export data as CSV
-  const exportData = () => {
-    const csvContent = [
-      ['Month', 'Disease', 'Cases', 'Type'],
-      ...chartData.flatMap(item => 
-        Object.entries(item)
-          .filter(([key, value]) => key !== 'month' && key !== 'date' && key !== 'isHistorical' && typeof value === 'number')
-          .map(([disease, cases]) => [
-            item.month,
-            disease,
-            cases,
-            item.isHistorical ? 'Historical' : 'Forecast'
-          ])
-      )
-    ].map(row => row.join(',')).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `forecast-data-${diseaseName || 'all-diseases'}-${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  if (!chartData.length) {
+  if (!chartData || chartData.datasets.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
         <div className="text-center text-gray-500">
           <FaChartLine className="text-4xl mx-auto mb-4 text-gray-300" />
-          <p>No chart data available</p>
-          <p className="text-sm text-gray-400 mt-2">
-            {!forecastData ? 'No forecast data' : 'No historical data to display'}
-          </p>
+          <p>No forecast data available for chart visualization</p>
         </div>
       </div>
     );
   }
 
-  try {
-    return (
-      <div className="bg-white rounded-xl border border-gray-200 shadow-lg">
-        {/* Chart Header */}
-        <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
+  return (
+    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+      {/* Chart Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+            <FaChartLine className="text-blue-600 w-5 h-5" />
+          </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <FaChartLine className="text-blue-600" />
-              Forecast Visualization
-            </h3>
-            <p className="text-sm text-gray-600">
-              {diseaseName ? `${diseaseName} Forecast` : 'All Diseases Forecast'} - {forecastPeriod} months
-            </p>
+            <h3 className="text-lg font-semibold text-gray-900">Forecast Visualization</h3>
+            <p className="text-sm text-gray-500">Historical trends and future predictions</p>
           </div>
-          <div className="flex items-center gap-2">
+        </div>
+        
+      </div>
 
-          </div>
+      {/* Disease Filter */}
+      <div className="mb-6">
+        <div className="flex items-center space-x-2 mb-3">
+          <FaFilter className="text-gray-400 w-4 h-4" />
+          <span className="text-sm font-medium text-gray-700">Filter Diseases:</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {availableDiseases.map((disease) => (
+            <button
+              key={disease}
+              onClick={() => handleDiseaseToggle(disease)}
+              className={`px-3 py-1 text-sm rounded-full transition-colors duration-150 ${
+                selectedDiseases.includes(disease)
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {disease}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Chart Content */}
-      <div className="p-4">
-        <div className="forecast-chart bg-white rounded-lg" style={{ height: '400px' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis 
-                dataKey="month" 
-                stroke="#6b7280"
-                fontSize={12}
-                angle={-45}
-                textAnchor="end"
-                height={60}
-              />
-              <YAxis 
-                stroke="#6b7280"
-                fontSize={12}
-                label={{ value: 'Cases', angle: -90, position: 'insideLeft' }}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend />
-              
-              {/* Reference line to separate historical and forecast */}
-              <ReferenceLine 
-                x={chartData.find(item => !item.isHistorical)?.month} 
-                stroke="#ef4444" 
-                strokeDasharray="5 5"
-                label={{ value: "Forecast Start", position: "top" }}
-              />
+      {/* Chart */}
+      <div className="h-96">
+        <Line
+          data={chartData}
+          options={chartOptions}
+        />
+      </div>
 
-              {/* Render lines for each disease */}
-              {diseases.map((disease, index) => (
-                <Line
-                  key={disease}
-                  type="monotone"
-                  dataKey={disease}
-                  stroke={getDiseaseColor(disease)}
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                  name={disease}
-                  connectNulls={false}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Chart Info */}
-        <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-600">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-            <span>Historical Data</span>
+      {/* Chart Info */}
+      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+        <div className="flex items-center justify-between text-sm text-gray-600">
+          <div className="flex items-center space-x-4">
+            <span>• Historical data and forecast predictions</span>
+            <span>• Red line marks forecast start</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-            <span>Forecasted Data</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
-            <span>ARIMA Model (1,1,1)</span>
+          <div className="text-xs text-gray-500">
+            Generated: {new Date().toLocaleDateString()}
           </div>
         </div>
       </div>
-
     </div>
-    );
-  } catch (error) {
-    console.error('Error rendering ForecastChart:', error);
-    return (
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-        <div className="text-center text-red-500">
-          <FaChartLine className="text-4xl mx-auto mb-4 text-red-300" />
-          <p>Error loading chart</p>
-          <p className="text-sm text-gray-400 mt-2">
-            Please try refreshing the page
-          </p>
-        </div>
-      </div>
-    );
-  }
+  );
 };
 
 export default ForecastChart;

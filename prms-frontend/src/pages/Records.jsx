@@ -6,44 +6,103 @@ import AddPatient from '../components/AddPatient';
 import Toast from '../components/Toast';
 import MedicalRecords from '../components/MedicalRecords';
 import ConfirmationModal from '../components/ConfirmationModal';
-import { FaIdCard, FaMapMarkerAlt, FaCalendarAlt, FaEdit, FaTrash, FaStethoscope, FaFilter } from 'react-icons/fa';
+import Pagination from '../components/Pagination';
+import { FaIdCard, FaMapMarkerAlt, FaCalendarAlt, FaEdit, FaTrash, FaStethoscope, FaFilter, FaEllipsisV } from 'react-icons/fa';
 import { formatPatientID } from '../utils/patientUtils';
 
 function Records() {
   const [patients, setPatients] = useState([]);
   const [diseases, setDiseases] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("");
-  const [sortOrder, setSortOrder] = useState("asc"); 
+  const [sortBy, setSortBy] = useState("updated_at");
+  const [sortOrder, setSortOrder] = useState("desc"); 
   const [selectedDisease, setSelectedDisease] = useState("all");
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [activeDropdown, setActiveDropdown] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editPatient, setEditPatient] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
   const [toast, setToast] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Fetch patients
-    axios.get("http://localhost/prms/prms-backend/get_patients.php")
-      .then((res) => {
-        setPatients(res.data);
-      })
-      .catch((err) => {
-        console.error("Error fetching patients:", err);
+    fetchMedicalRecords();
+    fetchDiseases();
+  }, [currentPage, itemsPerPage, sortBy, sortOrder, searchTerm, selectedDisease]);
+
+  const fetchMedicalRecords = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit: itemsPerPage,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        search: searchTerm,
+        disease: selectedDisease
       });
 
-    // Fetch diseases
-    axios.get("http://localhost/prms/prms-backend/get_diseases.php")
-      .then((res) => {
-        setDiseases(res.data);
-      })
-      .catch((err) => {
-        console.error("Error fetching diseases:", err);
-      });
-  }, []);
+      const response = await axios.get(`http://localhost/prms/prms-backend/get_patients.php?${params}`);
+      
+      if (response.data.success) {
+        setPatients(response.data.data);
+        setTotalPages(response.data.pagination.totalPages);
+        setTotalRecords(response.data.pagination.totalRecords);
+      } else {
+        console.error("Failed to fetch medical records");
+      }
+    } catch (err) {
+      console.error("Error fetching medical records:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDiseases = async () => {
+    try {
+      const response = await axios.get("http://localhost/prms/prms-backend/get_diseases.php");
+      setDiseases(response.data);
+    } catch (err) {
+      console.error("Error fetching diseases:", err);
+    }
+  };
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+  };
+
+  const handlePageChange = (page, newItemsPerPage) => {
+    setCurrentPage(page);
+    if (newItemsPerPage !== itemsPerPage) {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1); // Reset to first page when changing page size
+    }
+  };
+
+  const handleSearch = (term) => {
+    setSearchTerm(term);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      toggleSortOrder();
+    } else {
+      setSortBy(field);
+      setSortOrder("asc");
+    }
+    setCurrentPage(1); // Reset to first page when sorting
+  };
+
+  const handleDiseaseFilter = (disease) => {
+    setSelectedDisease(disease);
+    setCurrentPage(1); // Reset to first page when filtering
   };
 
   const showToast = (message, type = "success") => {
@@ -97,167 +156,178 @@ function Records() {
     showToast("Patient updated successfully", "success");
   };
 
-  const filteredPatients = [...patients]
-    .filter((p) => {
-      const term = searchTerm.toLowerCase();
-      const matchesSearch = (
-        (p.full_name || "").toLowerCase().includes(term) ||
-        (p.contact_number || "").toLowerCase().includes(term) ||
-        (p.email || "").toLowerCase().includes(term) ||
-        (p.address || "").toLowerCase().includes(term) ||
-        (p.sex || "").toLowerCase().includes(term) ||
-        (p.diagnosis || "").toLowerCase().includes(term) ||
-        (p.status || "").toLowerCase().includes(term) ||
-        (p.severity || "").toLowerCase().includes(term)
-      );
+  const toggleDropdown = (patientId, e) => {
+    e.stopPropagation();
+    setActiveDropdown(activeDropdown === patientId ? null : patientId);
+  };
 
-      // Filter by disease
-      if (selectedDisease === "all") {
-        return matchesSearch;
-      } else if (selectedDisease === "healthy") {
-        return matchesSearch && (!p.diagnosis || p.diagnosis.trim() === '');
-      } else {
-        return matchesSearch && p.diagnosis && p.diagnosis.toLowerCase() === selectedDisease.toLowerCase();
-      }
-    })
+  const handleActionClick = (action, patient, e) => {
+    e.stopPropagation();
+    setActiveDropdown(null);
+    
+    switch(action) {
+      case 'edit':
+        setSelectedPatient(patient);
+        break;
+      case 'delete':
+        handleDeletePatient(patient.id);
+        break;
+      default:
+        break;
+    }
+  };
 
-    .sort((a, b) => {
-      if (!sortBy) return 0;
+  // Close dropdown when clicking outside
+  const handleClickOutside = (e) => {
+    if (!e.target.closest('.dropdown-container')) {
+      setActiveDropdown(null);
+    }
+  };
 
-      const valA = a[sortBy] ?? "";
-      const valB = b[sortBy] ?? "";
+  // Add event listener for clicking outside
+  React.useEffect(() => {
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
-      let result;
-
-      if (sortBy === "id") {
-        result = Number(valA) - Number(valB);
-      } else {
-        result = valA.toString().toLowerCase().localeCompare(valB.toString().toLowerCase());
-      }
-
-      return sortOrder === "asc" ? result : -result;
-    });
+  // Server-side filtering and pagination, no client-side filtering needed
 
   return (
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {!selectedPatient ? (
           <>
-            {/* Header */}
-            <div className="mb-8 bg-blue-600 p-4 rounded-lg">
-              <h1 className="text-3xl font-bold text-white">Medical Records</h1>
-              <p className="mt-2 text-blue-100">View and manage patient medical records</p>
-            </div>
+            {/* Modern Header with Controls */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-blue-600">Medical Records</h1>
+                  <p className="text-gray-700 mt-2">View and manage patient medical records</p>
+                </div>
+                
+                {/* Controls on the right */}
+                <div className="flex items-center space-x-4">
+                  {/* Search Input */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search patients by name, contact, address, or disease..."
+                      value={searchTerm}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      className="w-80 px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <svg className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
 
-                {/* Toolbar */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                  <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-                    {/* Search Input */}
-                    <div className="relative flex-1 max-w-md">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FaIdCard className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="Search patients by name, contact, address, or disease..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
+                  {/* Disease Filter */}
+                  <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2">
+                    {/*  <FaStethoscope className="h-4 w-4 text-gray-400" /> */}
+                      <span className="text-sm font-medium text-gray-700">Filter:</span>
                     </div>
+                    <select
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={selectedDisease}
+                      onChange={(e) => handleDiseaseFilter(e.target.value)}
+                    >
+                      <option value="all">All Patients</option>
+                      <option value="healthy">Healthy Patients</option>
+                      {diseases.map((disease) => (
+                        <option key={disease.id} value={disease.name}>
+                          {disease.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                    {/* Disease Filter */}
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <FaStethoscope className="h-5 w-5 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-700">Filter by Disease:</span>
-                      </div>
-                      <select
-                        className="block px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        value={selectedDisease}
-                        onChange={(e) => setSelectedDisease(e.target.value)}
-                      >
-                        <option value="all">All Patients</option>
-                        <option value="healthy">Healthy Patients</option>
-                        {diseases.map((disease) => (
-                          <option key={disease.id} value={disease.name}>
-                            {disease.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Sort Controls */}
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <button
-                          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                          onClick={toggleSortOrder}
-                          title={`Sort ${sortOrder === "asc" ? "Ascending" : "Descending"}`}
-                        >
-                          {sortOrder === "asc" ? "↑" : "↓"}
-                        </button>
-                      </div>
-                    </div>
+                  {/* Sort Controls */}
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleSort(sortBy)}
+                      className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      title={`Sort ${sortOrder === "asc" ? "Ascending" : "Descending"}`}
+                    >
+                      <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                      </svg>
+                    </button>
+                    
+                    <select
+                      value={sortBy}
+                      onChange={(e) => handleSort(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="updated_at">Sort by: Last Updated</option>
+                      <option value="created_at">Sort by: Date Added</option>
+                      <option value="full_name">Sort by: Name</option>
+                      <option value="diagnosis">Sort by: Diagnosis</option>
+                    </select>
                   </div>
                 </div>
+              </div>
+            </div>
 
             {/* Records Table */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              {filteredPatients.length === 0 ? (
+              {patients.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 px-6">
                   <FaIdCard className="text-6xl text-gray-300 mb-4" />
                   <p className="text-gray-500 text-lg font-medium">No medical records found</p>
                   <p className="text-gray-400 text-sm">Patient records will appear here</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto bg-white rounded-xl shadow-lg border border-gray-100">
                   <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-100">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
-                            <FaIdCard className="text-gray-400" />
+                            <FaIdCard className="text-blue-600" />
                             Patient ID
                           </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
-                            <FaIdCard className="text-gray-400" />
+                            <FaIdCard className="text-blue-600" />
                             Patient Name
                           </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
-                            <FaCalendarAlt className="text-gray-400" />
+                            <FaCalendarAlt className="text-blue-600" />
                             Age & Gender
                           </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
-                            <FaMapMarkerAlt className="text-gray-400" />
+                            <FaMapMarkerAlt className="text-blue-600" />
                             Address
                           </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
-                            <FaStethoscope className="text-gray-400" />
+                            <FaStethoscope className="text-blue-600" />
                             Diagnosis
                           </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
-                            <FaCalendarAlt className="text-gray-400" />
+                            <FaCalendarAlt className="text-blue-600" />
                             Last Visit
                           </div>
                         </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
+                        <th className="px-6 py-4 text-right text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                          <div className="flex items-center justify-end gap-2">
+                            <FaEllipsisV className="text-blue-600" />
+                            Action
+                          </div>
                         </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredPatients.map((patient, index) => (
+                      {patients.map((patient, index) => (
                         <tr
                           key={patient.id || index}
                           onClick={() => setSelectedPatient(patient)}
@@ -320,21 +390,50 @@ function Records() {
                              patient.created_at ? new Date(patient.created_at).toLocaleDateString() : 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="relative dropdown-container">
+                              {/* Modern Kebab Menu Button */}
                               <button
-                                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-150"
-                                title="Edit Medical Records"
-                                onClick={() => setSelectedPatient(patient)}
+                                className="group inline-flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:shadow-sm"
+                                onClick={(e) => toggleDropdown(patient.id, e)}
+                                title="More actions"
                               >
-                                <FaEdit className="h-4 w-4" />
+                                <FaEllipsisV className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
                               </button>
-                              <button
-                                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-150"
-                                title="Delete Patient"
-                                onClick={() => handleDeletePatient(patient.id)}
-                              >
-                                <FaTrash className="h-4 w-4" />
-                              </button>
+
+                              {/* Modern Dropdown Menu with Animation */}
+                              {activeDropdown === patient.id && (
+                                <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl z-[99999] border border-gray-100 overflow-hidden animate-in slide-in-from-top-2 duration-200" style={{zIndex: 99999}}>
+                                  <div className="py-2">
+                                    {/* Edit Medical Records */}
+                                    <button
+                                      className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-all duration-150 group/edit"
+                                      onClick={(e) => handleActionClick('edit', patient, e)}
+                                    >
+                                      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100 group-hover/edit:bg-emerald-200 transition-colors duration-150 mr-3">
+                                        <FaEdit className="h-3.5 w-3.5 text-emerald-600" />
+                                      </div>
+                                      <div className="flex flex-col items-start">
+                                        <span className="font-medium">Edit Records</span>
+                                        <span className="text-xs text-gray-500">Update medical records</span>
+                                      </div>
+                                    </button>
+                                    
+                                    {/* Delete Patient */}
+                                    <button
+                                      className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all duration-150 group/delete"
+                                      onClick={(e) => handleActionClick('delete', patient, e)}
+                                    >
+                                      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 group-hover/delete:bg-red-200 transition-colors duration-150 mr-3">
+                                        <FaTrash className="h-3.5 w-3.5 text-red-600" />
+                                      </div>
+                                      <div className="flex flex-col items-start">
+                                        <span className="font-medium">Delete Patient</span>
+                                        <span className="text-xs text-gray-500">Remove from system</span>
+                                      </div>
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -344,6 +443,19 @@ function Records() {
                 </div>
               )}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                totalItems={totalRecords}
+                showPageSizeSelector={true}
+                pageSizeOptions={[10, 25, 50, 100]}
+              />
+            )}
           </>
         ) : (
           <>

@@ -6,17 +6,28 @@ ini_set('display_errors', 0);
 // Use proper CORS handling
 require 'cors.php';
 require 'config.php';
+require 'audit_logger.php';
+
+// Set connection collation to avoid collation conflicts
+mysqli_query($conn, "SET NAMES utf8mb4 COLLATE utf8mb4_general_ci");
+mysqli_query($conn, "SET CHARACTER SET utf8mb4");
+mysqli_query($conn, "SET collation_connection = 'utf8mb4_general_ci'");
 
 $data = json_decode(file_get_contents("php://input"), true);
 
-// Debug logging (commented out for production)
-// error_log("Received data: " . json_encode($data));
-// error_log("Patient ID: " . $patient_id);
-// error_log("Data keys: " . implode(', ', array_keys($data)));
+// Debug logging for troubleshooting
+error_log("Received data: " . json_encode($data));
+error_log("Data keys: " . implode(', ', array_keys($data)));
 
-if (!$data || !isset($data['id'])) {
+if (!$data) {
     http_response_code(400);
-    echo json_encode(['error' => 'Missing required patient ID.']);
+    echo json_encode(['error' => 'No data received.']);
+    exit;
+}
+
+if (!isset($data['id']) || empty($data['id'])) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Missing or invalid patient ID. Received: ' . json_encode($data)]);
     exit;
 }
 
@@ -26,6 +37,8 @@ $patient_id = intval($data['id']);
 mysqli_autocommit($conn, false);
 
 try {
+    error_log("Starting update process for patient ID: " . $patient_id);
+    
     // Update patient basic information
     if (isset($data['full_name']) || isset($data['date_of_birth']) || isset($data['sex']) || isset($data['address'])) {
         $full_name = mysqli_real_escape_string($conn, $data['full_name'] ?? '');
@@ -60,59 +73,73 @@ try {
         }
     }
 
-    // Update medical records
+    // Update medical records - only include essential fields that should be in medical records
     $medicalFields = [
         'surname', 'first_name', 'middle_name', 'suffix', 'date_of_birth', 'philhealth_id', 'priority',
         'blood_pressure', 'temperature', 'height', 'weight', 'chief_complaint', 'place_of_consultation', 
         'type_of_services', 'date_of_consultation', 'health_provider', 'diagnosis', 'laboratory_procedure', 
         'prescribed_medicine', 'medical_advice', 'place_of_consultation_medical', 'date_of_consultation_medical', 
-        'health_provider_medical', 'medical_remarks', 'exam_date', 'bmi', 'ideal_weight', 'vision_with_glasses', 
-        'vision_without_glasses', 'eent', 'lungs', 'heart', 'abdomen', 'extremities', 'previous_illness', 
-        'recommendation', 'onset_date', 'diagnosis_date', 'severity', 'status', 'symptoms', 'treatment', 
-        'vaccination_status', 'contact_tracing', 'notes', 'reported_by', 'reported_date'
+        'health_provider_medical', 'medical_remarks'
+    ];
+
+    // Key medical fields that should trigger a new consultation entry
+    $criticalMedicalFields = [
+        'diagnosis', 'chief_complaint', 'health_provider', 'prescribed_medicine', 
+        'medical_advice', 'laboratory_procedure', 'medical_remarks'
     ];
 
     $updateFields = [];
+    $hasMedicalChanges = false;
+    
     foreach ($medicalFields as $field) {
         if (isset($data[$field])) {
-            if (in_array($field, ['height', 'weight', 'bmi', 'ideal_weight'])) {
+            if (in_array($field, ['height', 'weight'])) {
                 $value = floatval($data[$field]);
                 $updateFields[] = "$field = $value";
             } else {
                 $value = $data[$field];
                 // Handle empty date fields - set to NULL instead of empty string
-                if (in_array($field, ['date_of_birth', 'date_of_consultation', 'date_of_consultation_medical', 'exam_date', 'onset_date', 'diagnosis_date', 'reported_date']) && empty($value)) {
+                if (in_array($field, ['date_of_birth', 'date_of_consultation', 'date_of_consultation_medical']) && empty($value)) {
                     $updateFields[] = "$field = NULL";
                 } else {
                     $value = mysqli_real_escape_string($conn, $value);
                     $updateFields[] = "$field = '$value'";
                 }
             }
-            // error_log("Processing field: $field = " . $data[$field]);
+            
+            // Check if this is a critical medical field with actual content
+            if (in_array($field, $criticalMedicalFields) && !empty(trim($data[$field]))) {
+                $hasMedicalChanges = true;
+            }
         }
     }
     
-    // error_log("Total fields to update: " . count($updateFields));
+    error_log("Medical changes detected: " . ($hasMedicalChanges ? 'YES' : 'NO'));
+    error_log("Total fields to update: " . count($updateFields));
 
     if (!empty($updateFields)) {
         $updateFields[] = "updated_at = NOW()";
         
-        // Automatically set consultation date to today if not explicitly provided
-        // This ensures Last Visit updates when any medical record is modified
-        if (!isset($data['date_of_consultation']) || empty($data['date_of_consultation'])) {
-            $updateFields[] = "date_of_consultation = CURDATE()";
-        }
-        
-        // Check if medical record exists for this patient
-        $checkSql = "SELECT id FROM medical_records WHERE patient_id = $patient_id";
-        $checkResult = mysqli_query($conn, $checkSql);
-        
-        if (mysqli_num_rows($checkResult) > 0) {
-            // UPDATE existing medical record
-            $medicalSql = "UPDATE medical_records SET " . implode(', ', $updateFields) . " WHERE patient_id = $patient_id";
-            // error_log("Updating existing medical record: " . $medicalSql);
-        } else {
-            // INSERT new medical record for new patients
+        // Only create new consultation entry if there are actual medical changes
+        if ($hasMedicalChanges) {
+            error_log("Creating new consultation entry due to medical changes");
+            
+            // Automatically set consultation date to today if not explicitly provided
+            if (!isset($data['date_of_consultation']) || empty($data['date_of_consultation'])) {
+                // Only add if not already in the fields
+                $hasDateOfConsultation = false;
+                foreach ($updateFields as $field) {
+                    if (strpos($field, 'date_of_consultation') === 0) {
+                        $hasDateOfConsultation = true;
+                        break;
+                    }
+                }
+                if (!$hasDateOfConsultation) {
+                    $updateFields[] = "date_of_consultation = CURDATE()";
+                }
+            }
+            
+            // INSERT a new medical record for new consultation
             $insertFields = ['patient_id'];
             $insertValues = [$patient_id];
             
@@ -126,19 +153,32 @@ try {
             }
             
             $medicalSql = "INSERT INTO medical_records (" . implode(', ', $insertFields) . ") VALUES (" . implode(', ', $insertValues) . ")";
-            // error_log("Creating new medical record: " . $medicalSql);
-        }
 
-        if (!mysqli_query($conn, $medicalSql)) {
-            throw new Exception('Failed to update medical records: ' . mysqli_error($conn));
+            if (!mysqli_query($conn, $medicalSql)) {
+                throw new Exception('Failed to create new consultation record: ' . mysqli_error($conn));
+            }
+        } else {
+            error_log("No medical changes detected - skipping new consultation entry");
         }
     } else {
-        // error_log("No medical fields to update");
+        error_log("No medical fields to update");
     }
 
     // Commit transaction
     mysqli_commit($conn);
 
+    // Log successful patient update
+    $auditLogger->logPatientOperation(
+        1, // Default user ID - you may want to get this from session
+        'admin', // Default user type - you may want to get this from session
+        'system', // Default username - you may want to get this from session
+        'update_patient',
+        $patient_id,
+        null, // old_data - you can store this before the update
+        $data, // new_data
+        'success'
+    );
+    
     echo json_encode([
         'success' => true,
         'message' => 'Patient and medical records updated successfully'

@@ -88,6 +88,13 @@
   position: relative;
   z-index: 2;
   backdrop-filter: blur(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Fade out login card when loading modal is shown */
+.login-card.loading {
+  opacity: 0.7;
+  transform: scale(0.98);
 }
 
 /* Left Panel - Branding */

@@ -16,9 +16,11 @@ import {
   FaDatabase,
   FaServer,
   FaChartLine,
-  FaChartPie
+  FaChartPie,
+  FaTimes
 } from "react-icons/fa";
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
+import ModernAlert from '../components/ModernAlert';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -34,6 +36,9 @@ import {
 } from 'chart.js';
 import axios from "axios";
 import "./Dashboard.css";
+// Performance optimizations
+import { getCachedData, setCachedData, shouldRefreshInBackground, markAsRefreshed } from '../utils/cache';
+import { preloadData } from '../utils/dataPreloader';
 
 // Register Chart.js components
 ChartJS.register(
@@ -51,36 +56,87 @@ ChartJS.register(
 
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start with false for instant display
   const [error, setError] = useState(null);
   const [selectedTimeframe, setSelectedTimeframe] = useState('weekly');
   const [lastUpdated, setLastUpdated] = useState(null);
   const [syncing, setSyncing] = useState(false);
+  const [alerts, setAlerts] = useState([]);
+  const [alertCountdown, setAlertCountdown] = useState(10); // 10 seconds countdown
+  const [currentUser, setCurrentUser] = useState({ name: 'Admin' });
 
   useEffect(() => {
+    fetchCurrentUser();
     fetchDashboardData();
-    // Auto-refresh every 30 seconds for real-time updates
-    const interval = setInterval(fetchDashboardData, 30000);
+    // Auto-refresh every 5 minutes for real-time updates (reduced from 30 seconds)
+    const interval = setInterval(fetchDashboardData, 300000);
     return () => clearInterval(interval);
   }, []);
 
-  const fetchDashboardData = async (timeframe = selectedTimeframe) => {
+  // Countdown timer for alerts
+  useEffect(() => {
+    if (alerts.length > 0 && alertCountdown > 0) {
+      const timer = setTimeout(() => {
+        setAlertCountdown(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (alerts.length > 0 && alertCountdown === 0) {
+      // Auto-hide alerts after countdown
+      setAlerts([]);
+    }
+  }, [alerts.length, alertCountdown]);
+
+  const fetchCurrentUser = async () => {
     try {
-      // Only show loading spinner on initial load, not on auto-refresh
-      if (!dashboardData) {
-        setLoading(true);
-      } else {
-        setSyncing(true);
+      const response = await fetch('http://localhost/prms/prms-backend/get_current_user.php');
+      const data = await response.json();
+      if (data.success) {
+        setCurrentUser(data.user);
       }
+    } catch (err) {
+      console.error("Error fetching current user:", err);
+    }
+  };
+
+  const fetchDashboardData = async (timeframe = selectedTimeframe, forceRefresh = false) => {
+    // Check cache first - INSTANT DISPLAY
+    const cacheKey = `dashboard_${timeframe}`;
+    const cached = getCachedData(cacheKey);
+    if (cached && !forceRefresh) {
+      setDashboardData(cached);
+      setLoading(false);
       
-      const response = await axios.get(`http://localhost/prms/prms-backend/get_dashboard_data.php?timeframe=${timeframe}`);
+      // Background refresh if needed
+      if (shouldRefreshInBackground(cacheKey)) {
+        refreshInBackground(timeframe);
+      }
+      return;
+    }
+
+    // Only show loading if no cached data
+    if (!cached) {
+      setLoading(true);
+    } else {
+      setSyncing(true);
+    }
+
+    try {
+      // Use preloaded data if available
+      const data = await preloadData(cacheKey, () => 
+        fetch(`http://localhost/prms/prms-backend/get_dashboard_data.php?timeframe=${timeframe}`).then(r => r.json())
+      );
       
-      if (response.data.success) {
-        setDashboardData(response.data);
+      if (data.success) {
+        setDashboardData(data);
+        setAlerts(data.alerts || []);
         setLastUpdated(new Date());
         setError(null);
+        // Reset countdown when new alerts arrive
+        if (data.alerts && data.alerts.length > 0) {
+          setAlertCountdown(10);
+        }
       } else {
-        setError(response.data.error || "Failed to fetch dashboard data");
+        setError(data.error || "Failed to fetch dashboard data");
       }
     } catch (err) {
       setError("Server error. Please check your connection.");
@@ -88,6 +144,20 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
       setSyncing(false);
+    }
+  };
+
+  const refreshInBackground = async (timeframe) => {
+    try {
+      const response = await axios.get(`http://localhost/prms/prms-backend/get_dashboard_data.php?timeframe=${timeframe}`);
+      if (response.data.success) {
+        setDashboardData(response.data);
+        setCachedData(`dashboard_${timeframe}`, response.data);
+        markAsRefreshed(`dashboard_${timeframe}`);
+        setLastUpdated(new Date());
+      }
+    } catch (err) {
+      console.error("Background refresh failed:", err);
     }
   };
 
@@ -116,7 +186,7 @@ const Dashboard = () => {
 
   if (loading && !dashboardData) {
     return (
-      <div className="min-h-screen bg-gray-50 py-6">
+      <div className="min-h-screen bg-gray-50 py-6=">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -129,7 +199,7 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 py-6">
+      <div className="min-h-screen bg-gray-50 py-3.5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <FaExclamationTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
@@ -149,7 +219,7 @@ const Dashboard = () => {
 
   if (!dashboardData) return null;
 
-  const { stats, disease_stats, recent_activities, trends_data, current_timeframe, age_distribution, gender_distribution, top_locations, recent_consultations, alerts } = dashboardData;
+  const { stats, disease_stats, recent_activities, trends_data, current_timeframe, age_distribution, gender_distribution, top_locations, recent_consultations } = dashboardData;
 
   // Process trends data based on selected timeframe
   const processTrendsData = () => {
@@ -223,43 +293,47 @@ const Dashboard = () => {
     return Math.max(10, maxValue + 2);
   };
 
-  // Chart data for age distribution
+  // Chart data for age distribution - Modern design
   const ageChartData = {
     labels: age_distribution.map(item => item.age_group),
     datasets: [{
       data: age_distribution.map(item => item.count),
       backgroundColor: [
-        'rgba(59, 130, 246, 0.8)',
-        'rgba(16, 185, 129, 0.8)',
-        'rgba(245, 158, 11, 0.8)',
-        'rgba(239, 68, 68, 0.8)',
-        'rgba(139, 92, 246, 0.8)'
+        '#3B82F6', // Blue
+        '#10B981', // Green  
+        '#F59E0B', // Orange
+        '#EF4444', // Red
+        '#8B5CF6'  // Purple
       ],
       borderColor: [
-        'rgb(59, 130, 246)',
-        'rgb(16, 185, 129)',
-        'rgb(245, 158, 11)',
-        'rgb(239, 68, 68)',
-        'rgb(139, 92, 246)'
+        '#1E40AF', // Darker blue
+        '#059669', // Darker green
+        '#D97706', // Darker orange
+        '#DC2626', // Darker red
+        '#7C3AED'  // Darker purple
       ],
-      borderWidth: 2
+      borderWidth: 0,
+      cutout: '60%',
+      spacing: 2
     }]
   };
 
-  // Chart data for gender distribution
+  // Chart data for gender distribution - Modern design
   const genderChartData = {
     labels: gender_distribution.map(item => item.sex),
     datasets: [{
       data: gender_distribution.map(item => item.count),
       backgroundColor: [
-        'rgba(59, 130, 246, 0.8)',
-        'rgba(236, 72, 153, 0.8)'
+        '#3B82F6', // Blue
+        '#EC4899'  // Pink
       ],
       borderColor: [
-        'rgb(59, 130, 246)',
-        'rgb(236, 72, 153)'
+        '#1E40AF', // Darker blue
+        '#BE185D'  // Darker pink
       ],
-      borderWidth: 2
+      borderWidth: 0,
+      cutout: '60%',
+      spacing: 2
     }]
   };
 
@@ -270,7 +344,16 @@ const Dashboard = () => {
     plugins: {
       legend: {
         position: 'top',
-        display: true
+        display: true,
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 7,
+          font: {
+            size: 11,
+            family: "'Inter', sans-serif"
+          }
+        }
       },
     },
     scales: {
@@ -313,30 +396,88 @@ const Dashboard = () => {
     plugins: {
       legend: {
         position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 15,
+          font: {
+            size: 12,
+            family: "'Inter', sans-serif",
+            weight: '500'
+          },
+          color: '#374151'
+        }
       },
+      tooltip: {
+        enabled: true,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: '#e5e7eb',
+        borderWidth: 1,
+        cornerRadius: 8,
+        displayColors: true,
+        callbacks: {
+          label: function(context) {
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = ((context.parsed / total) * 100).toFixed(1);
+            return `${context.label}: ${context.parsed} (${percentage}%)`;
+          }
+        }
+      }
+    },
+    elements: {
+      arc: {
+        borderWidth: 0
+      }
+    },
+    animation: {
+      animateRotate: true,
+      animateScale: true,
+      duration: 1000,
+      easing: 'easeInOutQuart'
     }
+  };
+
+  // Get greeting based on current time
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
+  };
+
+  // Get current user name from database
+  const getCurrentUserName = () => {
+    return currentUser.name || "Admin";
   };
 
   return (
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8 bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-lg shadow-lg">
-          <div className="flex items-center justify-between">
+        {/* Modern Header */}
+        <div className="mb-5">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-white">RHU Patient Record System</h1>
-              <p className="text-blue-100 mt-2">Welcome to the Rural Health Unit Patient Management System</p>
+              <h1 className="text-3xl font-bold text-blue-600">
+                {getGreeting()}, {getCurrentUserName()}
+              </h1>
+              <p className="text-gray-700 font-bold text-lg mt-1">Dashboard</p>
             </div>
             <div className="flex items-center space-x-4">
               {lastUpdated && (
-                <div className="text-blue-100 text-sm">
+                <div className="text-gray-500 text-sm">
                   <FaClock className="inline mr-1" />
                   Last updated: {lastUpdated.toLocaleTimeString()}
                 </div>
               )}
               {syncing && (
-                <div className="text-blue-100 text-sm flex items-center">
-                  <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-100 rounded-full animate-spin mr-2"></div>
+                <div className="text-gray-500 text-sm flex items-center">
+                  <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mr-2"></div>
                   Syncing...
                 </div>
               )}
@@ -344,26 +485,29 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Alerts */}
+        {/* Modern Alerts */}
         {alerts && alerts.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <FaBell className="mr-2 text-yellow-500" />
-              System Alerts
-            </h3>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <FaBell className="mr-2 text-yellow-500" />
+                System Alerts
+              </h3>
+            </div>
             <div className="space-y-3">
               {alerts.map((alert, index) => (
-                <div key={index} className={`border rounded-lg p-4 ${getAlertColor(alert.type)}`}>
-                  <div className="flex items-center">
-                    {getAlertIcon(alert.type)}
-                    <span className="ml-3 font-medium text-gray-900">{alert.message}</span>
-                    {alert.count && (
-                      <span className="ml-auto bg-white px-3 py-1 rounded-full text-sm font-semibold">
-                        {alert.count}
-                      </span>
-                    )}
-                  </div>
-                </div>
+                <ModernAlert
+                  key={index}
+                  type={alert.type === 'danger' ? 'error' : alert.type === 'warning' ? 'warning' : 'info'}
+                  title={alert.type === 'danger' ? 'Outbreak Alert' : alert.type === 'warning' ? 'System Warning' : 'System Info'}
+                  message={alert.message}
+                  onClose={() => setAlerts(prev => prev.filter((_, i) => i !== index))}
+                  action={alert.count && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 text-gray-800">
+                      {alert.count} cases
+                    </span>
+                  )}
+                />
               ))}
             </div>
           </div>
@@ -380,7 +524,7 @@ const Dashboard = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Total Patients</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.total_patients}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total_patients}</p>
                 <p className="text-xs text-gray-500">Registered patients</p>
               </div>
             </div>
@@ -395,7 +539,7 @@ const Dashboard = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Diseases Tracked</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.total_diseases}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total_diseases}</p>
                 <p className="text-xs text-gray-500">Active diseases</p>
               </div>
             </div>
@@ -410,7 +554,7 @@ const Dashboard = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Active Cases</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.active_cases}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.active_cases}</p>
                 <p className="text-xs text-gray-500">Current patients</p>
               </div>
             </div>
@@ -425,7 +569,7 @@ const Dashboard = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">New This Month</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.new_patients_this_month}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.new_patients_this_month}</p>
                 <p className="text-xs text-gray-500">New patients</p>
               </div>
             </div>
@@ -446,9 +590,9 @@ const Dashboard = () => {
               <div className="flex space-x-2">
                 <button
                   onClick={() => handleTimeframeChange('weekly')}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                     selectedTimeframe === 'weekly'
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      ? 'bg-blue-600 text-white shadow-md'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -456,9 +600,9 @@ const Dashboard = () => {
                 </button>
                 <button
                   onClick={() => handleTimeframeChange('monthly')}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                     selectedTimeframe === 'monthly'
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      ? 'bg-blue-600 text-white shadow-md'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -466,9 +610,9 @@ const Dashboard = () => {
                 </button>
                 <button
                   onClick={() => handleTimeframeChange('quarterly')}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                     selectedTimeframe === 'quarterly'
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      ? 'bg-blue-600 text-white shadow-md'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -476,9 +620,9 @@ const Dashboard = () => {
                 </button>
                 <button
                   onClick={() => handleTimeframeChange('yearly')}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                     selectedTimeframe === 'yearly'
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      ? 'bg-blue-600 text-white shadow-md'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >

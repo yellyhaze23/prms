@@ -29,43 +29,73 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
 
   useEffect(() => {
     if (patient?.id) {
-      // Fetch medical records data for editing
-      axios.get(`http://localhost/prms/prms-backend/get_medical_records.php?patient_id=${patient.id}`)
-        .then((res) => {
-          // Merge patient basic info with medical records data
-          const mergedData = {
-            ...patient,
-            ...res.data
-          };
-          
-          // Update form data with the merged data
-          setFormData({
-            surname: mergedData.surname || "",
-            first_name: mergedData.first_name || "",
-            middle_name: mergedData.middle_name || "",
-            suffix: mergedData.suffix || "",
-            date_of_birth: mergedData.date_of_birth || "",
-            sex: mergedData.sex || "",
-            address: mergedData.address || "",
-            philhealth_id: mergedData.philhealth_id || "",
-            priority: mergedData.priority || "medium",
-          });
-        })
-        .catch((err) => {
-          console.error("Error fetching medical records:", err);
-          // If no medical records exist, use patient data
-          setFormData({
-            surname: patient.surname || "",
-            first_name: patient.first_name || "",
-            middle_name: patient.middle_name || "",
-            suffix: patient.suffix || "",
-            date_of_birth: patient.date_of_birth || "",
-            sex: patient.sex || "",
-            address: patient.address || "",
-            philhealth_id: patient.philhealth_id || "",
-            priority: patient.priority || "medium",
-          });
+      console.log("Patient data for editing:", patient);
+      
+      // Check if this is staff context (has full_name but no individual name fields)
+      const isStaffContext = window.location.pathname.includes('/staff');
+      
+      if (isStaffContext && patient.full_name && !patient.first_name) {
+        // For staff patients, parse full_name into individual components
+        const nameParts = patient.full_name.trim().split(' ');
+        const parsedNames = {
+          first_name: nameParts[0] || "",
+          middle_name: nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : "",
+          surname: nameParts[nameParts.length - 1] || "",
+          suffix: ""
+        };
+        
+        setFormData({
+          surname: parsedNames.surname,
+          first_name: parsedNames.first_name,
+          middle_name: parsedNames.middle_name,
+          suffix: parsedNames.suffix,
+          date_of_birth: patient.date_of_birth || "",
+          sex: patient.sex || "",
+          address: patient.address || "",
+          philhealth_id: patient.philhealth_id || "",
+          priority: patient.priority || "medium",
         });
+      } else {
+        // For admin patients or patients with individual name fields, use existing logic
+        // Try to fetch medical records data for additional fields
+        axios.get(`http://localhost/prms/prms-backend/get_medical_records.php?patient_id=${patient.id}`)
+          .then((res) => {
+            console.log("Medical records response:", res.data);
+            // Merge patient basic info with medical records data
+            const mergedData = {
+              ...patient,
+              ...res.data
+            };
+            
+            // Update form data with the merged data
+            setFormData({
+              surname: mergedData.surname || "",
+              first_name: mergedData.first_name || "",
+              middle_name: mergedData.middle_name || "",
+              suffix: mergedData.suffix || "",
+              date_of_birth: mergedData.date_of_birth || patient.date_of_birth || "",
+              sex: mergedData.sex || patient.sex || "",
+              address: mergedData.address || patient.address || "",
+              philhealth_id: mergedData.philhealth_id || "",
+              priority: mergedData.priority || "medium",
+            });
+          })
+          .catch((err) => {
+            console.error("Error fetching medical records:", err);
+            // If no medical records exist, use patient data directly
+            setFormData({
+              surname: patient.surname || "",
+              first_name: patient.first_name || "",
+              middle_name: patient.middle_name || "",
+              suffix: patient.suffix || "",
+              date_of_birth: patient.date_of_birth || "",
+              sex: patient.sex || "",
+              address: patient.address || "",
+              philhealth_id: patient.philhealth_id || "",
+              priority: patient.priority || "medium",
+            });
+          });
+      }
     } else {
       // Reset form for new patient
       setFormData({
@@ -89,8 +119,24 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
     }));
   };
 
+  // Calculate age from date of birth
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return 0;
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
 
   const handleSubmit = async () => {
+    console.log('Form data:', formData);
+    console.log('Patient data:', patient);
+    
     const { first_name, date_of_birth, sex, address } = formData;
 
     if (!first_name || !date_of_birth || !sex || !address) {
@@ -101,31 +147,76 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
     // Combine name fields into full_name for backward compatibility
     const full_name = `${formData.first_name} ${formData.middle_name} ${formData.surname} ${formData.suffix}`.trim();
 
+    // Determine if this is staff context by checking the current URL
+    const isStaffContext = window.location.pathname.includes('/staff');
+    
     const url = patient
-      ? "http://localhost/prms/prms-backend/update_patient_comprehensive.php"
-      : "http://localhost/prms/prms-backend/add_patient.php";
+      ? (isStaffContext 
+          ? "http://localhost/prms/prms-backend/api/staff/patients/update.php"
+          : "http://localhost/prms/prms-backend/update_patient_comprehensive.php")
+      : (isStaffContext
+          ? "http://localhost/prms/prms-backend/api/staff/patients/add.php"
+          : "http://localhost/prms/prms-backend/add_patient.php");
 
-    const body = patient
-      ? { id: patient.id, full_name, ...formData }
-      : { full_name, ...formData };
+    // Prepare body based on context
+    let body;
+    if (patient) {
+      if (isStaffContext) {
+        // Staff API expects specific fields
+        body = {
+          id: patient.id,
+          full_name: full_name,
+          age: calculateAge(formData.date_of_birth),
+          sex: formData.sex,
+          address: formData.address,
+          date_of_birth: formData.date_of_birth
+        };
+      } else {
+        // Admin API expects all fields
+        body = { id: patient.id, full_name, ...formData };
+      }
+    } else {
+      // For adding new patients
+      if (isStaffContext) {
+        // Staff add API expects specific fields
+        body = {
+          full_name: full_name,
+          age: calculateAge(formData.date_of_birth),
+          sex: formData.sex,
+          address: formData.address,
+          date_of_birth: formData.date_of_birth
+        };
+      } else {
+        // Admin add API expects all fields
+        body = { full_name, ...formData };
+      }
+    }
 
     console.log('Sending data:', body);
+    console.log('URL:', url);
 
     try {
+      console.log('Making request to:', url);
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
       // Check if response is ok first
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('Error response:', errorText);
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       // Get response text first to check if it's valid JSON
       const responseText = await response.text();
+      console.log('Response text:', responseText);
+      
       if (!responseText.trim()) {
         throw new Error("Empty response from server");
       }
@@ -133,7 +224,9 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
       let result;
       try {
         result = JSON.parse(responseText);
+        console.log('Parsed result:', result);
       } catch (jsonError) {
+        console.error('JSON parse error:', jsonError);
         throw new Error(`Invalid JSON response: ${responseText}`);
       }
 
