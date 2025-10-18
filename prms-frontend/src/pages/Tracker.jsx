@@ -229,7 +229,7 @@ function Tracker() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">Total Barangays</p>
-                  <p className="text-3xl font-bold text-gray-900">{filteredData.length}</p>
+                  <p className="text-3xl font-semibold text-gray-900">{filteredData.length}</p>
                 </div>
               </div>
             </div>
@@ -244,7 +244,7 @@ function Tracker() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">Total Patients</p>
-                  <p className="text-3xl font-bold text-gray-900">{totalPatients.toLocaleString()}</p>
+                  <p className="text-3xl font-semibold text-gray-900">{totalPatients.toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -259,7 +259,7 @@ function Tracker() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">High Risk Areas</p>
-                  <p className="text-3xl font-bold text-gray-900">{highRiskBarangays}</p>
+                  <p className="text-3xl font-semibold text-gray-900">{highRiskBarangays}</p>
                 </div>
               </div>
             </div>
@@ -274,7 +274,7 @@ function Tracker() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">Overall Sick Rate</p>
-                  <p className="text-3xl font-bold text-gray-900">{overallSickRate}%</p>
+                  <p className="text-3xl font-semibold text-gray-900">{overallSickRate}%</p>
                 </div>
               </div>
             </div>

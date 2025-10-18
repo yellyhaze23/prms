@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import StaffMedicalRecords from '../components/StaffMedicalRecords';
 import Pagination from '../../components/Pagination';
+import SearchInput from '../../components/SearchInput';
+import SortControl from '../../components/SortControl';
+import FilterControl from '../../components/FilterControl';
 import { FaSearch, FaUser, FaFileMedicalAlt, FaIdCard, FaCalendarAlt, FaMapMarkerAlt, FaStethoscope, FaSort, FaEye, FaAddressCard } from 'react-icons/fa';
 import Toast from '../../components/Toast';
 import { formatPatientID } from '../../utils/patientUtils';
@@ -11,8 +14,28 @@ export default function StaffRecords() {
   const [patients, setPatients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [diseaseFilter, setDiseaseFilter] = useState('All Patients');
+  const [sortBy, setSortBy] = useState('updated_at');
+  const [sortOrder, setSortOrder] = useState('desc');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success', visible: false });
+
+  // Sort options for SortControl
+  const sortOptions = [
+    { value: 'updated_at', label: 'Last Updated' },
+    { value: 'created_at', label: 'Date Added' },
+    { value: 'full_name', label: 'Name' },
+    { value: 'diagnosis', label: 'Diagnosis' }
+  ];
+
+  // Filter options for FilterControl
+  const filterOptions = [
+    { value: 'All Patients', label: 'All Patients' },
+    { value: 'chickenpox', label: 'Chickenpox' },
+    { value: 'dengue', label: 'Dengue' },
+    { value: 'hepatitis', label: 'Hepatitis' },
+    { value: 'measles', label: 'Measles' },
+    { value: 'tuberculosis', label: 'Tuberculosis' }
+  ];
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -72,6 +95,16 @@ export default function StaffRecords() {
     setCurrentPage(1); // Reset to first page when filtering
   };
 
+  const handleSort = (field) => {
+    setSortBy(field);
+    setCurrentPage(1);
+  };
+
+  const handleSortOrderToggle = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    setCurrentPage(1);
+  };
+
   const handlePatientSelect = (patient) => {
     setSelectedPatient(patient);
   };
@@ -114,37 +147,31 @@ export default function StaffRecords() {
         </div>
       </div>
 
-      {/* Search and Filter */}
+      {/* Modern Search and Filter */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-          <div className="relative flex-1 max-w-md">
-            <FaAddressCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="text"
+          <div className="flex-1 max-w-md">
+            <SearchInput
               placeholder="Search patients by name, contact, address, or disease..."
               value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={handleSearch}
+              className="w-full"
             />
           </div>
           <div className="flex items-center gap-4">
-            <FaStethoscope className="h-4 w-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Filter by Disease:</span>
-            <select
+            <FilterControl
+              label="Filter by Disease"
               value={diseaseFilter}
-              onChange={(e) => handleDiseaseFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="All Patients">All Patients</option>
-              <option value="chickenpox">Chickenpox</option>
-              <option value="dengue">Dengue</option>
-              <option value="hepatitis">Hepatitis</option>
-              <option value="measles">Measles</option>
-              <option value="tuberculosis">Tuberculosis</option>
-            </select>
-            <button className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200">
-              <FaSort className="h-4 w-4 text-gray-600" />
-            </button>
+              options={filterOptions}
+              onChange={handleDiseaseFilter}
+            />
+            <SortControl
+              value={sortBy}
+              order={sortOrder}
+              options={sortOptions}
+              onChange={handleSort}
+              onToggleOrder={handleSortOrderToggle}
+            />
           </div>
         </div>
       </div>

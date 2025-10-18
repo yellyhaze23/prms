@@ -4,6 +4,7 @@ import axios from 'axios';
 import DiseaseCard from './DiseaseCard';
 import CaseTrendsChart from './CaseTrendsChart';
 import Toast from './Toast';
+import '../pages/Dashboard.css';
 
 const DiseaseAnalytics = () => {
   const [diseases, setDiseases] = useState([]);
@@ -57,40 +58,40 @@ const DiseaseAnalytics = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="modern-summary-card">
           <div className="flex items-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+            <div className="modern-icon-container bg-blue-50">
               <FaStethoscope className="text-blue-600 w-6 h-6" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Diseases</p>
-              <p className="text-2xl font-bold text-gray-900">{diseases.length}</p>
+              <p className="modern-card-label">Total Diseases</p>
+              <p className="modern-card-value">{diseases.length}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="modern-summary-card">
           <div className="flex items-center">
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+            <div className="modern-icon-container bg-green-50">
               <FaStethoscope className="text-green-600 w-6 h-6" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Cases</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="modern-card-label">Total Cases</p>
+              <p className="modern-card-value">
                 {diseases.reduce((sum, d) => sum + d.total_cases, 0)}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="modern-summary-card">
           <div className="flex items-center">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+            <div className="modern-icon-container bg-red-50">
               <FaExclamationTriangle className="text-red-600 w-6 h-6" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">High Risk</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="modern-card-label">High Risk</p>
+              <p className="modern-card-value">
                 {diseases.filter(d => d.risk_level === 'High').length}
               </p>
             </div>

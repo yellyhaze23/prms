@@ -484,61 +484,53 @@ function Reports() {
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Total Diseases Card */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-lg">
-                  <FaVirus className="text-blue-600 text-xl" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">Total Diseases</p>
-                  <p className="text-3xl font-bold text-gray-900">{summary.total_diseases || 0}</p>
-                </div>
+          <div className="modern-summary-card">
+            <div className="flex items-center">
+              <div className="modern-icon-container bg-blue-50">
+                <FaVirus className="text-blue-600 text-xl" />
+              </div>
+              <div className="ml-4">
+                <p className="modern-card-label">Total Diseases</p>
+                <p className="modern-card-value">{summary.total_diseases || 0}</p>
               </div>
             </div>
           </div>
 
           {/* Total Cases Card */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center shadow-lg">
-                  <FaUserInjured className="text-red-600 text-xl" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">Total Cases</p>
-                  <p className="text-3xl font-bold text-gray-900">{summary.total_cases || 0}</p>
-                </div>
+          <div className="modern-summary-card">
+            <div className="flex items-center">
+              <div className="modern-icon-container bg-red-50">
+                <FaUserInjured className="text-red-600 text-xl" />
+              </div>
+              <div className="ml-4">
+                <p className="modern-card-label">Total Cases</p>
+                <p className="modern-card-value">{summary.total_cases || 0}</p>
               </div>
             </div>
           </div>
 
           {/* High Risk Areas Card */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl flex items-center justify-center shadow-lg">
-                  <FaExclamationTriangle className="text-orange-600 text-xl" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">High Risk Areas</p>
-                  <p className="text-3xl font-bold text-gray-900">{summary.high_risk_areas || 0}</p>
-                </div>
+          <div className="modern-summary-card">
+            <div className="flex items-center">
+              <div className="modern-icon-container bg-orange-50">
+                <FaExclamationTriangle className="text-orange-600 text-xl" />
+              </div>
+              <div className="ml-4">
+                <p className="modern-card-label">High Risk Areas</p>
+                <p className="modern-card-value">{summary.high_risk_areas || 0}</p>
               </div>
             </div>
           </div>
 
           {/* Average Cases Card */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-lg">
-                  <FaChartBar className="text-green-600 text-xl" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">Avg Cases/Day</p>
-                  <p className="text-3xl font-bold text-gray-900">{summary.avg_cases_per_day || 0}</p>
-                </div>
+          <div className="modern-summary-card">
+            <div className="flex items-center">
+              <div className="modern-icon-container bg-green-50">
+                <FaChartBar className="text-green-600 text-xl" />
+              </div>
+              <div className="ml-4">
+                <p className="modern-card-label">Avg Cases/Day</p>
+                <p className="modern-card-value">{summary.avg_cases_per_day || 0}</p>
               </div>
             </div>
           </div>

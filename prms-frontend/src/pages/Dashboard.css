@@ -458,3 +458,209 @@
 .activity-item:hover,
 .location-item:hover,
 .disease-item:hover { transform: none; }
+
+/* ========================= */
+/* Modern Summary Card Styles */
+/* ========================= */
+
+/* Modern Summary Card Base */
+.modern-summary-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.modern-summary-card:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+  border-color: #d1d5db;
+}
+
+/* Modern Icon Container with Levitating Effect */
+.modern-icon-container {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  /* Levitating effect - enhanced shadow and elevation */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Enhanced levitating effect on hover */
+.modern-summary-card:hover .modern-icon-container {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2), 0 4px 8px rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Subtle inner glow for depth */
+.modern-icon-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1));
+  border-radius: 12px;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+.modern-summary-card:hover .modern-icon-container::before {
+  opacity: 0.8;
+}
+
+/* Additional depth with pseudo-element shadow */
+.modern-icon-container::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 60%;
+  height: 4px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.1), transparent);
+  transform: translateX(-50%);
+  border-radius: 50%;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+.modern-summary-card:hover .modern-icon-container::after {
+  opacity: 0.8;
+  width: 80%;
+}
+
+/* Modern Typography */
+.modern-card-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  margin: 0 0 4px 0;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+}
+
+.modern-card-value {
+  font-size: 28px;
+  font-weight: 500;
+  color: #111827;
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.modern-card-description {
+  font-size: 12px;
+  font-weight: 400;
+  color: #9ca3af;
+  margin: 4px 0 0 0;
+  line-height: 1.3;
+}
+
+/* Subtle gradient overlay for depth */
+.modern-summary-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.modern-summary-card:hover::after {
+  opacity: 1;
+}
+
+/* Focus states for accessibility */
+.modern-summary-card:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .modern-summary-card {
+    padding: 20px;
+  }
+  
+  .modern-card-value {
+    font-size: 24px;
+  }
+  
+  .modern-icon-container {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modern-summary-card {
+    padding: 16px;
+  }
+  
+  .modern-card-value {
+    font-size: 20px;
+  }
+  
+  .modern-icon-container {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* Dark mode support - Commented out to maintain light mode */
+/* @media (prefers-color-scheme: dark) {
+  .modern-summary-card {
+    background: #1f2937;
+    border-color: #374151;
+  }
+  
+  .modern-summary-card:hover {
+    border-color: #4b5563;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .modern-card-label {
+    color: #9ca3af;
+  }
+  
+  .modern-card-value {
+    color: #f9fafb;
+  }
+  
+  .modern-card-description {
+    color: #6b7280;
+  }
+} */
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .modern-summary-card,
+  .modern-icon-container {
+    transition: none;
+  }
+  
+  .modern-summary-card:hover {
+    transform: none;
+  }
+  
+  .modern-summary-card:hover .modern-icon-container {
+    transform: none;
+  }
+}

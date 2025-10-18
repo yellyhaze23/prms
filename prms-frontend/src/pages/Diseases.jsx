@@ -49,7 +49,9 @@ function Diseases() {
 
   const fetchDiseases = async () => {
     try {
+      console.log('Fetching diseases from database...');
       const response = await axios.get("http://localhost/prms/prms-backend/get_diseases.php");
+      console.log('Fetched diseases from API:', response.data);
       setDiseases(response.data);
     } catch (error) {
       console.error("Error fetching diseases:", error);
@@ -74,25 +76,39 @@ function Diseases() {
   };
 
   const handleDeleteDisease = (diseaseId) => {
+    console.log('Delete button clicked for disease ID:', diseaseId);
     setConfirmModal({
       message: "Are you sure you want to delete this disease? This action cannot be undone.",
       onConfirm: () => {
+        console.log('Confirm delete for disease ID:', diseaseId);
         deleteDisease(diseaseId);
         setConfirmModal(null);
       },
-      onCancel: () => setConfirmModal(null)
+      onCancel: () => {
+        console.log('Delete cancelled');
+        setConfirmModal(null);
+      }
     });
   };
 
   const deleteDisease = async (diseaseId) => {
+    console.log('Starting delete process for disease ID:', diseaseId);
     try {
-      await axios.delete(`http://localhost/prms/prms-backend/delete_disease.php`, {
+      console.log('Sending DELETE request to:', `http://localhost/prms/prms-backend/delete_disease.php`);
+      const response = await axios.delete(`http://localhost/prms/prms-backend/delete_disease.php`, {
         data: { id: diseaseId }
       });
-      setDiseases(diseases.filter(d => d.id !== diseaseId));
+      console.log('Delete response:', response.data);
       showToast("Disease deleted successfully", "success");
+      
+      // Refresh the diseases list from database
+      fetchDiseases();
     } catch (error) {
       console.error("Error deleting disease:", error);
+      if (error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
       showToast("Error deleting disease", "error");
     }
   };

@@ -105,6 +105,23 @@ const CaseTrendsChart = () => {
     };
   };
 
+  // Calculate dynamic y-axis maximum
+  const getMaxValue = () => {
+    if (!trendsData || !trendsData.trends) return 5;
+    
+    let maxValue = 0;
+    selectedDiseases.forEach(disease => {
+      const diseaseData = trendsData.trends[disease];
+      if (diseaseData && diseaseData.cases) {
+        const diseaseMax = Math.max(...diseaseData.cases);
+        maxValue = Math.max(maxValue, diseaseMax);
+      }
+    });
+    
+    // Return 5 as default, or the actual max if it's higher than 5
+    return Math.max(5, Math.ceil(maxValue));
+  };
+
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -167,8 +184,16 @@ const CaseTrendsChart = () => {
           }
         },
         beginAtZero: true,
+        min: 0,
+        max: getMaxValue(),
         grid: {
           color: 'rgba(0, 0, 0, 0.1)'
+        },
+        ticks: {
+          stepSize: Math.ceil(getMaxValue() / 5),
+          callback: function(value) {
+            return value;
+          }
         }
       }
     },
