@@ -9,7 +9,6 @@ import ModernToast from "../components/ModernToast";
 import Pagination from "../components/Pagination";
 import SortControl from "../components/SortControl";
 import SearchInput from "../components/SearchInput";
-import HelpTooltip from "../components/HelpTooltip";
 import notificationService from "../utils/notificationService";
 // Performance optimizations
 import { getCachedData, setCachedData, shouldRefreshInBackground, markAsRefreshed } from '../utils/cache';
@@ -212,11 +211,6 @@ function Patient() {
                   onChange={handleSearch}
                   className="w-80"
                 />
-                <HelpTooltip
-                  content="Search patients by name, address, contact number, or patient ID. Use partial matches for faster results."
-                  position="bottom"
-                  size="md"
-                />
               </motion.div>
 
               {/* Sort Controls */}
@@ -232,11 +226,6 @@ function Patient() {
                     { value: 'contact_number', label: 'Sort by: Contact' },
                     { value: 'created_at', label: 'Sort by: Date' },
                   ]}
-                />
-                <HelpTooltip
-                  content="Sort patients by different criteria. Click the sort button to toggle between ascending and descending order."
-                  position="bottom"
-                  size="md"
                 />
               </motion.div>
 
@@ -256,11 +245,6 @@ function Patient() {
                   </svg>
                   <span>Add Patient</span>
                 </motion.button>
-                <HelpTooltip
-                  content="Add a new patient to the system. Fill in the required information including name, date of birth, gender, and address."
-                  position="bottom"
-                  size="md"
-                />
               </motion.div>
             </motion.div>
           </div>

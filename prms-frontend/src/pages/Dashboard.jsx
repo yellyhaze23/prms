@@ -23,7 +23,6 @@ import {
   FaArrowDown,
   FaMinus
 } from "react-icons/fa";
-import HelpTooltip from '../components/HelpTooltip';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import ModernAlert from '../components/ModernAlert';
 import CountUp from '../components/CountUp';
@@ -655,11 +654,6 @@ const Dashboard = () => {
               <div className="ml-4 flex-1">
                 <div className="flex items-center space-x-2">
                   <p className="modern-card-label">Total Patients</p>
-                  <HelpTooltip
-                    content="Total number of patients registered in the system. This includes all patients regardless of their current health status."
-                    position="top"
-                    size="sm"
-                  />
                 </div>
                 <p className="modern-card-value">
                   <CountUp end={stats.total_patients} duration={2000} />
@@ -686,11 +680,6 @@ const Dashboard = () => {
               <div className="ml-4 flex-1">
                 <div className="flex items-center space-x-2">
                   <p className="modern-card-label">Diseases Tracked</p>
-                  <HelpTooltip
-                    content="Number of different diseases being monitored in the system. This helps track disease diversity and outbreak potential."
-                    position="top"
-                    size="sm"
-                  />
                 </div>
                 <p className="modern-card-value">
                   <CountUp end={stats.total_diseases} duration={2000} />
@@ -717,11 +706,6 @@ const Dashboard = () => {
               <div className="ml-4 flex-1">
                 <div className="flex items-center space-x-2">
                   <p className="modern-card-label">Active Cases</p>
-                  <HelpTooltip
-                    content="Number of patients currently being treated or monitored for diseases. This indicates the current workload and health status."
-                    position="top"
-                    size="sm"
-                  />
                 </div>
                 <p className="modern-card-value">
                   <CountUp end={stats.active_cases} duration={2000} />
@@ -748,11 +732,6 @@ const Dashboard = () => {
               <div className="ml-4 flex-1">
                 <div className="flex items-center space-x-2">
                   <p className="modern-card-label">New This Month</p>
-                  <HelpTooltip
-                    content="Number of new patients registered this month. This shows the growth rate and system adoption."
-                    position="top"
-                    size="sm"
-                  />
                 </div>
                 <p className="modern-card-value">
                   <CountUp end={stats.new_patients_this_month} duration={2000} />
