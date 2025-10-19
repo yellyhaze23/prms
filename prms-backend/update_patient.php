@@ -22,26 +22,21 @@ if (
 }
 
 $id = (int)$data['id'];
-$full_name = mysqli_real_escape_string($conn, $data['full_name']);
-$date_of_birth = mysqli_real_escape_string($conn, $data['date_of_birth']);
-$sex = mysqli_real_escape_string($conn, $data['sex']);
-$address = mysqli_real_escape_string($conn, $data['address']);
+$full_name = $data['full_name'];
+$date_of_birth = $data['date_of_birth'];
+$sex = $data['sex'];
+$address = $data['address'];
 
 // Calculate age from date of birth
 $birthDate = new DateTime($date_of_birth);
 $today = new DateTime();
 $age = $today->diff($birthDate)->y;
 
-// Update patient basic information
-$sql = "UPDATE patients SET 
-            full_name = '$full_name',
-            date_of_birth = '$date_of_birth',
-            sex = '$sex',
-            age = '$age',
-            address = '$address'
-        WHERE id = $id";
+// Update patient basic information using prepared statement
+$stmt = $conn->prepare("UPDATE patients SET full_name = ?, date_of_birth = ?, sex = ?, age = ?, address = ? WHERE id = ?");
+$stmt->bind_param("sssisi", $full_name, $date_of_birth, $sex, $age, $address, $id);
 
-if (mysqli_query($conn, $sql)) {
+if ($stmt->execute()) {
     echo json_encode([
         'success' => true,
         'data' => [
@@ -55,6 +50,6 @@ if (mysqli_query($conn, $sql)) {
     ]);
 } else {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Database error: ' . mysqli_error($conn)]);
+    echo json_encode(['success' => false, 'error' => 'Database error: ' . $stmt->error]);
 }
 ?>

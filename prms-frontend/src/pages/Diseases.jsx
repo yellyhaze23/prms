@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { FaPlus, FaEdit, FaTrash, FaVirus, FaExclamationTriangle, FaLungs, FaHeartbeat, FaThermometerHalf, FaStethoscope, FaShieldAlt, FaChartBar, FaEye } from "react-icons/fa";
 import axios from "axios";
 import DiseaseCaseForm from "../components/DiseaseCaseForm";
@@ -8,6 +9,15 @@ import DiseaseCasesModal from "../components/DiseaseCasesModal";
 import ConfirmationModal from "../components/ConfirmationModal";
 import Toast from "../components/Toast";
 import "./Diseases.css";
+// Animation variants
+import { 
+  pageVariants, 
+  containerVariants, 
+  cardVariants, 
+  listItemVariants,
+  buttonVariants,
+  hoverScale 
+} from "../utils/animations";
 
 const iconMap = {
   FaVirus: FaVirus,
@@ -144,16 +154,27 @@ function Diseases() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6">
+    <motion.div 
+      className="min-h-screen bg-gray-50 py-6"
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         {/* Modern Header with Controls */}
-        <div className="mb-5">
+        <motion.div 
+          className="mb-5"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           <div className="flex items-center justify-between mb-4">
-            <div>
+            <motion.div variants={cardVariants}>
               <h1 className="text-3xl font-bold text-blue-600">Disease Management</h1>
               <p className="text-gray-700 mt-2">Manage communicable diseases and track cases</p>
-            </div>
+            </motion.div>
             
             {/* Controls on the right */}
             <div className="flex items-center space-x-4">
@@ -167,7 +188,7 @@ function Diseases() {
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Tab Navigation */}
         <div className="mb-6">
@@ -209,7 +230,14 @@ function Diseases() {
               {diseases.map((disease) => {
                 const IconComponent = iconMap[disease.icon] || FaVirus;
                 return (
-                  <div key={disease.id} className="disease-card bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                  <motion.div 
+                    key={disease.id} 
+                    className="disease-card bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+                    variants={cardVariants}
+                    initial="hidden"
+                    animate="visible"
+                    whileHover={hoverScale}
+                  >
                     {/* Disease Header */}
                     <div className={`${getColorClasses(disease.color)} p-4`}>
                       <div className="flex items-center justify-between">
@@ -274,7 +302,7 @@ function Diseases() {
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
@@ -351,7 +379,7 @@ function Diseases() {
           onClose={() => setToast(null)}
         />
       )}
-    </div>
+    </motion.div>
   );
 }
 

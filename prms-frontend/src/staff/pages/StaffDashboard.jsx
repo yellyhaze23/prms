@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import api from '../../lib/api/axios';
 import { 
   FaUsers, 
@@ -8,6 +9,14 @@ import {
   FaChartLine,
   FaChartPie
 } from 'react-icons/fa';
+// Animation variants
+import { 
+  pageVariants, 
+  containerVariants, 
+  cardVariants, 
+  buttonVariants,
+  hoverScale 
+} from '../../utils/animations';
 
 export default function StaffDashboard() {
   const [data, setData] = useState(null);
@@ -39,12 +48,23 @@ export default function StaffDashboard() {
   const lastUpdated = new Date();
 
   return (
-    <div className="min-h-screen">
+    <motion.div 
+      className="min-h-screen"
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
       {/* Hero header (matches Admin look) */}
-      <div className="mb-8 bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-lg shadow-lg">
+      <motion.div 
+        className="mb-8 bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-lg shadow-lg"
+        variants={cardVariants}
+        initial="hidden"
+        animate="visible"
+      >
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">RHU Patient Record System</h1>
+            <h1 className="text-3xl font-bold text-white">Tracely Patient Record System</h1>
             <p className="text-blue-100 mt-2">Welcome to the Rural Health Unit Patient Management System</p>
           </div>
           <div className="flex items-center space-x-4">
@@ -54,11 +74,20 @@ export default function StaffDashboard() {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+      <motion.div 
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <motion.div 
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+          variants={cardVariants}
+          whileHover={hoverScale}
+        >
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -71,9 +100,13 @@ export default function StaffDashboard() {
               <p className="text-xs text-gray-500">Patients linked to you</p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <motion.div 
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+          variants={cardVariants}
+          whileHover={hoverScale}
+        >
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -86,9 +119,13 @@ export default function StaffDashboard() {
               <p className="text-xs text-gray-500">Current patients</p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <motion.div 
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+          variants={cardVariants}
+          whileHover={hoverScale}
+        >
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -101,8 +138,8 @@ export default function StaffDashboard() {
               <p className="text-xs text-gray-500">Reminders</p>
             </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Charts Row (placeholders) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -126,6 +163,6 @@ export default function StaffDashboard() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

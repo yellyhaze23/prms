@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import axios from 'axios';
 import Toolbar from '../components/Toolbar';
 import Return from '../components/Return';
@@ -12,6 +13,15 @@ import SortControl from '../components/SortControl';
 import FilterControl from '../components/FilterControl';
 import { FaIdCard, FaMapMarkerAlt, FaCalendarAlt, FaEdit, FaTrash, FaStethoscope, FaFilter, FaEllipsisV } from 'react-icons/fa';
 import { formatPatientID } from '../utils/patientUtils';
+// Animation variants
+import { 
+  pageVariants, 
+  containerVariants, 
+  cardVariants, 
+  listItemVariants,
+  buttonVariants,
+  hoverScale 
+} from '../utils/animations';
 
 function Records() {
   const [patients, setPatients] = useState([]);
@@ -32,11 +42,12 @@ function Records() {
   // Filter options for FilterControl - created after diseases are loaded
   const filterOptions = React.useMemo(() => [
     { value: "all", label: "All Patients" },
-    { value: "healthy", label: "Healthy Patients" },
-    ...diseases.map(disease => ({
-      value: disease.name,
-      label: disease.name
-    }))
+    ...diseases
+      .filter(disease => disease.name !== "Test Disease") // Remove Test Disease
+      .map(disease => ({
+        value: disease.name,
+        label: disease.name
+      }))
   ], [diseases]);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -233,98 +244,130 @@ function Records() {
   // Server-side filtering and pagination, no client-side filtering needed
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6">
+    <motion.div 
+      className="min-h-screen bg-gray-50 py-6"
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {!selectedPatient ? (
           <>
             {/* Modern Header with Controls */}
-            <div className="mb-5">
+            <motion.div 
+              className="mb-5"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
               <div className="flex items-center justify-between mb-4">
-                <div>
+                <motion.div variants={cardVariants}>
                   <h1 className="text-3xl font-bold text-blue-600">Medical Records</h1>
                   <p className="text-gray-700 mt-2">View and manage patient medical records</p>
-                </div>
+                </motion.div>
                 
                 {/* Modern Controls */}
-                <div className="flex items-center space-x-4">
+                <motion.div 
+                  className="flex items-center space-x-4"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   {/* Modern Search Input */}
-                  <SearchInput
-                    placeholder="Search patients by name, contact, address, or disease..."
-                    value={searchTerm}
-                    onChange={handleSearch}
-                    className="w-80"
-                  />
+                  <motion.div variants={cardVariants}>
+                    <SearchInput
+                      placeholder="Search patients by name, contact, address, or disease..."
+                      value={searchTerm}
+                      onChange={handleSearch}
+                      className="w-80"
+                    />
+                  </motion.div>
 
                   {/* Modern Filter Control */}
-                  <FilterControl
-                    label="Filter"
-                    value={selectedDisease}
-                    options={filterOptions}
-                    onChange={handleDiseaseFilter}
-                  />
+                  <motion.div variants={cardVariants}>
+                    <FilterControl
+                      label="Filter"
+                      value={selectedDisease}
+                      options={filterOptions}
+                      onChange={handleDiseaseFilter}
+                    />
+                  </motion.div>
 
                   {/* Modern Sort Control */}
-                  <SortControl
-                    value={sortBy}
-                    order={sortOrder}
-                    options={sortOptions}
-                    onChange={handleSort}
-                    onToggleOrder={handleSortOrderToggle}
-                  />
-                </div>
+                  <motion.div variants={cardVariants}>
+                    <SortControl
+                      value={sortBy}
+                      order={sortOrder}
+                      options={sortOptions}
+                      onChange={handleSort}
+                      onToggleOrder={handleSortOrderToggle}
+                    />
+                  </motion.div>
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Records Table */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <motion.div 
+              className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+              variants={cardVariants}
+              initial="hidden"
+              animate="visible"
+            >
               {patients.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 px-6">
+                <motion.div 
+                  className="flex flex-col items-center justify-center py-12 px-6"
+                  variants={cardVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   <FaIdCard className="text-6xl text-gray-300 mb-4" />
                   <p className="text-gray-500 text-lg font-medium">No medical records found</p>
                   <p className="text-gray-400 text-sm">Patient records will appear here</p>
-                </div>
+                </motion.div>
               ) : (
-                <div className="overflow-x-auto bg-white rounded-xl shadow-lg border border-gray-100">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-100">
+                <div className="overflow-x-auto bg-white rounded-xl shadow-lg border border-gray-100 p-0">
+                  <table className="w-full h-full divide-y divide-gray-200 border-collapse">
+                    <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-100 w-full">
                       <tr>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider w-1/7">
                           <div className="flex items-center gap-2">
                             <FaIdCard className="text-blue-600" />
                             Patient ID
                           </div>
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider w-1/7">
                           <div className="flex items-center gap-2">
                             <FaIdCard className="text-blue-600" />
                             Patient Name
                           </div>
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider w-1/7">
                           <div className="flex items-center gap-2">
                             <FaCalendarAlt className="text-blue-600" />
                             Age & Gender
                           </div>
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider w-1/7">
                           <div className="flex items-center gap-2">
                             <FaMapMarkerAlt className="text-blue-600" />
                             Address
                           </div>
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider w-1/7">
                           <div className="flex items-center gap-2">
                             <FaStethoscope className="text-blue-600" />
                             Diagnosis
                           </div>
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider w-1/7">
                           <div className="flex items-center gap-2">
                             <FaCalendarAlt className="text-blue-600" />
                             Last Visit
                           </div>
                         </th>
-                        <th className="px-6 py-4 text-right text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-right text-xs font-semibold text-blue-700 uppercase tracking-wider w-1/7">
                           <div className="flex items-center justify-end gap-2">
                             <FaEllipsisV className="text-blue-600" />
                             Action
@@ -332,33 +375,33 @@ function Records() {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white divide-y divide-gray-200 w-full">
                       {patients.map((patient, index) => (
                         <tr
                           key={patient.id || index}
                           onClick={() => setSelectedPatient(patient)}
-                          className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                          className="hover:bg-gray-50 cursor-pointer transition-colors duration-200 w-full"
                         >
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 w-1/7">
                             #{formatPatientID(patient.id)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap w-1/7">
                             <div className="text-sm font-medium text-gray-900">
                               {patient.full_name}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 w-1/7">
                             <div>
                               <div className="font-medium">{patient.age ? `${patient.age} years old` : 'N/A'}</div>
                               <div className="text-gray-500">{patient.sex || 'N/A'}</div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">
+                          <td className="px-6 py-4 text-sm text-gray-900 w-1/7">
                             <div className="max-w-xs truncate" title={patient.address}>
                               {patient.address || 'No address provided'}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 w-1/7">
                             {patient.diagnosis ? (
                               <div className="space-y-1">
                                 <div className="flex items-center gap-1">
@@ -391,11 +434,11 @@ function Records() {
                               </div>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 w-1/7">
                             {patient.last_visit_date ? new Date(patient.last_visit_date).toLocaleDateString() : 
                              patient.created_at ? new Date(patient.created_at).toLocaleDateString() : 'N/A'}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium w-1/7" onClick={(e) => e.stopPropagation()}>
                             <div className="relative dropdown-container">
                               {/* Modern Kebab Menu Button */}
                               <button
@@ -448,7 +491,7 @@ function Records() {
                   </table>
                 </div>
               )}
-            </div>
+            </motion.div>
 
             {/* Pagination */}
             {totalPages > 1 && (
@@ -503,7 +546,7 @@ function Records() {
           onClose={() => setToast(null)}
         />
       )}
-    </div>
+    </motion.div>
   );
 }
 

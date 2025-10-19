@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaSignOutAlt, FaSpinner, FaCheckCircle, FaUser } from 'react-icons/fa';
+import { FaSignOutAlt, FaSpinner, FaCheckCircle } from 'react-icons/fa';
 import './LogoutAnimationModal.css';
 
 const LogoutAnimationModal = ({ isVisible, stage = 'loading' }) => {
@@ -7,16 +7,8 @@ const LogoutAnimationModal = ({ isVisible, stage = 'loading' }) => {
 
   return (
     <div className="logout-animation-overlay">
-      <div className="logout-animation-modal">
+      <div className="logout-animation-modal" onClick={(e) => e.stopPropagation()}>
         <div className="logout-content">
-          {/* User Avatar */}
-          <div className="logout-avatar">
-            <div className="avatar-circle">
-              <FaUser className="avatar-icon" />
-            </div>
-            <div className="avatar-ring"></div>
-          </div>
-          
           {/* Animation Container */}
           <div className="logout-animation-container">
             {stage === 'loading' && (

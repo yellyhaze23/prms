@@ -1,17 +1,29 @@
 import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import axios from "axios";
 import { FaCog, FaEdit, FaTrash, FaClock, FaUser, FaShieldAlt, FaEllipsisV, FaDatabase, FaDownload, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaKey, FaFileAlt, FaMapMarkerAlt } from "react-icons/fa";
 import SettingsToolbar from "../components/SettingsToolbar";
 import UserModal from "../components/AddUser";
-import Toast from "../components/Toast";
+import ModernToast from "../components/ModernToast";
 import ConfirmationModal from "../components/ConfirmationModal";
 import Pagination from "../components/Pagination";
+import SearchInput from "../components/SearchInput";
+import SortControl from "../components/SortControl";
 import { useBackup } from "../contexts/BackupContext";
+// Animation variants
+import { 
+  pageVariants, 
+  containerVariants, 
+  cardVariants, 
+  listItemVariants,
+  buttonVariants,
+  hoverScale 
+} from '../utils/animations';
 
 import "./Settings.css";
 
 function Settings() {
-  const [activeTab, setActiveTab] = useState("users"); // users | account | activity | backup
+  const [activeTab, setActiveTab] = useState("users"); // users | account | security | activity | backup
   const [users, setUsers] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
   const [search, setSearch] = useState("");
@@ -35,12 +47,33 @@ function Settings() {
   const [authError, setAuthError] = useState("");
   const [activeDropdown, setActiveDropdown] = useState(null);
 
+  // Modern controls options
+  const sortOptions = [
+    { value: 'id', label: 'ID' },
+    { value: 'username', label: 'Username' },
+    { value: 'role', label: 'Role' },
+    { value: 'status', label: 'Status' },
+    { value: 'created_at', label: 'Date Created' }
+  ];
+
+  const activitySortOptions = [
+    { value: 'created_at', label: 'Date' },
+    { value: 'username', label: 'User' },
+    { value: 'activity_type', label: 'Activity' }
+  ];
+
   // Account change password state
   const [account, setAccount] = useState({
     username: "",
     old_password: "",
     new_password: "",
     confirm_password: "",
+  });
+
+  // Settings state
+  const [settings, setSettings] = useState({
+    session_timeout_minutes: 30,
+    session_warning_minutes: 5,
   });
 
   // Password validation state
@@ -174,6 +207,31 @@ function Settings() {
     if (res.data.success) setUsers(res.data.users);
   };
 
+  const fetchSettings = async () => {
+    try {
+      const res = await axios.get("http://localhost/prms/prms-backend/get_settings.php");
+      if (res.data.success) {
+        setSettings(res.data.settings);
+      }
+    } catch (error) {
+      console.error('Failed to fetch settings:', error);
+    }
+  };
+
+  const updateSettings = async () => {
+    try {
+      const res = await axios.post("http://localhost/prms/prms-backend/update_settings.php", settings);
+      if (res.data.success) {
+        showToast('Session settings updated successfully!', 'success');
+        fetchSettings(); // Refresh settings
+      } else {
+        showToast(res.data.message || 'Failed to update session settings', 'error');
+      }
+    } catch (error) {
+      showToast('Failed to update session settings', 'error');
+    }
+  };
+
   const fetchActivityLogs = async () => {
     try {
       const params = new URLSearchParams({
@@ -203,6 +261,7 @@ function Settings() {
 
   useEffect(() => {
     fetchUsers();
+    fetchSettings();
     if (activeTab === 'activity') {
       fetchActivityLogs();
     }
@@ -239,6 +298,24 @@ function Settings() {
       setActivitySortOrder('desc');
     }
     setActivityCurrentPage(1); // Reset to first page when sorting
+  };
+
+  // Modern controls handlers
+  const handleSearch = (term) => {
+    setSearch(term);
+  };
+
+  const handleSort = (field) => {
+    setSortKey(field);
+  };
+
+  const handleSortOrderToggle = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+
+  // Activity logs modern controls handlers
+  const handleActivitySortOrderToggle = () => {
+    setActivitySortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
   };
 
   const handleOpenAddModal = () => {
@@ -281,8 +358,32 @@ function Settings() {
       case 'delete':
         confirmDelete(user.id);
         break;
+      case 'toggle_status':
+        toggleUserStatus(user);
+        break;
       default:
         break;
+    }
+  };
+
+  const toggleUserStatus = async (user) => {
+    const newStatus = user.status === 'active' ? 'inactive' : 'active';
+    const action = newStatus === 'active' ? 'activate' : 'deactivate';
+    
+    try {
+      const res = await axios.post("http://localhost/prms/prms-backend/toggle_user_status.php", {
+        id: user.id,
+        status: newStatus
+      });
+      
+      if (res.data.success) {
+        showToast(res.data.message, "success");
+        fetchUsers(); // Refresh the users list
+      } else {
+        showToast(res.data.message, "error");
+      }
+    } catch (error) {
+      showToast("Failed to update user status", "error");
     }
   };
 
@@ -404,17 +505,27 @@ function Settings() {
   }, [activitySortBy, activitySortOrder, filteredActivityLogs.length]);
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 sm:px-6 lg:px-8 py-6">
-
+    <motion.div 
+      className="min-h-screen bg-gray-50 px-4 sm:px-6 lg:px-8 py-6"
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
       {/* Modern Header with Controls */}
-      <div className="mb-5">
+      <motion.div 
+        className="mb-5"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
         <div className="flex items-center justify-between mb-4">
-          <div>
+          <motion.div variants={cardVariants}>
             <h1 className="text-3xl font-bold text-blue-600">Settings</h1>
             <p className="text-gray-700 mt-2">Manage users, and your account</p>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Tabs */}
       <div className="mb-6 px-6">
@@ -441,6 +552,17 @@ function Settings() {
             >
               <FaCog className="inline h-4 w-4 mr-2" />
           Account
+        </button>
+            <button
+              onClick={() => setActiveTab('security')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'security'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <FaShieldAlt className="inline h-4 w-4 mr-2" />
+          Security
         </button>
             <button
               onClick={() => setActiveTab('activity')}
@@ -497,36 +619,25 @@ function Settings() {
             </div>
           </div>
 
-          {/* Search and Filter Section */}
+          {/* Modern Search and Filter Section */}
           <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <div className="flex items-center space-x-4">
-              <div className="w-80">
-                <input
-                  type="text"
-                  placeholder="Search users..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <select
-                  value={sortKey}
-                  onChange={(e) => setSortKey(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white"
-                >
-                  <option value="id">Sort by ID</option>
-                  <option value="username">Sort by Username</option>
-                  <option value="created_at">Sort by Date</option>
-                </select>
-                <button
-                  onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 bg-white text-sm font-medium"
-                  title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
-                >
-                  {sortOrder === "asc" ? "↑ Asc" : "↓ Desc"}
-                </button>
-              </div>
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Modern Search Input */}
+              <SearchInput
+                placeholder="Search users..."
+                value={search}
+                onChange={handleSearch}
+                className="w-80"
+              />
+
+              {/* Modern Sort Control */}
+              <SortControl
+                value={sortKey}
+                order={sortOrder}
+                options={sortOptions}
+                onChange={handleSort}
+                onToggleOrder={handleSortOrderToggle}
+              />
             </div>
           </div>
 
@@ -544,6 +655,18 @@ function Settings() {
                   <div className="flex items-center space-x-2">
                     <FaUser className="h-3 w-3" />
                     <span>Username</span>
+                  </div>
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                  <div className="flex items-center space-x-2">
+                    <FaShieldAlt className="h-3 w-3" />
+                    <span>Role</span>
+                  </div>
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Status</span>
                   </div>
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
@@ -572,6 +695,31 @@ function Settings() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900 font-medium">
                     <div className="font-medium text-gray-900">{u.username}</div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-700">
+                    <div className="flex items-center space-x-2">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        u.role === 'admin' 
+                          ? 'bg-purple-100 text-purple-800' 
+                          : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {u.role === 'admin' ? 'Admin' : 'Staff'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-700">
+                    <div className="flex items-center space-x-2">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        u.status === 'active' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        <div className={`w-2 h-2 rounded-full mr-1.5 ${
+                          u.status === 'active' ? 'bg-green-400' : 'bg-red-400'
+                        }`}></div>
+                        {u.status === 'active' ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700">
                     <div className="flex items-center space-x-2">
@@ -611,6 +759,24 @@ function Settings() {
                               <div className="flex flex-col items-start">
                                 <span className="font-medium">Edit User</span>
                                 <span className="text-xs text-gray-500">Update user information</span>
+                              </div>
+                            </button>
+                            
+                            {/* Toggle Status */}
+                            <button
+                              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-150 group/toggle"
+                              onClick={(e) => handleActionClick('toggle_status', u, e)}
+                            >
+                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 group-hover/toggle:bg-blue-200 transition-colors duration-150 mr-3">
+                                <FaShieldAlt className="h-3.5 w-3.5 text-blue-600" />
+                              </div>
+                              <div className="flex flex-col items-start">
+                                <span className="font-medium">
+                                  {u.status === 'active' ? 'Deactivate User' : 'Activate User'}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {u.status === 'active' ? 'Disable user access' : 'Enable user access'}
+                                </span>
                               </div>
                             </button>
                             
@@ -817,6 +983,7 @@ function Settings() {
               </form>
             </div>
 
+
             {/* Action Buttons */}
             <div className="flex items-center justify-between pt-4 border-t border-gray-200">
               <div className="flex items-center space-x-2 text-sm text-gray-500">
@@ -871,6 +1038,128 @@ function Settings() {
         </div>
       )}
 
+      {activeTab === 'security' && (
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm mx-6">
+          {/* Security Header Section */}
+          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-indigo-50">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <FaShieldAlt className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Security Settings</h3>
+                <p className="text-sm text-gray-600">Manage session timeouts and security policies</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
+            {/* Session Timeout Section */}
+            <div className="mb-8">
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-1 h-6 bg-purple-500 rounded-full"></div>
+                <h4 className="text-md font-semibold text-gray-900">Session Security</h4>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <FaClock className="inline h-4 w-4 mr-2 text-gray-500" />
+                      Session Timeout (minutes)
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="number"
+                        value={settings.session_timeout_minutes || 30}
+                        onChange={(e) => setSettings({...settings, session_timeout_minutes: parseInt(e.target.value)})}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
+                        min="5"
+                        max="480"
+                        placeholder="30"
+                      />
+                      <FaClock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">Auto-logout after inactivity (5-480 minutes)</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <FaExclamationTriangle className="inline h-4 w-4 mr-2 text-gray-500" />
+                      Warning Time (minutes)
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="number"
+                        value={settings.session_warning_minutes || 5}
+                        onChange={(e) => setSettings({...settings, session_warning_minutes: parseInt(e.target.value)})}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
+                        min="1"
+                        max="30"
+                        placeholder="5"
+                      />
+                      <FaExclamationTriangle className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">Show warning before logout (1-30 minutes)</p>
+                  </div>
+                </div>
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <FaShieldAlt className="h-4 w-4 text-blue-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-blue-800 font-medium">Security Note</p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Session timeout protects sensitive health data by automatically logging out inactive users.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={updateSettings}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg hover:from-purple-700 hover:to-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 shadow-lg transition-all duration-200"
+                  >
+                    <FaCheckCircle className="h-4 w-4 mr-2" />
+                    Save Session Settings
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Security Information */}
+            <div className="mb-8">
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-1 h-6 bg-green-500 rounded-full"></div>
+                <h4 className="text-md font-semibold text-gray-900">Security Information</h4>
+              </div>
+              <div className="bg-green-50 rounded-lg p-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <FaShieldAlt className="h-6 w-6 text-green-600" />
+                    </div>
+                    <h5 className="font-medium text-gray-900">Automatic Logout</h5>
+                    <p className="text-xs text-gray-600 mt-1">Users are automatically logged out after inactivity</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <FaExclamationTriangle className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <h5 className="font-medium text-gray-900">Warning System</h5>
+                    <p className="text-xs text-gray-600 mt-1">Users receive warnings before session expires</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <FaClock className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <h5 className="font-medium text-gray-900">Configurable</h5>
+                    <p className="text-xs text-gray-600 mt-1">Administrators can adjust timeout settings</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'activity' && (
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm mx-6">
           {/* Enhanced Header Section */}
@@ -894,39 +1183,25 @@ function Settings() {
             </div>
           </div>
 
-          {/* Search and Filter Section */}
+          {/* Modern Search and Filter Section */}
           <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <div className="flex items-center space-x-4">
-              <div className="w-80">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search activity logs..."
-                    value={activitySearchTerm}
-                    onChange={(e) => handleActivitySearch(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  />
-                  <FaClock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <select
-                  value={activitySortBy}
-                  onChange={(e) => setActivitySortBy(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                >
-                  <option value="created_at">Sort by Date</option>
-                  <option value="username">Sort by User</option>
-                  <option value="activity_type">Sort by Activity</option>
-                </select>
-                <button
-                  onClick={() => setActivitySortOrder(activitySortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                  title={`Sort ${activitySortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
-                >
-                  <FaClock className={`h-4 w-4 ${activitySortOrder === 'asc' ? 'rotate-180' : ''} transition-transform duration-200`} />
-                </button>
-              </div>
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Modern Search Input */}
+              <SearchInput
+                placeholder="Search activity logs..."
+                value={activitySearchTerm}
+                onChange={handleActivitySearch}
+                className="w-80"
+              />
+
+              {/* Modern Sort Control */}
+              <SortControl
+                value={activitySortBy}
+                order={activitySortOrder}
+                options={activitySortOptions}
+                onChange={handleActivitySort}
+                onToggleOrder={handleActivitySortOrderToggle}
+              />
             </div>
           </div>
 
@@ -1340,9 +1615,12 @@ function Settings() {
       />
       
       {toast.message && (
-        <Toast
+        <ModernToast
+          isVisible={true}
           message={toast.message}
           type={toast.type}
+          title="Settings Updated"
+          duration={4000}
           onClose={() => setToast({ message: "", type: "success" })}
         />
       )}
@@ -1369,7 +1647,7 @@ function Settings() {
           }}
         />
       )}
-    </div>
+    </motion.div>
     
   );
 }

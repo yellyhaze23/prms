@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import axios from "axios";
 import { 
   FaExclamationTriangle, 
@@ -6,15 +7,25 @@ import {
   FaEyeSlash, 
   FaUser, 
   FaLock, 
-  FaHospital,
-  FaShieldAlt,
   FaChartLine,
+  FaShieldAlt,
   FaMapMarkerAlt,
   FaUsers,
-  FaSpinner
+  FaSpinner,
+  FaQuestionCircle,
+  FaTimes
 } from "react-icons/fa";
 import LoginLoadingModal from "../components/LoginLoadingModal";
 import "./Login.css";
+// Animation variants
+import { 
+  loginVariants, 
+  containerVariants, 
+  cardVariants, 
+  formVariants,
+  buttonVariants,
+  fadeInVariants 
+} from '../utils/animations';
 
 function Login({ onLogin }) {
   const [username, setUsername] = useState("");
@@ -25,6 +36,7 @@ function Login({ onLogin }) {
   const [rememberMe, setRememberMe] = useState(false);
   const [showLoadingModal, setShowLoadingModal] = useState(false);
   const [loadingStage, setLoadingStage] = useState('loading');
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   // Load saved credentials on component mount
   useEffect(() => {
@@ -79,66 +91,139 @@ function Login({ onLogin }) {
   };
 
   return (
-    <div className="login-container">
+    <motion.div 
+      className="login-container"
+      variants={loginVariants}
+      initial="hidden"
+      animate="visible"
+    >
       <LoginLoadingModal 
         isVisible={showLoadingModal} 
         stage={loadingStage} 
       />
       
       {/* Background Animation */}
-      <div className="login-background">
+      <motion.div 
+        className="login-background"
+        variants={fadeInVariants}
+        initial="hidden"
+        animate="visible"
+      >
         <div className="floating-shapes">
           <div className="shape shape-1"></div>
           <div className="shape shape-2"></div>
           <div className="shape shape-3"></div>
           <div className="shape shape-4"></div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className={`login-card ${showLoadingModal ? 'loading' : ''}`}>
+      <motion.div 
+        className={`login-card ${showLoadingModal ? 'loading' : ''} relative`}
+        variants={cardVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* Help Button - Top Right Corner */}
+        <button
+          onClick={() => setShowHelpModal(true)}
+          className="absolute top-4 right-4 p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors duration-200 z-10"
+          title="Login Help"
+        >
+          <FaQuestionCircle className="w-5 h-5" />
+        </button>
         {/* Left Panel - Branding & Features */}
-        <div className="login-left-panel">
-          <div className="brand-section">
+        <motion.div 
+          className="login-left-panel"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div 
+            className="brand-section"
+            variants={cardVariants}
+          >
             <div className="logo-container">
-              <FaHospital className="logo-icon" />
+              <FaChartLine className="logo-icon" />
             </div>
-            <h1>RHU Patient Record System</h1>
+            <h1>Tracely Patient Record System</h1>
             <p>Advanced Communicable Disease Management</p>
-          </div>
+          </motion.div>
 
-          <div className="features-section">
+          <motion.div 
+            className="features-section"
+            variants={cardVariants}
+          >
             <h3>Key Features</h3>
-            <div className="features-list">
-              <div className="feature-item">
+            <motion.div 
+              className="features-list"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <motion.div 
+                className="feature-item"
+                variants={cardVariants}
+                whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+              >
                 <FaUsers className="feature-icon" />
                 <span>Patient Management</span>
-              </div>
-              <div className="feature-item">
+              </motion.div>
+              <motion.div 
+                className="feature-item"
+                variants={cardVariants}
+                whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+              >
                 <FaMapMarkerAlt className="feature-icon" />
                 <span>Disease Tracking</span>
-              </div>
-              <div className="feature-item">
+              </motion.div>
+              <motion.div 
+                className="feature-item"
+                variants={cardVariants}
+                whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+              >
                 <FaChartLine className="feature-icon" />
                 <span>ARIMA Forecasting</span>
-              </div>
-              <div className="feature-item">
+              </motion.div>
+              <motion.div 
+                className="feature-item"
+                variants={cardVariants}
+                whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+              >
                 <FaShieldAlt className="feature-icon" />
                 <span>Data Security</span>
-              </div>
-            </div>
-          </div>
-        </div>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </motion.div>
 
         {/* Right Panel - Login Form */}
-        <div className="login-right-panel">
-          <div className="form-container">
-            <div className="form-header">
+        <motion.div 
+          className="login-right-panel"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div 
+            className="form-container"
+            variants={formVariants}
+          >
+            <motion.div 
+              className="form-header"
+              variants={cardVariants}
+            >
               <h2>Welcome Back</h2>
               <p>Sign in to access your dashboard</p>
-            </div>
+            </motion.div>
 
-            <form onSubmit={handleLogin} className="login-form">
-              <div className="form-group">
+            <motion.form 
+              onSubmit={handleLogin} 
+              className="login-form"
+              variants={formVariants}
+            >
+              <motion.div 
+                className="form-group"
+                variants={cardVariants}
+              >
                 <label htmlFor="username" className="form-label">
                   Username
                 </label>
@@ -156,9 +241,12 @@ function Login({ onLogin }) {
                     autoComplete="username"
                   />
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="form-group">
+              <motion.div 
+                className="form-group"
+                variants={cardVariants}
+              >
                 <label htmlFor="password" className="form-label">
                   Password
                 </label>
@@ -175,18 +263,23 @@ function Login({ onLogin }) {
                     className="form-input"
                     autoComplete="current-password"
                   />
-                  <button
+                  <motion.button
                     type="button"
                     onClick={togglePasswordVisibility}
                     className="password-toggle"
                     disabled={loading}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
                   >
                     {showPassword ? <FaEyeSlash /> : <FaEye />}
-                  </button>
+                  </motion.button>
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="form-options">
+              <motion.div 
+                className="form-options"
+                variants={cardVariants}
+              >
                 <label className="checkbox-container">
                   <input
                     type="checkbox"
@@ -197,19 +290,27 @@ function Login({ onLogin }) {
                   <span className="checkmark"></span>
                   Remember me
                 </label>
-              </div>
+              </motion.div>
 
               {error && (
-                <div className="error-message">
+                <motion.div 
+                  className="error-message"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
                   <FaExclamationTriangle className="error-icon" />
                   <span>{error}</span>
-                </div>
+                </motion.div>
               )}
 
-              <button 
+              <motion.button 
                 type="submit" 
                 className="login-button"
                 disabled={loading}
+                variants={cardVariants}
+                whileHover={buttonVariants.hover}
+                whileTap={buttonVariants.tap}
               >
                 {loading ? (
                   <>
@@ -219,16 +320,90 @@ function Login({ onLogin }) {
                 ) : (
                   'Sign In'
                 )}
-              </button>
-            </form>
+              </motion.button>
+            </motion.form>
 
-            <div className="form-footer">
-              <p>Secure login powered by RHU PRMS</p>
+            <motion.div 
+              className="form-footer"
+              variants={cardVariants}
+            >
+              <p>Secure login powered by Tracely PRMS</p>
+            </motion.div>
+          </motion.div>
+        </motion.div>
+      </motion.div>
+
+      {/* Login Help Modal */}
+      {showHelpModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <motion.div 
+            className="bg-white rounded-lg shadow-xl max-w-md w-full"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <div className="flex items-center space-x-3">
+                <FaQuestionCircle className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-semibold">Login Help</h2>
+              </div>
+              <button
+                onClick={() => setShowHelpModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <FaTimes className="w-5 h-5" />
+              </button>
             </div>
-          </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-blue-800 mb-2">Getting Started</h4>
+                <p className="text-blue-700 text-sm">Use your provided username and password to access the Tracely system.</p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">Login Instructions:</h4>
+                <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+                  <li>Enter your username in the username field</li>
+                  <li>Enter your password in the password field</li>
+                  <li>Check "Remember Me" to save your username for next time</li>
+                  <li>Click "Sign In" to access your dashboard</li>
+                </ol>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">User Roles:</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                  <li><strong>Administrator:</strong> Full system access and management</li>
+                  <li><strong>Staff:</strong> Patient management and medical records</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">Troubleshooting:</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                  <li>Make sure your username and password are correct</li>
+                  <li>Check your internet connection</li>
+                  <li>Contact your system administrator if issues persist</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t p-4 bg-gray-50">
+              <button
+                onClick={() => setShowHelpModal(false)}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Close Help
+              </button>
+            </div>
+          </motion.div>
         </div>
-      </div>
-    </div>
+      )}
+    </motion.div>
   );
 }
 

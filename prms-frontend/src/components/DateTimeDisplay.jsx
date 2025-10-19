@@ -85,34 +85,54 @@ const DateTimeDisplay = () => {
                 <p className="text-sm text-gray-600">{formatDate(currentDateTime)}</p>
               </div>
               
-              {/* Simple Calendar Grid */}
+              {/* Calendar Grid */}
               <div className="grid grid-cols-7 gap-1 text-center">
                 {/* Days of week */}
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                   <div key={day} className="p-2 text-xs font-medium text-gray-500">{day}</div>
                 ))}
                 
-                {/* Calendar days - simplified version */}
-                {Array.from({ length: 35 }, (_, i) => {
-                  const day = i - 6; // Adjust for first week
-                  const isCurrentMonth = day > 0 && day <= 31;
-                  const isToday = day === new Date().getDate();
+                {/* Calendar days - proper calculation */}
+                {(() => {
+                  const now = new Date();
+                  const year = now.getFullYear();
+                  const month = now.getMonth();
                   
-                  return (
-                    <button
-                      key={i}
-                      className={`p-2 text-xs rounded hover:bg-blue-100 transition-colors ${
-                        isCurrentMonth 
-                          ? isToday 
+                  // Get first day of the month and number of days
+                  const firstDay = new Date(year, month, 1);
+                  const lastDay = new Date(year, month + 1, 0);
+                  const daysInMonth = lastDay.getDate();
+                  const startDayOfWeek = firstDay.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                  
+                  const days = [];
+                  
+                  // Add empty cells for days before the first day of the month
+                  for (let i = 0; i < startDayOfWeek; i++) {
+                    days.push(
+                      <div key={`empty-${i}`} className="p-2 text-xs"></div>
+                    );
+                  }
+                  
+                  // Add days of the month
+                  for (let day = 1; day <= daysInMonth; day++) {
+                    const isToday = day === now.getDate() && month === now.getMonth() && year === now.getFullYear();
+                    
+                    days.push(
+                      <button
+                        key={day}
+                        className={`p-2 text-xs rounded hover:bg-blue-100 transition-colors ${
+                          isToday 
                             ? 'bg-blue-500 text-white font-semibold' 
                             : 'text-gray-700 hover:text-blue-600'
-                          : 'text-gray-300'
-                      }`}
-                    >
-                      {isCurrentMonth ? day : ''}
-                    </button>
-                  );
-                })}
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  }
+                  
+                  return days;
+                })()}
               </div>
               
               <div className="mt-4 pt-4 border-t border-gray-200">

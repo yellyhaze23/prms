@@ -33,21 +33,23 @@ $stmt->close();
 
 
 try {
-    // Sanitize input data
+    // Get input data without escaping (prepared statements will handle it)
     $patient_id = (int)$data['patient_id'];
-    $disease = mysqli_real_escape_string($conn, $data['disease']);
-    $onset_date = mysqli_real_escape_string($conn, $data['onset_date']);
-    $diagnosis_date = mysqli_real_escape_string($conn, $data['diagnosis_date'] ?? '');
-    $symptoms = mysqli_real_escape_string($conn, $data['symptoms'] ?? '');
-    $treatment = mysqli_real_escape_string($conn, $data['treatment'] ?? '');
-    $medical_advice = mysqli_real_escape_string($conn, $data['medical_advice'] ?? '');
-    $notes = mysqli_real_escape_string($conn, $data['notes'] ?? '');
-    $reported_by = mysqli_real_escape_string($conn, $data['reported_by'] ?? '');
-    $reported_date = mysqli_real_escape_string($conn, $data['reported_date'] ?? date('Y-m-d'));
+    $disease = $data['disease'];
+    $onset_date = $data['onset_date'];
+    $diagnosis_date = $data['diagnosis_date'] ?? '';
+    $symptoms = $data['symptoms'] ?? '';
+    $treatment = $data['treatment'] ?? '';
+    $medical_advice = $data['medical_advice'] ?? '';
+    $notes = $data['notes'] ?? '';
+    $reported_by = $data['reported_by'] ?? '';
+    $reported_date = $data['reported_date'] ?? date('Y-m-d');
 
-    // Check if patient exists
-    $checkPatient = "SELECT id FROM patients WHERE id = $patient_id";
-    $result = $conn->query($checkPatient);
+    // Check if patient exists using prepared statement
+    $checkPatient = $conn->prepare("SELECT id FROM patients WHERE id = ?");
+    $checkPatient->bind_param("i", $patient_id);
+    $checkPatient->execute();
+    $result = $checkPatient->get_result();
     if ($result->num_rows === 0) {
         http_response_code(404);
         echo json_encode(['error' => 'Patient not found.']);
@@ -85,12 +87,14 @@ try {
     );
 
     if ($stmt->execute()) {
-        // Get updated patient data
-        $getPatient = "SELECT p.*, mr.diagnosis, mr.onset_date, mr.diagnosis_date, mr.symptoms, mr.treatment, mr.medical_advice, mr.notes, mr.reported_by, mr.reported_date
+        // Get updated patient data using prepared statement
+        $getPatient = $conn->prepare("SELECT p.*, mr.diagnosis, mr.onset_date, mr.diagnosis_date, mr.symptoms, mr.treatment, mr.medical_advice, mr.notes, mr.reported_by, mr.reported_date
                       FROM patients p 
                       LEFT JOIN medical_records mr ON p.id = mr.patient_id 
-                      WHERE p.id = $patient_id";
-        $patientResult = $conn->query($getPatient);
+                      WHERE p.id = ?");
+        $getPatient->bind_param("i", $patient_id);
+        $getPatient->execute();
+        $patientResult = $getPatient->get_result();
         $patientData = $patientResult->fetch_assoc();
 
         echo json_encode([

@@ -25,7 +25,7 @@ export default function FilterControl({
   const active = options.find(o => o.value === value);
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative z-10" ref={ref}>
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-gray-700">{label}:</span>
         <button
@@ -43,7 +43,7 @@ export default function FilterControl({
       </div>
 
       {open && (
-        <ul role="listbox" className="absolute z-50 mt-2 w-56 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden">
+        <ul role="listbox" className="absolute top-full right-0 z-50 mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden">
           {options.map(opt => (
             <li key={opt.value}>
               <button

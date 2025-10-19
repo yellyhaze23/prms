@@ -39,37 +39,26 @@ mysqli_autocommit($conn, false);
 try {
     error_log("Starting update process for patient ID: " . $patient_id);
     
-    // Update patient basic information
+    // Update patient basic information using prepared statement
     if (isset($data['full_name']) || isset($data['date_of_birth']) || isset($data['sex']) || isset($data['address'])) {
-        $full_name = mysqli_real_escape_string($conn, $data['full_name'] ?? '');
+        $full_name = $data['full_name'] ?? '';
         $date_of_birth = $data['date_of_birth'] ?? '';
-        $sex = mysqli_real_escape_string($conn, $data['sex'] ?? '');
-        $address = mysqli_real_escape_string($conn, $data['address'] ?? '');
+        $sex = $data['sex'] ?? '';
+        $address = $data['address'] ?? '';
 
-        // Handle empty date_of_birth - set to NULL
-        if (empty($date_of_birth)) {
-            $date_of_birth_sql = 'NULL';
-            $age = 0;
-        } else {
-            $date_of_birth = mysqli_real_escape_string($conn, $date_of_birth);
-            $date_of_birth_sql = "'$date_of_birth'";
-            
-            // Calculate age from date of birth
+        // Calculate age from date of birth
+        $age = 0;
+        if (!empty($date_of_birth)) {
             $birthDate = new DateTime($date_of_birth);
             $today = new DateTime();
             $age = $today->diff($birthDate)->y;
         }
 
-        $patientSql = "UPDATE patients SET 
-                        full_name = '$full_name',
-                        date_of_birth = $date_of_birth_sql,
-                        sex = '$sex',
-                        age = '$age',
-                        address = '$address'
-                    WHERE id = $patient_id";
+        $stmt = $conn->prepare("UPDATE patients SET full_name = ?, date_of_birth = ?, sex = ?, age = ?, address = ? WHERE id = ?");
+        $stmt->bind_param("sssisi", $full_name, $date_of_birth, $sex, $age, $address, $patient_id);
 
-        if (!mysqli_query($conn, $patientSql)) {
-            throw new Exception('Failed to update patient: ' . mysqli_error($conn));
+        if (!$stmt->execute()) {
+            throw new Exception('Failed to update patient: ' . $stmt->error);
         }
     }
 
@@ -102,8 +91,9 @@ try {
                 if (in_array($field, ['date_of_birth', 'date_of_consultation', 'date_of_consultation_medical']) && empty($value)) {
                     $updateFields[] = "$field = NULL";
                 } else {
-                    $value = mysqli_real_escape_string($conn, $value);
-                    $updateFields[] = "$field = '$value'";
+                    // Use prepared statement for string values
+                    $updateFields[] = "$field = ?";
+                    $updateValues[] = $value;
                 }
             }
             

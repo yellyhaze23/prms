@@ -9,9 +9,11 @@ $id = $data['id'] ?? null;
 $username = $data['username'] ?? null;
 $oldPassword = $data['oldPassword'] ?? null;
 $newPassword = $data['password'] ?? null;
+$role = $data['role'] ?? null;
+$status = $data['status'] ?? null;
 
-if (!$id || (!$username && !$newPassword)) {
-    echo json_encode(['success' => false, 'message' => 'User ID and at least one field (username or password) are required.']);
+if (!$id || (!$username && !$newPassword && !$role && !$status)) {
+    echo json_encode(['success' => false, 'message' => 'User ID and at least one field (username, password, role, or status) are required.']);
     exit;
 }
 
@@ -47,6 +49,18 @@ if ($username) {
 if ($newPassword) {
     $updates[] = "password = ?";
     $params[] = password_hash($newPassword, PASSWORD_DEFAULT);
+    $types .= 's';
+}
+
+if ($role) {
+    $updates[] = "role = ?";
+    $params[] = $role;
+    $types .= 's';
+}
+
+if ($status) {
+    $updates[] = "status = ?";
+    $params[] = $status;
     $types .= 's';
 }
 

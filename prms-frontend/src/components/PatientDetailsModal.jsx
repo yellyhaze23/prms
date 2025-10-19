@@ -59,7 +59,7 @@ const PatientDetailsModal = ({ isVisible, onClose, patient }) => {
   if (loading) {
     return createPortal(
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
+        className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
         style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}
       >
         <div className="bg-white rounded-xl shadow-2xl p-8 text-center">

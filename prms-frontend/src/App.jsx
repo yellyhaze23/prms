@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
 import Login from "./pages/Login";
+import SessionManager from "./components/SessionManager";
 import { BackupProvider } from "./contexts/BackupContext";
 import "./App.css";
 import "./index.css";
@@ -121,46 +122,48 @@ function App() {
 
   return (
     <BackupProvider>
-      <div className="app-layout">
-        {!isStaffRoute && <Sidebar collapsed={sidebarCollapsed} />}
-        {!isStaffRoute && <TopBar userId={1} userName="Admin" userRole="Administrator" onToggleSidebar={toggleSidebar} sidebarCollapsed={sidebarCollapsed} />}
-        <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${isTransitioning ? 'page-enter' : ''} ${isLoggingOut ? 'page-exit' : ''}`}>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/records" element={<Records />} />
-            <Route path="/patient" element={<Patient />} />
-            <Route path="/diseases" element={<Diseases />} />
-            <Route path="/tracker" element={<Tracker />} />
-            <Route path="/arima-forecast" element={<ARIMAForecast />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/audit-logs" element={<AuditLogs />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/notifications" element={<NotificationCenter />} />
-            {/** Staff Portal */}
-            <Route
-              path="/staff/*"
-              element={
-                <RequireStaff>
-                  <StaffLayout />
-                </RequireStaff>
-              }
-            >
-              <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard" element={<StaffDashboard />} />
-              <Route path="patients" element={<StaffPatients />} />
-              <Route path="records" element={<StaffRecords />} />
-              <Route path="tracking" element={<StaffTracker />} />
-              <Route path="reports" element={<StaffReports />} />
-              <Route path="audit-logs" element={<StaffLogs />} />
-              <Route path="profile" element={<StaffProfile />} />
-              <Route path="settings" element={<StaffSettings />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </Suspense>
+      <SessionManager>
+        <div className="app-layout">
+          {!isStaffRoute && <Sidebar collapsed={sidebarCollapsed} />}
+          {!isStaffRoute && <TopBar userId={1} userName="Admin" userRole="Administrator" onToggleSidebar={toggleSidebar} sidebarCollapsed={sidebarCollapsed} />}
+          <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${isTransitioning ? 'page-enter' : ''} ${isLoggingOut ? 'page-exit' : ''}`}>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/records" element={<Records />} />
+              <Route path="/patient" element={<Patient />} />
+              <Route path="/diseases" element={<Diseases />} />
+              <Route path="/tracker" element={<Tracker />} />
+              <Route path="/arima-forecast" element={<ARIMAForecast />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/audit-logs" element={<AuditLogs />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/notifications" element={<NotificationCenter />} />
+              {/** Staff Portal */}
+              <Route
+                path="/staff/*"
+                element={
+                  <RequireStaff>
+                    <StaffLayout />
+                  </RequireStaff>
+                }
+              >
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<StaffDashboard />} />
+                <Route path="patients" element={<StaffPatients />} />
+                <Route path="records" element={<StaffRecords />} />
+                <Route path="tracking" element={<StaffTracker />} />
+                <Route path="reports" element={<StaffReports />} />
+                <Route path="audit-logs" element={<StaffLogs />} />
+                <Route path="profile" element={<StaffProfile />} />
+                <Route path="settings" element={<StaffSettings />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </Suspense>
+        </div>
       </div>
-    </div>
+      </SessionManager>
     </BackupProvider>
   );
 }

@@ -9,6 +9,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Only set last activity if it doesn't exist (for admin users)
+if (isset($_SESSION['user_id']) && !isset($_SESSION['last_activity'])) {
+    $_SESSION['last_activity'] = time();
+}
+
 // Check if user is logged in
 if (isset($_SESSION['user_id']) && isset($_SESSION['username'])) {
     // Get user details from database

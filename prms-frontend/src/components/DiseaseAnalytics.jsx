@@ -4,6 +4,7 @@ import axios from 'axios';
 import DiseaseCard from './DiseaseCard';
 import CaseTrendsChart from './CaseTrendsChart';
 import Toast from './Toast';
+import CountUp from './CountUp';
 import '../pages/Dashboard.css';
 
 const DiseaseAnalytics = () => {
@@ -65,7 +66,9 @@ const DiseaseAnalytics = () => {
             </div>
             <div className="ml-4">
               <p className="modern-card-label">Total Diseases</p>
-              <p className="modern-card-value">{diseases.length}</p>
+              <p className="modern-card-value">
+                <CountUp end={diseases.length} duration={2000} />
+              </p>
             </div>
           </div>
         </div>
@@ -78,7 +81,7 @@ const DiseaseAnalytics = () => {
             <div className="ml-4">
               <p className="modern-card-label">Total Cases</p>
               <p className="modern-card-value">
-                {diseases.reduce((sum, d) => sum + d.total_cases, 0)}
+                <CountUp end={diseases.reduce((sum, d) => sum + d.total_cases, 0)} duration={2000} />
               </p>
             </div>
           </div>
@@ -92,7 +95,7 @@ const DiseaseAnalytics = () => {
             <div className="ml-4">
               <p className="modern-card-label">High Risk</p>
               <p className="modern-card-value">
-                {diseases.filter(d => d.risk_level === 'High').length}
+                <CountUp end={diseases.filter(d => d.risk_level === 'High').length} duration={2000} />
               </p>
             </div>
           </div>

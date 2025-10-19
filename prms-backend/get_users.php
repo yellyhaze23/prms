@@ -4,7 +4,7 @@ require 'config.php';
 
 header('Content-Type: application/json');
 
-$sql = "SELECT id, username, created_at FROM users";
+$sql = "SELECT id, username, role, status, created_at FROM users";
 $result = $conn->query($sql);
 
 $users = [];

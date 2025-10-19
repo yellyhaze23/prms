@@ -21,50 +21,40 @@ if (
     exit;
 }
 
-// Extract and sanitize name components
-$first_name = mysqli_real_escape_string($conn, $data['first_name']);
-$middle_name = mysqli_real_escape_string($conn, $data['middle_name'] ?? '');
-$surname = mysqli_real_escape_string($conn, $data['surname']);
-$suffix = mysqli_real_escape_string($conn, $data['suffix'] ?? '');
+// Get input data without escaping (prepared statements will handle it)
+$first_name = $data['first_name'];
+$middle_name = $data['middle_name'] ?? '';
+$surname = $data['surname'];
+$suffix = $data['suffix'] ?? '';
 
 // Combine name components
 $full_name = trim($first_name . ' ' . $middle_name . ' ' . $surname . ' ' . $suffix);
 
-$date_of_birth = mysqli_real_escape_string($conn, $data['date_of_birth']);
-$sex = mysqli_real_escape_string($conn, $data['sex']);
-$address = mysqli_real_escape_string($conn, $data['address']);
+$date_of_birth = $data['date_of_birth'];
+$sex = $data['sex'];
+$address = $data['address'];
 
 // Additional medical record fields
-$philhealth_id = mysqli_real_escape_string($conn, $data['philhealth_id'] ?? '');
-$priority = mysqli_real_escape_string($conn, $data['priority'] ?? 'medium');
+$philhealth_id = $data['philhealth_id'] ?? '';
+$priority = $data['priority'] ?? 'medium';
 
 // Calculate age from date of birth
 $birthDate = new DateTime($date_of_birth);
 $today = new DateTime();
 $age = $today->diff($birthDate)->y;
 
-// Image handling removed - not needed
+// Insert patient using prepared statement
+$stmt = $conn->prepare("INSERT INTO patients (full_name, age, sex, date_of_birth, address) VALUES (?, ?, ?, ?, ?)");
+$stmt->bind_param("sisss", $full_name, $age, $sex, $date_of_birth, $address);
 
-$sql = "INSERT INTO patients (full_name, age, sex, date_of_birth, address)
-        VALUES ('$full_name', '$age', '$sex', '$date_of_birth', '$address')";
+if ($stmt->execute()) {
+    $newId = $conn->insert_id;
 
-if (mysqli_query($conn, $sql)) {
-    $newId = mysqli_insert_id($conn);
-
-    // Create medical_records entry with all consolidated fields
-    $medical_sql = "INSERT INTO medical_records (
-        patient_id, 
-        surname, first_name, middle_name, suffix,
-        philhealth_id, priority,
-        created_at, updated_at
-    ) VALUES (
-        $newId,
-        '$surname', '$first_name', '$middle_name', '$suffix',
-        '$philhealth_id', '$priority',
-        NOW(), NOW()
-    )";
+    // Create medical_records entry using prepared statement
+    $medical_stmt = $conn->prepare("INSERT INTO medical_records (patient_id, surname, first_name, middle_name, suffix, philhealth_id, priority, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
+    $medical_stmt->bind_param("issssss", $newId, $surname, $first_name, $middle_name, $suffix, $philhealth_id, $priority);
     
-    mysqli_query($conn, $medical_sql);
+    $medical_stmt->execute();
 
     echo json_encode([
         'success' => true,
@@ -78,6 +68,6 @@ if (mysqli_query($conn, $sql)) {
     ]);
 } else {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Database error: ' . mysqli_error($conn)]);
+    echo json_encode(['success' => false, 'error' => 'Database error: ' . $stmt->error]);
 }
 ?>

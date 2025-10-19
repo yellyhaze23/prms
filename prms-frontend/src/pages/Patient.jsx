@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import axios from "axios";
 import Toolbar from "../components/Toolbar";
 import PatientList from "../components/PatientList";
@@ -7,10 +8,20 @@ import ConfirmationModal from "../components/ConfirmationModal";
 import ModernToast from "../components/ModernToast";
 import Pagination from "../components/Pagination";
 import SortControl from "../components/SortControl";
+import SearchInput from "../components/SearchInput";
+import HelpTooltip from "../components/HelpTooltip";
 import notificationService from "../utils/notificationService";
 // Performance optimizations
 import { getCachedData, setCachedData, shouldRefreshInBackground, markAsRefreshed } from '../utils/cache';
 import { preloadData } from '../utils/dataPreloader';
+// Animation variants
+import { 
+  pageVariants, 
+  containerVariants, 
+  cardVariants, 
+  buttonVariants,
+  hoverScale 
+} from '../utils/animations';
 
 function Patient() {
   const [patients, setPatients] = useState([]);
@@ -164,82 +175,128 @@ function Patient() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6" style={{minHeight: '100vh', backgroundColor: '#f9fafb', padding: '1.5rem 0'}}>
+    <motion.div 
+      className="min-h-screen bg-gray-50 py-6" 
+      style={{minHeight: '100vh', backgroundColor: '#f9fafb', padding: '1.5rem 0'}}
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 " style={{maxWidth: '80rem', margin: '0 auto', padding: '0 2rem'}}>
         {/* Modern Header with Controls */}
-        <div className="mb-5">
+        <motion.div 
+          className="mb-5"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           <div className="flex items-center justify-between mb-4">
-            <div>
+            <motion.div variants={cardVariants}>
               <h1 className="text-3xl font-bold text-blue-600">Patient Records</h1>
               <p className="text-gray-700 mt-2">Manage patient records</p>
-            </div>
+            </motion.div>
             
             {/* Controls on the right */}
-            <div className="flex items-center space-x-4">
-              {/* Search Input */}
-              <div className="relative">
-                <input
-                  type="text"
+            <motion.div 
+              className="flex items-center space-x-4"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {/* Modern Search Input */}
+              <motion.div variants={cardVariants} className="flex items-center space-x-2">
+                <SearchInput
                   placeholder="Search patients by name, address, or ID..."
                   value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="w-80 px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={handleSearch}
+                  className="w-80"
                 />
-                <svg className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
+                <HelpTooltip
+                  content="Search patients by name, address, contact number, or patient ID. Use partial matches for faster results."
+                  position="bottom"
+                  size="md"
+                />
+              </motion.div>
 
               {/* Sort Controls */}
-              <SortControl
-                value={sortBy}
-                order={sortOrder}
-                onChange={(val) => handleSort(val)}
-                onToggleOrder={toggleSortOrder}
-                options={[
-                  { value: 'id', label: 'Sort by: ID' },
-                  { value: 'full_name', label: 'Sort by: Name' },
-                  { value: 'contact_number', label: 'Sort by: Contact' },
-                  { value: 'created_at', label: 'Sort by: Date' },
-                ]}
-              />
+              <motion.div variants={cardVariants} className="flex items-center space-x-2">
+                <SortControl
+                  value={sortBy}
+                  order={sortOrder}
+                  onChange={(val) => handleSort(val)}
+                  onToggleOrder={toggleSortOrder}
+                  options={[
+                    { value: 'id', label: 'Sort by: ID' },
+                    { value: 'full_name', label: 'Sort by: Name' },
+                    { value: 'contact_number', label: 'Sort by: Contact' },
+                    { value: 'created_at', label: 'Sort by: Date' },
+                  ]}
+                />
+                <HelpTooltip
+                  content="Sort patients by different criteria. Click the sort button to toggle between ascending and descending order."
+                  position="bottom"
+                  size="md"
+                />
+              </motion.div>
 
               {/* Add Patient Button */}
-              <button
-                onClick={() => {
-                  setEditPatient(null);
-                  setShowAddModal(true);
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                <span>Add Patient</span>
-              </button>
-            </div>
+              <motion.div variants={cardVariants} className="flex items-center space-x-2">
+                <motion.button
+                  onClick={() => {
+                    setEditPatient(null);
+                    setShowAddModal(true);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                  whileHover={buttonVariants.hover}
+                  whileTap={buttonVariants.tap}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>Add Patient</span>
+                </motion.button>
+                <HelpTooltip
+                  content="Add a new patient to the system. Fill in the required information including name, date of birth, gender, and address."
+                  position="bottom"
+                  size="md"
+                />
+              </motion.div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Patient List */}
-        <PatientList
-          patients={patients}
-          loading={loading}
-          onEdit={handleEditPatient}
-          onDelete={handleDeletePatient}
-        />
+        <motion.div
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <PatientList
+            patients={patients}
+            loading={loading}
+            onEdit={handleEditPatient}
+            onDelete={handleDeletePatient}
+          />
+        </motion.div>
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-            itemsPerPage={itemsPerPage}
-            totalItems={totalRecords}
-            showPageSizeSelector={true}
-            pageSizeOptions={[10, 25, 50, 100]}
-          />
+          <motion.div
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              itemsPerPage={itemsPerPage}
+              totalItems={totalRecords}
+              showPageSizeSelector={true}
+              pageSizeOptions={[10, 25, 50, 100]}
+            />
+          </motion.div>
         )}
       </div>
       {showAddModal && (
@@ -267,7 +324,7 @@ function Patient() {
           onClose={() => setToast(null)}
         />
       )}
-    </div>
+    </motion.div>
   );
 }
 

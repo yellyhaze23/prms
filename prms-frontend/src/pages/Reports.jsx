@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,6 +14,16 @@ import {
   Filler
 } from 'chart.js';
 import { Bar, Line, Doughnut } from 'react-chartjs-2';
+import CountUp from '../components/CountUp';
+// Animation variants
+import { 
+  pageVariants, 
+  containerVariants, 
+  cardVariants, 
+  chartVariants,
+  buttonVariants,
+  hoverScale 
+} from '../utils/animations';
 import {
   FaUsers,
   FaVirus,
@@ -190,30 +201,32 @@ function Reports() {
       label: 'Cases',
       data: diseaseCounts,
       backgroundColor: [
-        '#FF6384',
-        '#36A2EB',
-        '#FFCE56',
-        '#8BC34A',
-        '#FF9800',
-        '#9C27B0',
-        '#4BC0C0',
-        '#E91E63',
-        '#795548',
-        '#607D8B'
+        '#EF4444', // Modern red
+        '#3B82F6', // Modern blue
+        '#F59E0B', // Modern amber
+        '#10B981', // Modern emerald
+        '#F97316', // Modern orange
+        '#8B5CF6', // Modern violet
+        '#06B6D4', // Modern cyan
+        '#EC4899', // Modern pink
+        '#84CC16', // Modern lime
+        '#6366F1'  // Modern indigo
       ],
       borderColor: [
-        '#FF6384',
-        '#36A2EB',
-        '#FFCE56',
-        '#8BC34A',
-        '#FF9800',
-        '#9C27B0',
-        '#4BC0C0',
-        '#E91E63',
-        '#795548',
-        '#607D8B'
+        '#EF4444',
+        '#3B82F6',
+        '#F59E0B',
+        '#10B981',
+        '#F97316',
+        '#8B5CF6',
+        '#06B6D4',
+        '#EC4899',
+        '#84CC16',
+        '#6366F1'
       ],
-      borderWidth: 1
+      borderWidth: 0,
+      borderRadius: 6,
+      borderSkipped: false
     }]
   };
 
@@ -223,20 +236,22 @@ function Reports() {
       label: 'Patients',
       data: Object.values(ageGroups),
       backgroundColor: [
-        '#FF6384',
-        '#36A2EB',
-        '#FFCE56',
-        '#8BC34A',
-        '#FF9800'
+        '#EF4444', // Modern red
+        '#3B82F6', // Modern blue
+        '#F59E0B', // Modern amber
+        '#10B981', // Modern emerald
+        '#F97316'  // Modern orange
       ],
       borderColor: [
-        '#FF6384',
-        '#36A2EB',
-        '#FFCE56',
-        '#8BC34A',
-        '#FF9800'
+        '#EF4444',
+        '#3B82F6',
+        '#F59E0B',
+        '#10B981',
+        '#F97316'
       ],
-      borderWidth: 1
+      borderWidth: 0,
+      borderRadius: 6,
+      borderSkipped: false
     }]
   };
 
@@ -244,9 +259,17 @@ function Reports() {
     labels: Object.keys(genderStats),
     datasets: [{
       data: Object.values(genderStats),
-      backgroundColor: ['#36A2EB', '#FF6384'],
-      borderColor: ['#36A2EB', '#FF6384'],
-      borderWidth: 1
+      backgroundColor: [
+        '#3B82F6', // Modern blue
+        '#EC4899'  // Modern pink
+      ],
+      borderColor: [
+        '#3B82F6',
+        '#EC4899'
+      ],
+      borderWidth: 0,
+      cutout: '60%',
+      spacing: 2
     }]
   };
 
@@ -278,17 +301,82 @@ function Reports() {
     plugins: {
       legend: {
         position: 'top',
-      },
-      title: {
         display: true,
-        text: 'Disease Distribution'
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 15,
+          font: {
+            size: 12,
+            family: "'Inter', sans-serif",
+            weight: '500'
+          },
+          color: '#374151'
+        }
+      },
+      tooltip: {
+        enabled: true,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: '#e5e7eb',
+        borderWidth: 1,
+        cornerRadius: 8,
+        displayColors: true,
+        callbacks: {
+          label: function(context) {
+            return `${context.dataset.label}: ${context.parsed.y}`;
+          }
+        }
       }
     },
     scales: {
+      x: {
+        grid: {
+          display: false
+        },
+        ticks: {
+          font: {
+            size: 11,
+            family: "'Inter', sans-serif"
+          },
+          color: '#6B7280'
+        }
+      },
       y: {
-        beginAtZero: true
+        beginAtZero: true,
+        grid: {
+          color: '#F3F4F6',
+          drawBorder: false
+        },
+        ticks: {
+          font: {
+            size: 11,
+            family: "'Inter', sans-serif"
+          },
+          color: '#6B7280',
+          padding: 8
+        }
       }
+    },
+    elements: {
+      bar: {
+        borderRadius: 6,
+        borderSkipped: false
+      }
+    },
+    animation: {
+      duration: 1000,
+      easing: 'easeInOutQuart'
     }
+  };
+
+  // Calculate dynamic y-axis max based on data
+  const getMaxValue = () => {
+    const maxTotalPatients = Math.max(...processedTrendData.map(d => d.count));
+    const maxInfectedPatients = Math.max(...processedTrendData.map(d => d.infected));
+    const maxValue = Math.max(maxTotalPatients, maxInfectedPatients);
+    return Math.max(5, Math.ceil(maxValue));
   };
 
   const trendOptions = {
@@ -305,7 +393,13 @@ function Reports() {
     },
     scales: {
       y: {
-        beginAtZero: true
+        beginAtZero: true,
+        min: 0,
+        max: getMaxValue(),
+        ticks: {
+          stepSize: Math.ceil(getMaxValue() / 5),
+          maxTicksLimit: 6
+        }
       }
     }
   };
@@ -316,7 +410,46 @@ function Reports() {
     plugins: {
       legend: {
         position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 15,
+          font: {
+            size: 12,
+            family: "'Inter', sans-serif",
+            weight: '500'
+          },
+          color: '#374151'
+        }
+      },
+      tooltip: {
+        enabled: true,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: '#e5e7eb',
+        borderWidth: 1,
+        cornerRadius: 8,
+        displayColors: true,
+        callbacks: {
+          label: function(context) {
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = ((context.parsed / total) * 100).toFixed(1);
+            return `${context.label}: ${context.parsed} (${percentage}%)`;
+          }
+        }
       }
+    },
+    elements: {
+      arc: {
+        borderWidth: 0
+      }
+    },
+    animation: {
+      animateRotate: true,
+      animateScale: true,
+      duration: 1000,
+      easing: 'easeInOutQuart'
     }
   };
 
@@ -325,7 +458,7 @@ function Reports() {
     try {
       setLoading(true);
       
-      // Build query parameters for RHU export
+      // Build query parameters for Tracely export
       const params = new URLSearchParams();
       if (selectedDisease !== 'All') {
         params.append('disease', selectedDisease);
@@ -338,14 +471,14 @@ function Reports() {
       const data = await response.json();
       
       if (data.success) {
-        // Generate RHU-IS format CSV
+        // Generate Tracely-IS format CSV
         let csvContent = 'Barangay,Disease,ICD Code,Age,Gender,Month-Year,Case Count\n';
         
         data.data.forEach(record => {
           csvContent += `"${record.barangay}","${record.disease}","${record.icd_code || 'N/A'}","${record.age}","${record.gender}","${record.month_year}","${record.case_count}"\n`;
         });
         
-        const filename = `RHU_IS_Export_${selectedDisease === 'All' ? 'All_Diseases' : selectedDisease}_${dateRange}days_${new Date().toISOString().split('T')[0]}.csv`;
+        const filename = `Tracely_IS_Export_${selectedDisease === 'All' ? 'All_Diseases' : selectedDisease}_${dateRange}days_${new Date().toISOString().split('T')[0]}.csv`;
         
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
@@ -399,83 +532,141 @@ function Reports() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6">
+    <motion.div 
+      className="min-h-screen bg-gray-50 py-6"
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         {/* Modern Header with Controls */}
-        <div className="mb-5">
+        <motion.div 
+          className="mb-5"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           <div className="flex items-center justify-between mb-4">
-            <div>
+            <motion.div variants={cardVariants}>
               <h1 className="text-3xl font-bold text-blue-600">Disease Reports & Analytics</h1>
               <p className="text-gray-700 mt-2">Comprehensive health data analysis and insights</p>
-            </div>
+            </motion.div>
             
             {/* Controls on the right */}
-            <div className="flex items-center space-x-4">
+            <motion.div 
+              className="flex items-center space-x-4"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
               {/* Filter Button */}
-              <button
+              <motion.button
                 onClick={() => setShowFilters(!showFilters)}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2"
+                variants={cardVariants}
+                whileHover={buttonVariants.hover}
+                whileTap={buttonVariants.tap}
               >
                 <FaFilter className="h-4 w-4" />
                 <span>Filters</span>
-              </button>
+              </motion.button>
               
               {/* Export Button */}
-              <button
+              <motion.button
                 onClick={exportToCSV}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                variants={cardVariants}
+                whileHover={buttonVariants.hover}
+                whileTap={buttonVariants.tap}
               >
                 <FaDownload className="h-4 w-4" />
                 <span>Export CSV</span>
-              </button>
+              </motion.button>
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Modern Filter Controls */}
+        {showFilters && (
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mb-8 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                <FaFilter className="text-white text-lg" />
             </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">Filter Options</h3>
+                <p className="text-gray-600 text-sm">Customize your report view</p>
           </div>
         </div>
 
-        {/* Filters */}
-        {showFilters && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Filter Options</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Disease</label>
+            {/* Modern Filter Controls Row */}
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Disease Filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">Disease:</span>
+                <div className="relative">
                 <select
                   value={selectedDisease}
                   onChange={(e) => setSelectedDisease(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="inline-flex items-center justify-between min-w-[12rem] px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer"
                 >
                   <option value="All">All Diseases</option>
                   {diseaseStats.map(disease => (
                     <option key={disease.disease} value={disease.disease}>{disease.disease}</option>
                   ))}
                 </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.187l3.71-3.956a.75.75 0 111.08 1.04l-4.24 4.52a.75.75 0 01-1.08 0l-4.24-4.52a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+
+              {/* Date Range Filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">Date Range:</span>
+                <div className="relative">
                 <select
                   value={dateRange}
                   onChange={(e) => setDateRange(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="inline-flex items-center justify-between min-w-[10rem] px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer"
                 >
                   <option value="7">Last 7 days</option>
                   <option value="30">Last 30 days</option>
                   <option value="90">Last 90 days</option>
                   <option value="365">Last year</option>
                 </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.187l3.71-3.956a.75.75 0 111.08 1.04l-4.24 4.52a.75.75 0 01-1.08 0l-4.24-4.52a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">View Mode</label>
+
+              {/* View Mode Filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">View Mode:</span>
+                <div className="relative">
                 <select
                   value={viewMode}
                   onChange={(e) => setViewMode(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="inline-flex items-center justify-between min-w-[10rem] px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer"
                 >
                   <option value="overview">Overview</option>
                   <option value="detailed">Detailed</option>
                   <option value="trends">Trends</option>
                   <option value="forecast">ARIMA Forecasts</option>
                 </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.187l3.71-3.956a.75.75 0 111.08 1.04l-4.24 4.52a.75.75 0 01-1.08 0l-4.24-4.52a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -487,11 +678,13 @@ function Reports() {
           <div className="modern-summary-card">
             <div className="flex items-center">
               <div className="modern-icon-container bg-blue-50">
-                <FaVirus className="text-blue-600 text-xl" />
-              </div>
+                  <FaVirus className="text-blue-600 text-xl" />
+                </div>
               <div className="ml-4">
                 <p className="modern-card-label">Total Diseases</p>
-                <p className="modern-card-value">{summary.total_diseases || 0}</p>
+                <p className="modern-card-value">
+                  <CountUp end={summary.total_diseases || 0} duration={2000} />
+                </p>
               </div>
             </div>
           </div>
@@ -500,11 +693,13 @@ function Reports() {
           <div className="modern-summary-card">
             <div className="flex items-center">
               <div className="modern-icon-container bg-red-50">
-                <FaUserInjured className="text-red-600 text-xl" />
-              </div>
+                  <FaUserInjured className="text-red-600 text-xl" />
+                </div>
               <div className="ml-4">
                 <p className="modern-card-label">Total Cases</p>
-                <p className="modern-card-value">{summary.total_cases || 0}</p>
+                <p className="modern-card-value">
+                  <CountUp end={summary.total_cases || 0} duration={2000} />
+                </p>
               </div>
             </div>
           </div>
@@ -513,11 +708,13 @@ function Reports() {
           <div className="modern-summary-card">
             <div className="flex items-center">
               <div className="modern-icon-container bg-orange-50">
-                <FaExclamationTriangle className="text-orange-600 text-xl" />
-              </div>
+                  <FaExclamationTriangle className="text-orange-600 text-xl" />
+                </div>
               <div className="ml-4">
                 <p className="modern-card-label">High Risk Areas</p>
-                <p className="modern-card-value">{summary.high_risk_areas || 0}</p>
+                <p className="modern-card-value">
+                  <CountUp end={summary.high_risk_areas || 0} duration={2000} />
+                </p>
               </div>
             </div>
           </div>
@@ -526,11 +723,13 @@ function Reports() {
           <div className="modern-summary-card">
             <div className="flex items-center">
               <div className="modern-icon-container bg-green-50">
-                <FaChartBar className="text-green-600 text-xl" />
-              </div>
+                  <FaChartBar className="text-green-600 text-xl" />
+                </div>
               <div className="ml-4">
                 <p className="modern-card-label">Avg Cases/Day</p>
-                <p className="modern-card-value">{summary.avg_cases_per_day || 0}</p>
+                <p className="modern-card-value">
+                  <CountUp end={summary.avg_cases_per_day || 0} duration={2000} decimals={1} />
+                </p>
               </div>
             </div>
           </div>
@@ -711,7 +910,7 @@ function Reports() {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

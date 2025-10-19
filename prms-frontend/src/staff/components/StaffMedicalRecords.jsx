@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { FaEdit, FaSave, FaUser, FaCalendarAlt, FaVenusMars, FaPhone, FaEnvelope, FaMapMarkerAlt, FaHeartbeat, FaWeight, FaEye, FaStethoscope, FaFileMedicalAlt, FaTimes, FaUserMd, FaFlask, FaPills, FaCommentMedical, FaHistory, FaEye as FaView, FaIdCard, FaCog, FaWeightHanging, FaThermometer, FaRuler, FaComment, FaMapMarkerAlt as FaLocationDot, FaStethoscope as FaStethoscopeIcon, FaCalendar, FaUserMd as FaUserDoctor } from "react-icons/fa";
+import { FaEdit, FaSave, FaUser, FaCalendarAlt, FaVenusMars, FaPhone, FaEnvelope, FaMapMarkerAlt, FaHeartbeat, FaWeight, FaEye, FaStethoscope, FaFileMedicalAlt, FaTimes, FaUserMd, FaFlask, FaPills, FaCommentMedical, FaHistory, FaEye as FaView, FaIdCard, FaCog, FaWeightHanging, FaThermometer, FaRuler, FaComment, FaMapMarkerAlt as FaLocationDot, FaStethoscope as FaStethoscopeIcon, FaCalendar, FaUserMd as FaUserDoctor, FaDownload } from "react-icons/fa";
 import ModernToast from "../../components/ModernToast";
 import { formatPatientID } from "../../utils/patientUtils";
+import { downloadMedicalRecord } from "../../utils/documentGenerator";
 
 function StaffMedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
   const [medicalRecord, setMedicalRecord] = useState({});
@@ -82,6 +83,20 @@ function StaffMedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
   const closeHistoryModal = () => {
     setShowHistoryModal(false);
     setSelectedRecord(null);
+  };
+
+  const handleDownloadRecord = async (record) => {
+    try {
+      const success = await downloadMedicalRecord(record);
+      if (success) {
+        showToast("Medical record downloaded successfully", "success");
+      } else {
+        showToast("Error downloading medical record", "error");
+      }
+    } catch (error) {
+      console.error("Error downloading record:", error);
+      showToast("Error downloading medical record", "error");
+    }
   };
 
   const toggleEdit = async () => {
@@ -717,13 +732,22 @@ function StaffMedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
                         </div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleViewRecord(record.medical_record_id)}
-                      className="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-200 ml-4"
-                    >
-                      <FaView className="h-4 w-4 mr-1" />
-                      View Full Record
-                    </button>
+                     <div className="ml-4 flex flex-col space-y-2">
+                       <button
+                         onClick={() => handleViewRecord(record.medical_record_id)}
+                         className="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-200"
+                       >
+                         <FaView className="h-4 w-4 mr-1" />
+                         View Full Record
+                       </button>
+                       <button
+                         onClick={() => handleDownloadRecord(record)}
+                         className="inline-flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors duration-200"
+                       >
+                         <FaDownload className="h-4 w-4 mr-1" />
+                         Download
+                       </button>
+                     </div>
                   </div>
                 </div>
               ))}
@@ -739,7 +763,7 @@ function StaffMedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
 
       {/* History Modal */}
       {showHistoryModal && selectedRecord && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">Medical Record Details</h3>

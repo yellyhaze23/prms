@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { FaDownload, FaFilter, FaSearch, FaUser, FaClock, FaShieldAlt, FaExclamationTriangle, FaCheckCircle, FaTimes, FaFileAlt, FaMapMarkerAlt } from 'react-icons/fa';
 import Pagination from '../components/Pagination';
 import AuditLogDetailsModal from '../components/AuditLogDetailsModal';
+import FilterControl from '../components/FilterControl';
 import axios from 'axios';
+// Animation variants
+import { 
+  pageVariants, 
+  containerVariants, 
+  cardVariants, 
+  listItemVariants,
+  buttonVariants,
+  hoverScale 
+} from '../utils/animations';
 
 const AuditLogs = () => {
   const [auditLogs, setAuditLogs] = useState([]);
@@ -19,18 +30,23 @@ const AuditLogs = () => {
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('created_at');
-  const [sortOrder, setSortOrder] = useState('desc');
   
   // Modal state
   const [selectedLog, setSelectedLog] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Modern controls options
+  const userTypeOptions = [
+    { value: '', label: 'All Users' },
+    { value: 'admin', label: 'Admin' },
+    { value: 'staff', label: 'Staff' },
+    { value: 'system', label: 'System' }
+  ];
   
 
   useEffect(() => {
     fetchAuditLogs();
-  }, [currentPage, itemsPerPage, sortBy, sortOrder, searchTerm, filters]);
+  }, [currentPage, itemsPerPage, filters]);
 
 
   const fetchAuditLogs = async () => {
@@ -39,9 +55,6 @@ const AuditLogs = () => {
       const params = new URLSearchParams({
         page: currentPage,
         limit: itemsPerPage,
-        sortBy: sortBy,
-        sortOrder: sortOrder,
-        search: searchTerm,
         ...filters
       });
 
@@ -107,19 +120,11 @@ const AuditLogs = () => {
     }
   };
 
-  const handleSearch = (term) => {
-    setSearchTerm(term);
-    setCurrentPage(1); // Reset to first page when searching
-  };
 
-  const handleSort = (field) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortOrder('desc');
-    }
-    setCurrentPage(1); // Reset to first page when sorting
+
+  const handleUserTypeFilter = (userType) => {
+    setFilters(prev => ({ ...prev, user_type: userType }));
+    setCurrentPage(1); // Reset to first page when filtering
   };
 
   const handleFilterChange = (filterName, value) => {
@@ -128,57 +133,61 @@ const AuditLogs = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6">
+    <motion.div 
+      className="min-h-screen bg-gray-50 py-6"
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Modern Header with Controls */}
-        <div className="mb-5">
+        <motion.div 
+          className="mb-5"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           <div className="flex items-center justify-between mb-4">
-            <div>
+            <motion.div variants={cardVariants}>
               <h1 className="text-3xl font-bold text-blue-600">Audit Logs</h1>
               <p className="text-gray-700 mt-2">Monitor all system activities and user actions</p>
-            </div>
+            </motion.div>
             
-            {/* Search and Filters - Top Right */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    value={searchTerm}
-                    onChange={(e) => handleSearch(e.target.value)}
-                    className="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <select
-                  value={filters.user_type}
-                  onChange={(e) => handleFilterChange('user_type', e.target.value)}
-                  className="w-40 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2"
-                >
-                  <option value="">All Users</option>
-                  <option value="admin">Admin</option>
-                  <option value="staff">Staff</option>
-                  <option value="system">System</option>
-                </select>
-                <input
-                  type="date"
-                  placeholder="From Date"
-                  value={filters.date_from}
-                  onChange={(e) => handleFilterChange('date_from', e.target.value)}
-                  className="w-40 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2"
-                />
-                <input
-                  type="date"
-                  placeholder="To Date"
-                  value={filters.date_to}
-                  onChange={(e) => handleFilterChange('date_to', e.target.value)}
-                  className="w-40 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2"
-                />
-              </div>
+             {/* Modern Controls */}
+             <div className="flex flex-wrap items-center gap-4">
+               {/* Modern User Type Filter */}
+               <FilterControl
+                 label="User Type"
+                 value={filters.user_type}
+                 options={userTypeOptions}
+                 onChange={handleUserTypeFilter}
+               />
+
+               {/* Date Range Filters */}
+               <div className="flex items-center gap-2">
+                 <span className="text-sm font-medium text-gray-700">From:</span>
+                 <input
+                   type="date"
+                   value={filters.date_from}
+                   onChange={(e) => handleFilterChange('date_from', e.target.value)}
+                   className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                 />
+               </div>
+
+               <div className="flex items-center gap-2">
+                 <span className="text-sm font-medium text-gray-700">To:</span>
+                 <input
+                   type="date"
+                   value={filters.date_to}
+                   onChange={(e) => handleFilterChange('date_to', e.target.value)}
+                   className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                 />
+               </div>
+
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Audit Logs Table */}
         <div className="overflow-x-auto bg-white rounded-xl shadow-lg border border-gray-100">
@@ -245,10 +254,14 @@ const AuditLogs = () => {
                 </tr>
               ) : (
                 auditLogs.map((log, index) => (
-                  <tr 
+                  <motion.tr 
                     key={index} 
                     onClick={() => handleViewDetails(log)}
                     className="hover:bg-blue-50 hover:shadow-sm cursor-pointer transition-all duration-200 group"
+                    variants={listItemVariants}
+                    initial="hidden"
+                    animate="visible"
+                    whileHover={hoverScale}
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div className="flex items-center">
@@ -292,7 +305,7 @@ const AuditLogs = () => {
                         {log.ip_address || 'Unknown'}
                       </code>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))
               )}
             </tbody>
@@ -319,7 +332,7 @@ const AuditLogs = () => {
         onClose={handleCloseModal}
         logData={selectedLog}
       />
-    </div>
+    </motion.div>
   );
 };
 

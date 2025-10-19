@@ -6,7 +6,7 @@ export {
   FaChartLine, FaChartPie, FaEdit, FaSave, FaTrash, FaIdCard,
   FaCalendarAlt, FaVenusMars, FaPhone, FaEnvelope, FaHeartbeat,
   FaWeight, FaEye, FaTimes, FaFlask, FaPills, FaCommentMedical,
-  FaHistory, FaHospital, FaTachometerAlt, FaRegFileAlt, FaBook,
+  FaHistory, FaTachometerAlt, FaRegFileAlt, FaBook,
   FaSignOutAlt, FaChevronRight, FaView, FaShieldAlt, FaChevronLeft,
   FaChevronDown, FaChevronUp, FaSearch, FaFilter, FaSort,
   FaSortUp, FaSortDown, FaPlus, FaMinus, FaCheck, FaX,
