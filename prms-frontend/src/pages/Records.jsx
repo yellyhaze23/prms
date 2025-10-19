@@ -7,6 +7,9 @@ import Toast from '../components/Toast';
 import MedicalRecords from '../components/MedicalRecords';
 import ConfirmationModal from '../components/ConfirmationModal';
 import Pagination from '../components/Pagination';
+import SearchInput from '../components/SearchInput';
+import SortControl from '../components/SortControl';
+import FilterControl from '../components/FilterControl';
 import { FaIdCard, FaMapMarkerAlt, FaCalendarAlt, FaEdit, FaTrash, FaStethoscope, FaFilter, FaEllipsisV } from 'react-icons/fa';
 import { formatPatientID } from '../utils/patientUtils';
 
@@ -17,6 +20,24 @@ function Records() {
   const [sortBy, setSortBy] = useState("updated_at");
   const [sortOrder, setSortOrder] = useState("desc"); 
   const [selectedDisease, setSelectedDisease] = useState("all");
+
+  // Sort options for SortControl
+  const sortOptions = [
+    { value: "updated_at", label: "Last Updated" },
+    { value: "created_at", label: "Date Added" },
+    { value: "full_name", label: "Name" },
+    { value: "diagnosis", label: "Diagnosis" }
+  ];
+
+  // Filter options for FilterControl - created after diseases are loaded
+  const filterOptions = React.useMemo(() => [
+    { value: "all", label: "All Patients" },
+    { value: "healthy", label: "Healthy Patients" },
+    ...diseases.map(disease => ({
+      value: disease.name,
+      label: disease.name
+    }))
+  ], [diseases]);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -32,6 +53,7 @@ function Records() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    console.log('useEffect triggered with selectedDisease:', selectedDisease);
     fetchMedicalRecords();
     fetchDiseases();
   }, [currentPage, itemsPerPage, sortBy, sortOrder, searchTerm, selectedDisease]);
@@ -48,17 +70,33 @@ function Records() {
         disease: selectedDisease
       });
 
+      console.log('API call with params:', {
+        page: currentPage,
+        limit: itemsPerPage,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        search: searchTerm,
+        disease: selectedDisease
+      });
+
       const response = await axios.get(`http://localhost/prms/prms-backend/get_patients.php?${params}`);
+      
+      console.log('API Response:', response.data);
       
       if (response.data.success) {
         setPatients(response.data.data);
         setTotalPages(response.data.pagination.totalPages);
         setTotalRecords(response.data.pagination.totalRecords);
+        console.log('Successfully loaded patients:', response.data.data.length);
       } else {
-        console.error("Failed to fetch medical records");
+        console.error("Failed to fetch medical records:", response.data);
       }
     } catch (err) {
       console.error("Error fetching medical records:", err);
+      if (err.response) {
+        console.error("Response data:", err.response.data);
+        console.error("Response status:", err.response.status);
+      }
     } finally {
       setLoading(false);
     }
@@ -91,16 +129,18 @@ function Records() {
   };
 
   const handleSort = (field) => {
-    if (sortBy === field) {
-      toggleSortOrder();
-    } else {
-      setSortBy(field);
-      setSortOrder("asc");
-    }
+    setSortBy(field);
     setCurrentPage(1); // Reset to first page when sorting
   };
 
+  const handleSortOrderToggle = () => {
+    setSortOrder(prev => prev === "asc" ? "desc" : "asc");
+    setCurrentPage(1); // Reset to first page when changing sort order
+  };
+
   const handleDiseaseFilter = (disease) => {
+    console.log('Filter changed to:', disease);
+    console.log('Current selectedDisease before update:', selectedDisease);
     setSelectedDisease(disease);
     setCurrentPage(1); // Reset to first page when filtering
   };
@@ -205,66 +245,32 @@ function Records() {
                   <p className="text-gray-700 mt-2">View and manage patient medical records</p>
                 </div>
                 
-                {/* Controls on the right */}
+                {/* Modern Controls */}
                 <div className="flex items-center space-x-4">
-                  {/* Search Input */}
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search patients by name, contact, address, or disease..."
-                      value={searchTerm}
-                      onChange={(e) => handleSearch(e.target.value)}
-                      className="w-80 px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <svg className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
+                  {/* Modern Search Input */}
+                  <SearchInput
+                    placeholder="Search patients by name, contact, address, or disease..."
+                    value={searchTerm}
+                    onChange={handleSearch}
+                    className="w-80"
+                  />
 
-                  {/* Disease Filter */}
-                  <div className="flex items-center space-x-2">
-                    <div className="flex items-center gap-2">
-                    {/*  <FaStethoscope className="h-4 w-4 text-gray-400" /> */}
-                      <span className="text-sm font-medium text-gray-700">Filter:</span>
-                    </div>
-                    <select
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={selectedDisease}
-                      onChange={(e) => handleDiseaseFilter(e.target.value)}
-                    >
-                      <option value="all">All Patients</option>
-                      <option value="healthy">Healthy Patients</option>
-                      {diseases.map((disease) => (
-                        <option key={disease.id} value={disease.name}>
-                          {disease.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {/* Modern Filter Control */}
+                  <FilterControl
+                    label="Filter"
+                    value={selectedDisease}
+                    options={filterOptions}
+                    onChange={handleDiseaseFilter}
+                  />
 
-                  {/* Sort Controls */}
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleSort(sortBy)}
-                      className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                      title={`Sort ${sortOrder === "asc" ? "Ascending" : "Descending"}`}
-                    >
-                      <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
-                      </svg>
-                    </button>
-                    
-                    <select
-                      value={sortBy}
-                      onChange={(e) => handleSort(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="updated_at">Sort by: Last Updated</option>
-                      <option value="created_at">Sort by: Date Added</option>
-                      <option value="full_name">Sort by: Name</option>
-                      <option value="diagnosis">Sort by: Diagnosis</option>
-                    </select>
-                  </div>
+                  {/* Modern Sort Control */}
+                  <SortControl
+                    value={sortBy}
+                    order={sortOrder}
+                    options={sortOptions}
+                    onChange={handleSort}
+                    onToggleOrder={handleSortOrderToggle}
+                  />
                 </div>
               </div>
             </div>

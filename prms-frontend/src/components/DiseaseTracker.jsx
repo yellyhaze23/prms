@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaVirus, FaExclamationTriangle, FaChartLine, FaUsers, FaMapMarkerAlt, FaCalendarAlt, FaStethoscope, FaShieldAlt, FaThermometerHalf, FaEye, FaLungs, FaHeartbeat, FaPlus } from "react-icons/fa";
 import axios from "axios";
 import DiseaseCaseForm from "./DiseaseCaseForm";
+import "../pages/Dashboard.css";
 
 const diseases = [
   {
@@ -218,50 +219,50 @@ function DiseaseTracker() {
 
               {/* Statistics Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="modern-summary-card">
                   <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <FaUsers className="h-8 w-8 text-blue-600" />
+                    <div className="modern-icon-container bg-blue-50">
+                      <FaUsers className="h-6 w-6 text-blue-600" />
                     </div>
                     <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-500">Total Cases</p>
-                      <p className="text-2xl font-semibold text-gray-900">{diseaseData.totalCases || 0}</p>
+                      <p className="modern-card-label">Total Cases</p>
+                      <p className="modern-card-value">{diseaseData.totalCases || 0}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="modern-summary-card">
                   <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <FaExclamationTriangle className="h-8 w-8 text-red-600" />
+                    <div className="modern-icon-container bg-red-50">
+                      <FaExclamationTriangle className="h-6 w-6 text-red-600" />
                     </div>
                     <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-500">Active Cases</p>
-                      <p className="text-2xl font-semibold text-red-600">{diseaseData.activeCases || 0}</p>
+                      <p className="modern-card-label">Active Cases</p>
+                      <p className="modern-card-value">{diseaseData.activeCases || 0}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="modern-summary-card">
                   <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <FaChartLine className="h-8 w-8 text-green-600" />
+                    <div className="modern-icon-container bg-green-50">
+                      <FaChartLine className="h-6 w-6 text-green-600" />
                     </div>
                     <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-500">Recovered</p>
-                      <p className="text-2xl font-semibold text-green-600">{diseaseData.recovered || 0}</p>
+                      <p className="modern-card-label">Recovered</p>
+                      <p className="modern-card-value">{diseaseData.recovered || 0}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="modern-summary-card">
                   <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <FaCalendarAlt className="h-8 w-8 text-purple-600" />
+                    <div className="modern-icon-container bg-purple-50">
+                      <FaCalendarAlt className="h-6 w-6 text-purple-600" />
                     </div>
                     <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-500">New Cases (7d)</p>
-                      <p className="text-2xl font-semibold text-purple-600">{diseaseData.newCases || 0}</p>
+                      <p className="modern-card-label">New Cases (7d)</p>
+                      <p className="modern-card-value">{diseaseData.newCases || 0}</p>
                     </div>
                   </div>
                 </div>

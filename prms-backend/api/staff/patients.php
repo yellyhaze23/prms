@@ -11,6 +11,7 @@ $page = max(1, intval($_GET['page'] ?? 1));
 $pageSize = max(1, min(100, intval($_GET['limit'] ?? 25))); // Allow 1-100 items per page
 $offset = ($page - 1) * $pageSize;
 $q = trim($_GET['q'] ?? '');
+$disease = trim($_GET['disease'] ?? '');
 $sortBy = $_GET['sortBy'] ?? 'id';
 $sortOrder = strtoupper($_GET['sortOrder'] ?? 'asc') === 'DESC' ? 'DESC' : 'ASC';
 
@@ -34,6 +35,19 @@ if ($q !== '') {
     $qLike = '%' . $conn->real_escape_string($q) . '%';
     $whereParts[] = "(full_name LIKE '$qLike' OR address LIKE '$qLike')";
 }
+
+// Add disease filtering
+if (!empty($disease) && $disease !== 'All Patients') {
+    $disease = $conn->real_escape_string($disease);
+    if ($disease === 'healthy') {
+        // For healthy patients, we need to join with medical_records to check diagnosis
+        $whereParts[] = "id NOT IN (SELECT DISTINCT patient_id FROM medical_records WHERE diagnosis IS NOT NULL AND diagnosis != '' AND diagnosis != 'Healthy')";
+    } else {
+        // For specific diseases, join with medical_records
+        $whereParts[] = "id IN (SELECT DISTINCT patient_id FROM medical_records WHERE diagnosis = '$disease')";
+    }
+}
+
 $where = 'WHERE ' . implode(' AND ', $whereParts);
 
 $totalRes = $conn->query("SELECT COUNT(*) as c FROM patients $where");

@@ -47,6 +47,7 @@ function AddDiseaseModal({ onClose, onConfirm, disease = null }) {
   });
 
   const [toast, setToast] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -62,12 +63,18 @@ function AddDiseaseModal({ onClose, onConfirm, disease = null }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Prevent multiple submissions
+    if (isSubmitting) {
+      return;
+    }
+    
     // Validation
     if (!formData.name || !formData.description || !formData.symptoms) {
       showToast("Please fill in all required fields", "error");
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const url = disease
         ? "http://localhost/prms/prms-backend/update_disease.php"
@@ -76,6 +83,7 @@ function AddDiseaseModal({ onClose, onConfirm, disease = null }) {
       const body = disease
         ? { id: disease.id, ...formData }
         : formData;
+
 
       const response = await fetch(url, {
         method: "POST",
@@ -91,6 +99,8 @@ function AddDiseaseModal({ onClose, onConfirm, disease = null }) {
       onClose();
     } catch (error) {
       showToast("Error: " + error.message, "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -270,10 +280,15 @@ function AddDiseaseModal({ onClose, onConfirm, disease = null }) {
             </button>
             <button
               type="submit"
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150"
+              disabled={isSubmitting}
+              className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150 ${
+                isSubmitting 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
             >
               <FaSave className="h-4 w-4 mr-2" />
-              {disease ? "Update Disease" : "Add Disease"}
+              {isSubmitting ? "Saving..." : (disease ? "Update Disease" : "Add Disease")}
             </button>
           </div>
         </form>

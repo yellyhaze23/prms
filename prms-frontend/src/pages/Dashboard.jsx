@@ -515,62 +515,62 @@ const Dashboard = () => {
 
         {/* Essential Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div className="modern-summary-card">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <div className="modern-icon-container bg-blue-50">
                   <FaUsers className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Patients</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total_patients}</p>
-                <p className="text-xs text-gray-500">Registered patients</p>
+                <p className="modern-card-label">Total Patients</p>
+                <p className="modern-card-value">{stats.total_patients}</p>
+                <p className="modern-card-description">Registered patients</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div className="modern-summary-card">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                <div className="modern-icon-container bg-red-50">
                   <FaVirus className="h-6 w-6 text-red-600" />
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Diseases Tracked</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total_diseases}</p>
-                <p className="text-xs text-gray-500">Active diseases</p>
+                <p className="modern-card-label">Diseases Tracked</p>
+                <p className="modern-card-value">{stats.total_diseases}</p>
+                <p className="modern-card-description">Active diseases</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div className="modern-summary-card">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                <div className="modern-icon-container bg-orange-50">
                   <FaExclamationTriangle className="h-6 w-6 text-orange-600" />
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Active Cases</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.active_cases}</p>
-                <p className="text-xs text-gray-500">Current patients</p>
+                <p className="modern-card-label">Active Cases</p>
+                <p className="modern-card-value">{stats.active_cases}</p>
+                <p className="modern-card-description">Current patients</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div className="modern-summary-card">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <div className="modern-icon-container bg-green-50">
                   <FaUserMd className="h-6 w-6 text-green-600" />
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">New This Month</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.new_patients_this_month}</p>
-                <p className="text-xs text-gray-500">New patients</p>
+                <p className="modern-card-label">New This Month</p>
+                <p className="modern-card-value">{stats.new_patients_this_month}</p>
+                <p className="modern-card-description">New patients</p>
               </div>
             </div>
           </div>
