@@ -27,7 +27,7 @@ export default function SortControl({
   const active = options.find(o => o.value === value);
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative z-10" ref={containerRef}>
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -63,7 +63,7 @@ export default function SortControl({
       {open && (
         <ul
           role="listbox"
-          className="absolute z-20 mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden"
+          className="absolute top-full left-0 z-50 mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden"
         >
           {options.map(opt => (
             <li key={opt.value}>

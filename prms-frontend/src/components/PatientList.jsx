@@ -179,11 +179,11 @@ function PatientList({ patients, onSelect, onEdit, onDelete, loading, error }) {
                           <div className="py-2">
                             {/* Edit Patient */}
                             <button
-                              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-all duration-150 group/edit"
+                              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all duration-150 group/edit"
                               onClick={(e) => handleActionClick('edit', patient, e)}
                             >
-                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100 group-hover/edit:bg-emerald-200 transition-colors duration-150 mr-3">
-                                <FaEdit className="h-3.5 w-3.5 text-emerald-600" />
+                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 group-hover/edit:bg-red-200 transition-colors duration-150 mr-3">
+                                <FaEdit className="h-3.5 w-3.5 text-red-600" />
                               </div>
                               <div className="flex flex-col items-start">
                                 <span className="font-medium">Edit Patient</span>

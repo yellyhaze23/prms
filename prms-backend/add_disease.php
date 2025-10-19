@@ -18,30 +18,33 @@ if (
 }
 
 try {
-    // Sanitize input data
-    $name = mysqli_real_escape_string($conn, $data['name']);
-    $description = mysqli_real_escape_string($conn, $data['description']);
-    $symptoms = mysqli_real_escape_string($conn, $data['symptoms']);
-    $incubation_period = mysqli_real_escape_string($conn, $data['incubation_period'] ?? '');
-    $contagious_period = mysqli_real_escape_string($conn, $data['contagious_period'] ?? '');
-    $color = mysqli_real_escape_string($conn, $data['color'] ?? 'blue');
-    $icon = mysqli_real_escape_string($conn, $data['icon'] ?? 'FaVirus');
+    // Get input data
+    $name = $data['name'];
+    $description = $data['description'];
+    $symptoms = $data['symptoms'];
+    $incubation_period = $data['incubation_period'] ?? '';
+    $contagious_period = $data['contagious_period'] ?? '';
+    $color = $data['color'] ?? 'blue';
+    $icon = $data['icon'] ?? 'FaVirus';
 
-    // Check if disease name already exists
-    $checkSql = "SELECT id FROM diseases WHERE name = '$name'";
-    $checkResult = $conn->query($checkSql);
+    // Check if disease name already exists using prepared statement
+    $checkStmt = $conn->prepare("SELECT id FROM diseases WHERE name = ?");
+    $checkStmt->bind_param("s", $name);
+    $checkStmt->execute();
+    $checkResult = $checkStmt->get_result();
+    
     if ($checkResult->num_rows > 0) {
         http_response_code(400);
         echo json_encode(['error' => 'Disease with this name already exists.']);
         exit;
     }
 
-    // Insert new disease
-    $sql = "INSERT INTO diseases (name, description, symptoms, incubation_period, contagious_period, color, icon) 
-            VALUES ('$name', '$description', '$symptoms', '$incubation_period', '$contagious_period', '$color', '$icon')";
+    // Insert new disease using prepared statement
+    $stmt = $conn->prepare("INSERT INTO diseases (name, description, symptoms, incubation_period, contagious_period, color, icon) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssssss", $name, $description, $symptoms, $incubation_period, $contagious_period, $color, $icon);
 
-    if (mysqli_query($conn, $sql)) {
-        $newId = mysqli_insert_id($conn);
+    if ($stmt->execute()) {
+        $newId = $conn->insert_id;
         
         echo json_encode([
             'success' => true,
@@ -57,7 +60,7 @@ try {
         ]);
     } else {
         http_response_code(500);
-        echo json_encode(['error' => 'Database error: ' . mysqli_error($conn)]);
+        echo json_encode(['error' => 'Database error: ' . $stmt->error]);
     }
 
 } catch (Exception $e) {

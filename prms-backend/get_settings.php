@@ -14,6 +14,8 @@ $createSql = "CREATE TABLE IF NOT EXISTS settings (
   map_default_center VARCHAR(100) DEFAULT NULL, -- format: lat,lon
   map_default_zoom INT DEFAULT 12,
   forecast_default_days INT DEFAULT 30,
+  session_timeout_minutes INT DEFAULT 30,
+  session_warning_minutes INT DEFAULT 5,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
 mysqli_query($conn, $createSql);
@@ -22,7 +24,7 @@ mysqli_query($conn, $createSql);
 $check = mysqli_query($conn, "SELECT COUNT(*) AS c FROM settings");
 $row = mysqli_fetch_assoc($check);
 if ((int)$row['c'] === 0) {
-  mysqli_query($conn, "INSERT INTO settings (id, clinic_name, clinic_address, clinic_phone, clinic_email, map_default_center, map_default_zoom, forecast_default_days) VALUES (1, NULL, NULL, NULL, NULL, '14.2794,121.4167', 12, 30)");
+  mysqli_query($conn, "INSERT INTO settings (id, clinic_name, clinic_address, clinic_phone, clinic_email, map_default_center, map_default_zoom, forecast_default_days, session_timeout_minutes, session_warning_minutes) VALUES (1, NULL, NULL, NULL, NULL, '14.2794,121.4167', 12, 30, 30, 5)");
 }
 
 $res = mysqli_query($conn, "SELECT * FROM settings WHERE id=1");

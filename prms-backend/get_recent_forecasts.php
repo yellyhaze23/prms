@@ -31,7 +31,7 @@ try {
     
     echo json_encode([
         'success' => true,
-        'forecasts' => $forecasts,
+        'data' => $forecasts,
         'count' => count($forecasts)
     ]);
     

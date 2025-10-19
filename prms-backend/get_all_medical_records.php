@@ -24,40 +24,65 @@ if (!in_array($sortBy, $allowedSortFields)) {
 
 $sortOrder = strtoupper($sortOrder) === 'DESC' ? 'DESC' : 'ASC';
 
-// Build search condition
-$searchCondition = '';
+// Build search condition with prepared statements
+$whereConditions = [];
 $params = [];
 $paramTypes = '';
 
 if (!empty($search)) {
-    $search = mysqli_real_escape_string($conn, $search);
-    $searchCondition .= " AND (mr.diagnosis LIKE '%$search%' OR p.full_name LIKE '%$search%' OR mr.chief_complaint LIKE '%$search%')";
+    $whereConditions[] = "(mr.diagnosis LIKE ? OR p.full_name LIKE ? OR mr.chief_complaint LIKE ?)";
+    $searchParam = "%$search%";
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $paramTypes .= 'sss';
 }
 
 if (!empty($diseaseFilter) && $diseaseFilter !== 'all') {
-    $diseaseFilter = mysqli_real_escape_string($conn, $diseaseFilter);
-    $searchCondition .= " AND mr.diagnosis = '$diseaseFilter'";
+    $whereConditions[] = "mr.diagnosis = ?";
+    $params[] = $diseaseFilter;
+    $paramTypes .= 's';
 }
 
 // Filter by patient_id if provided
 if (!empty($patientId) && $patientId > 0) {
-    $patientId = (int)$patientId; // Ensure it's an integer
-    $searchCondition .= " AND mr.patient_id = $patientId";
+    $whereConditions[] = "mr.patient_id = ?";
+    $params[] = $patientId;
+    $paramTypes .= 'i';
 }
 
-// Get total count for pagination
+$whereClause = !empty($whereConditions) ? "WHERE " . implode(' AND ', $whereConditions) : "WHERE 1=1";
+
+// Get total count for pagination using prepared statements
 $countSql = "
     SELECT COUNT(*) as total
     FROM medical_records mr
     JOIN patients p ON mr.patient_id = p.id
-    WHERE 1=1 $searchCondition
+    $whereClause
 ";
 
-$countResult = mysqli_query($conn, $countSql);
-$totalRecords = mysqli_fetch_assoc($countResult)['total'];
+$countStmt = $conn->prepare($countSql);
+if (!$countStmt) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Count prepare failed: ' . $conn->error]);
+    exit;
+}
+
+if (!empty($params)) {
+    $countStmt->bind_param($paramTypes, ...$params);
+}
+
+if (!$countStmt->execute()) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Count execute failed: ' . $countStmt->error]);
+    exit;
+}
+
+$countResult = $countStmt->get_result();
+$totalRecords = $countResult->fetch_assoc()['total'];
 $totalPages = ceil($totalRecords / $limit);
 
-// Get medical records with pagination
+// Get medical records with pagination using prepared statements
 $sql = "
     SELECT 
         mr.id,
@@ -95,21 +120,37 @@ $sql = "
         p.address
     FROM medical_records mr
     JOIN patients p ON mr.patient_id = p.id
-    WHERE 1=1 $searchCondition
+    $whereClause
     ORDER BY mr.$sortBy $sortOrder
-    LIMIT $limit OFFSET $offset
+    LIMIT ? OFFSET ?
 ";
 
-$result = mysqli_query($conn, $sql);
-
-if (!$result) {
+$stmt = $conn->prepare($sql);
+if (!$stmt) {
     http_response_code(500);
-    echo json_encode(['error' => 'Database error: ' . mysqli_error($conn)]);
+    echo json_encode(['error' => 'Prepare failed: ' . $conn->error]);
     exit;
 }
 
+// Add limit and offset to parameters
+$allParams = $params;
+$allParams[] = $limit;
+$allParams[] = $offset;
+$allParamTypes = $paramTypes . 'ii';
+
+if (!empty($allParams)) {
+    $stmt->bind_param($allParamTypes, ...$allParams);
+}
+
+if (!$stmt->execute()) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Execute failed: ' . $stmt->error]);
+    exit;
+}
+
+$result = $stmt->get_result();
 $records = [];
-while ($row = mysqli_fetch_assoc($result)) {
+while ($row = $result->fetch_assoc()) {
     $records[] = $row;
 }
 

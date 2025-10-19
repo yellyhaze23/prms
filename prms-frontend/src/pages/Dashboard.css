@@ -649,6 +649,33 @@
   }
 } */
 
+/* Count-Up Animation Styles */
+.count-up-number {
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.count-up-animating {
+  animation: countUpPulse 0.1s ease-in-out;
+}
+
+@keyframes countUpPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Enhanced count-up with subtle glow effect */
+.count-up-number.count-up-animating {
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+}
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   .modern-summary-card,
@@ -662,5 +689,14 @@
   
   .modern-summary-card:hover .modern-icon-container {
     transform: none;
+  }
+  
+  /* Disable count-up animations for reduced motion */
+  .count-up-animating {
+    animation: none;
+  }
+  
+  .count-up-number.count-up-animating {
+    text-shadow: none;
   }
 }

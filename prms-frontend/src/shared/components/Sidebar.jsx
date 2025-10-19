@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FaHospital, FaChevronRight, FaSignOutAlt } from 'react-icons/fa';
+import { FaChartLine, FaChevronRight, FaSignOutAlt } from 'react-icons/fa';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
-export default function Sidebar({ nav = [], brandTitle = 'RHU PRS', brandSubtitle = 'Patient Record System' }) {
+export default function Sidebar({ nav = [], brandTitle = 'Tracely', brandSubtitle = 'Track disease easily' }) {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
 
@@ -20,7 +20,7 @@ export default function Sidebar({ nav = [], brandTitle = 'RHU PRS', brandSubtitl
       <div className="p-6 border-b border-slate-700/50">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-            <FaHospital className="text-white text-xl" />
+            <FaChartLine className="text-white text-xl" />
           </div>
           <div>
             <h1 className="text-white font-bold text-lg">{brandTitle}</h1>

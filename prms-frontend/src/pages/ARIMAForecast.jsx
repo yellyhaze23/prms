@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { 
   FaChartLine, 
   FaExclamationTriangle, 
@@ -10,12 +11,23 @@ import {
   FaDownload,
   FaSync,
   FaEye,
-  FaFileImage
+  FaFileImage,
+  FaChevronDown
 } from 'react-icons/fa';
 import RecentForecasts from '../components/RecentForecasts';
 import ForecastChart from '../components/ForecastChart';
 import ModernToast from '../components/ModernToast';
+import CountUp from '../components/CountUp';
 import notificationService from '../utils/notificationService';
+// Animation variants
+import { 
+  pageVariants, 
+  containerVariants, 
+  cardVariants, 
+  chartVariants,
+  buttonVariants,
+  hoverScale 
+} from '../utils/animations';
 
 const ARIMAForecast = () => {
   const [selectedDisease, setSelectedDisease] = useState('');
@@ -28,10 +40,35 @@ const ARIMAForecast = () => {
   const [showCharts, setShowCharts] = useState(false);
   const [activeTab, setActiveTab] = useState('generate');
   const [toast, setToast] = useState(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const dropdownRef = useRef(null);
 
   const diseases = [
     'Chickenpox', 'Dengue', 'Hepatitis', 'Measles', 'Tuberculosis'
   ];
+
+  // Dropdown options
+  const dropdownOptions = [
+    { value: '', label: 'All Diseases' },
+    ...diseases.map(disease => ({ value: disease, label: disease }))
+  ];
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Get selected option
+  const selectedOption = dropdownOptions.find(option => option.value === selectedDisease) || dropdownOptions[0];
 
   // Fetch historical data for chart visualization
   const fetchHistoricalData = async (disease, months = 12) => {
@@ -93,17 +130,21 @@ const ARIMAForecast = () => {
   const handleGenerateForecast = async () => {
     setIsLoading(true);
     setError('');
+    setProgress(0);
     setLoadingStep('Preparing data...');
 
     try {
       // Simulate loading steps for better UX
       setLoadingStep('Loading historical data...');
+      setProgress(20);
       await new Promise(resolve => setTimeout(resolve, 500));
       
       setLoadingStep('Training ARIMA model...');
+      setProgress(50);
       await new Promise(resolve => setTimeout(resolve, 500));
       
       setLoadingStep('Generating forecast...');
+      setProgress(75);
       
       const response = await fetch('http://localhost/prms/prms-backend/arima_forecast_disease_summary.php', {
         method: 'POST',
@@ -124,7 +165,9 @@ const ARIMAForecast = () => {
       
       if (data.success) {
         setLoadingStep('Finalizing results...');
+        setProgress(90);
         await new Promise(resolve => setTimeout(resolve, 300));
+        setProgress(100);
         
         setForecastData(data.data);
         setShowCharts(true);
@@ -146,6 +189,10 @@ const ARIMAForecast = () => {
         } catch (error) {
           console.error('Error sending notification:', error);
         }
+        
+        // Trigger refresh of RecentForecasts component
+        setRefreshTrigger(prev => prev + 1);
+        
         // Training data is now included in forecast response
       } else {
         setError(data.error || 'Failed to generate forecast');
@@ -167,6 +214,7 @@ const ARIMAForecast = () => {
     } finally {
       setIsLoading(false);
       setLoadingStep('');
+      setProgress(0);
     }
   };
 
@@ -193,16 +241,27 @@ const ARIMAForecast = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <motion.div 
+      className="min-h-screen bg-gray-50"
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         {/* Modern Header with Controls */}
-        <div className="mb-5">
+        <motion.div 
+          className="mb-5"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           <div className="flex items-center justify-between mb-4">
-            <div>
+            <motion.div variants={cardVariants}>
               <h1 className="text-3xl font-bold text-blue-600">Disease Forecasting</h1>
               <p className="text-gray-700 mt-2">Generate ARIMA-based disease forecasts</p>
-            </div>
+            </motion.div>
             
             {/* Controls on the right */}
             <div className="flex items-center space-x-4">
@@ -240,41 +299,78 @@ const ARIMAForecast = () => {
               </button>
             </nav>
           </div>
-        </div>
+        </motion.div>
 
         {activeTab === 'generate' && (
-          <div className="space-y-8">
+          <motion.div 
+            className="space-y-8"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
             {/* Forecast Parameters Section */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-700 mb-6 flex items-center gap-2">
-                <FaCalendarAlt className="text-green-600" />
-                Forecast Parameters
-              </h2>
+            <motion.div 
+              className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 hover:shadow-2xl transition-all duration-300"
+              variants={cardVariants}
+              whileHover={hoverScale}
+            >
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <FaCalendarAlt className="text-white text-xl" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800">Forecast Parameters</h2>
+                  <p className="text-gray-600 text-sm">Configure your disease forecasting model</p>
+                </div>
+              </div>
               
               {/* Form Layout - 3 columns: 2 fields + 1 button group */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Disease Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">
                     Disease (Optional)
                   </label>
-                  <select
-                    value={selectedDisease}
-                    onChange={(e) => setSelectedDisease(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  >
-                    <option value="">All Diseases</option>
-                    {diseases.map((disease) => (
-                      <option key={disease} value={disease}>
-                        {disease}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 flex items-center justify-between text-left"
+                    >
+                      <span className="text-gray-900 font-medium">{selectedOption.label}</span>
+                      <FaChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {isDropdownOpen && (
+                      <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                        {dropdownOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setSelectedDisease(option.value);
+                              setIsDropdownOpen(false);
+                            }}
+                            className={`w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors duration-150 flex items-center justify-between ${
+                              selectedDisease === option.value 
+                                ? 'bg-blue-50 text-blue-700 font-medium' 
+                                : 'text-gray-700 hover:text-blue-700'
+                            }`}
+                          >
+                            <span>{option.label}</span>
+                            {selectedDisease === option.value && (
+                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Forecast Period */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">
                     Forecast Period (months)
                   </label>
                   <input
@@ -282,7 +378,8 @@ const ARIMAForecast = () => {
                     value={forecastPeriod}
                     onChange={(e) => setForecastPeriod(Math.max(1, parseInt(e.target.value)))}
                     min="1"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 font-medium"
+                    placeholder="Enter months..."
                   />
                 </div>
 
@@ -292,28 +389,22 @@ const ARIMAForecast = () => {
                     <button
                       onClick={handleGenerateForecast}
                       disabled={isLoading}
-                      className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-6 rounded-xl shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-3 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                     >
-                      {isLoading ? (
-                        <>
-                          <FaSync className="animate-spin" /> {loadingStep || 'Generating...'}
-                        </>
-                      ) : (
-                        <>
-                          <FaPlay /> Generate
-                        </>
-                      )}
+                      <FaPlay className="w-5 h-5" /> 
+                      <span>Generate</span>
                     </button>
                     <button
                       onClick={handleDownloadReport}
-                      className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center justify-center gap-2 transition-all"
+                      className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-6 rounded-xl shadow-lg hover:shadow-xl hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center justify-center gap-3 transition-all duration-200 font-medium"
                     >
-                      <FaDownload /> Download
+                      <FaDownload className="w-5 h-5" /> 
+                      <span>Download</span>
                     </button>
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Error Display */}
             {error && (
@@ -326,18 +417,46 @@ const ARIMAForecast = () => {
               </div>
             )}
 
-            {/* Loading Overlay */}
+            {/* Enhanced Loading Overlay */}
             {isLoading && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-xl p-8 max-w-md mx-4 text-center shadow-2xl">
-                  <div className="flex flex-col items-center space-y-4">
-                    <FaSync className="animate-spin text-4xl text-blue-600" />
-                    <h3 className="text-xl font-semibold text-gray-900">Generating Forecast</h3>
-                    <p className="text-gray-600">{loadingStep}</p>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
+              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+                <div className="bg-white/95 backdrop-blur-md rounded-2xl p-8 max-w-lg mx-4 text-center shadow-2xl border border-white/20">
+                  <div className="flex flex-col items-center space-y-6">
+                    {/* Modern Loading Icon */}
+                    <div className="relative">
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                        <FaSync className="animate-spin text-2xl text-white" />
+                      </div>
+                      <div className="absolute -inset-2 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full opacity-20 animate-ping"></div>
                     </div>
-                    <p className="text-sm text-gray-500">This may take a few moments...</p>
+                    
+                    {/* Title and Status */}
+                    <div className="space-y-2">
+                      <h3 className="text-2xl font-bold text-gray-900">Generating Forecast</h3>
+                      <p className="text-lg text-gray-700 font-medium">{loadingStep}</p>
+                    </div>
+                    
+                    {/* Enhanced Progress Bar */}
+                    <div className="w-full space-y-3">
+                      <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                        <div 
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
+                          style={{width: `${progress}%`}}
+                        ></div>
+                      </div>
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>Processing...</span>
+                        <span>{progress}%</span>
+                      </div>
+                    </div>
+                    
+                    {/* Modern Info Text */}
+                    <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100">
+                      <p className="text-sm text-blue-700 font-medium">
+                        <FaInfoCircle className="inline w-4 h-4 mr-2" />
+                        This may take a few moments while we analyze your data...
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -353,21 +472,27 @@ const ARIMAForecast = () => {
                     <div className="bg-blue-50 p-4 rounded-xl shadow-sm flex items-center justify-between hover:shadow-lg transition-all">
                       <div>
                         <p className="text-sm text-blue-700 font-medium">Diseases</p>
-                        <p className="text-2xl font-bold text-blue-900">{forecastData.summary.total_diseases}</p>
+                        <p className="text-2xl font-bold text-blue-900">
+                          <CountUp end={forecastData.summary.total_diseases} duration={2000} />
+                        </p>
                       </div>
                       <FaUsers className="text-blue-500 text-3xl" />
                     </div>
                     <div className="bg-green-50 p-4 rounded-xl shadow-sm flex items-center justify-between hover:shadow-lg transition-all">
                       <div>
                         <p className="text-sm text-green-700 font-medium">Forecast Months</p>
-                        <p className="text-2xl font-bold text-green-900">{forecastData.summary.total_forecast_months}</p>
+                        <p className="text-2xl font-bold text-green-900">
+                          <CountUp end={forecastData.summary.total_forecast_months} duration={2000} />
+                        </p>
                       </div>
                       <FaCalendarAlt className="text-green-500 text-3xl" />
                     </div>
                     <div className="bg-orange-50 p-4 rounded-xl shadow-sm flex items-center justify-between hover:shadow-lg transition-all">
                       <div>
                         <p className="text-sm text-orange-700 font-medium">Records</p>
-                        <p className="text-2xl font-bold text-orange-900">{forecastData.summary.historical_records}</p>
+                        <p className="text-2xl font-bold text-orange-900">
+                          <CountUp end={forecastData.summary.historical_records} duration={2000} />
+                        </p>
                       </div>
                       <FaChartLine className="text-orange-500 text-3xl" />
                     </div>
@@ -376,7 +501,7 @@ const ARIMAForecast = () => {
                         <p className="text-sm text-purple-700 font-medium">Current Cases (30d)</p>
                         <p className="text-2xl font-bold text-purple-900">
                           {forecastData.summary.current_cases_30d && Object.keys(forecastData.summary.current_cases_30d).length > 0
-                            ? Object.values(forecastData.summary.current_cases_30d).reduce((sum, count) => sum + count, 0)
+                            ? <CountUp end={Object.values(forecastData.summary.current_cases_30d).reduce((sum, count) => sum + count, 0)} duration={2000} />
                             : 'N/A'}
                         </p>
                       </div>
@@ -464,13 +589,19 @@ const ARIMAForecast = () => {
                 </p>
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
         {activeTab === 'recent' && (
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-            <RecentForecasts />
-          </div>
+          <motion.div 
+            className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+            whileHover={hoverScale}
+          >
+            <RecentForecasts refreshTrigger={refreshTrigger} />
+          </motion.div>
         )}
       </div>
 
@@ -484,7 +615,7 @@ const ARIMAForecast = () => {
           message={toast.message}
         />
       )}
-    </div>
+    </motion.div>
   );
 };
 

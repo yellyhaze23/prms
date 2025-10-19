@@ -3,7 +3,7 @@ import { FaCalendarAlt, FaChartLine, FaEye, FaTrash, FaDownload, FaSpinner, FaTi
 import DeleteModal from './DeleteModal';
 import Toast from './Toast';
 
-const RecentForecasts = () => {
+const RecentForecasts = ({ refreshTrigger }) => {
   const [forecasts, setForecasts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -15,6 +15,13 @@ const RecentForecasts = () => {
     fetchRecentForecasts();
   }, []);
 
+  // Refresh when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger) {
+      fetchRecentForecasts();
+    }
+  }, [refreshTrigger]);
+
   const fetchRecentForecasts = async () => {
     try {
       const response = await fetch('http://localhost/prms/prms-backend/get_recent_forecasts.php');
@@ -24,14 +31,16 @@ const RecentForecasts = () => {
       }
       
       const data = await response.json();
-      
+            
       if (data.success) {
-        setForecasts(data.data);
+        setForecasts(data.data || []);
       } else {
         setError(data.error || 'Failed to fetch recent forecasts');
+        setForecasts([]);
       }
     } catch (err) {
       setError(err.message);
+      setForecasts([]);
     } finally {
       setLoading(false);
     }
@@ -168,7 +177,7 @@ const RecentForecasts = () => {
     );
   }
 
-  if (forecasts.length === 0) {
+  if (!forecasts || forecasts.length === 0) {
     return (
       <div className="text-center py-16">
         <FaChartLine className="mx-auto text-gray-300 text-6xl mb-6" />
@@ -193,7 +202,7 @@ const RecentForecasts = () => {
 
       {/* Recent Forecasts List Section */}
       <div className="space-y-4">
-        {forecasts.map((forecast, index) => (
+        {forecasts && forecasts.map((forecast, index) => (
           <div key={forecast.id} className="bg-white shadow-sm rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200">
             {/* Card Header */}
             <div className="p-6 border-b border-gray-100">
@@ -301,7 +310,7 @@ const RecentForecasts = () => {
             )}
 
             {/* Divider between forecasts */}
-            {index < forecasts.length - 1 && (
+            {forecasts && index < forecasts.length - 1 && (
               <div className="border-t border-gray-100"></div>
             )}
           </div>
@@ -310,7 +319,7 @@ const RecentForecasts = () => {
 
       {/* Footer Info */}
       <div className="text-center text-sm text-gray-500 py-4">
-        Showing {forecasts.length} recent forecast{forecasts.length !== 1 ? 's' : ''}
+        Showing {forecasts ? forecasts.length : 0} recent forecast{forecasts && forecasts.length !== 1 ? 's' : ''}
       </div>
 
       {/* Delete Modal - Now using Portal */}

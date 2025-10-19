@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { 
   FaUsers, 
   FaUser,
@@ -17,10 +18,15 @@ import {
   FaServer,
   FaChartLine,
   FaChartPie,
-  FaTimes
+  FaTimes,
+  FaArrowUp,
+  FaArrowDown,
+  FaMinus
 } from "react-icons/fa";
+import HelpTooltip from '../components/HelpTooltip';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import ModernAlert from '../components/ModernAlert';
+import CountUp from '../components/CountUp';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -64,12 +70,96 @@ const Dashboard = () => {
   const [alerts, setAlerts] = useState([]);
   const [alertCountdown, setAlertCountdown] = useState(10); // 10 seconds countdown
   const [currentUser, setCurrentUser] = useState({ name: 'Admin' });
+  const [diseaseTrends, setDiseaseTrends] = useState({});
+
+  // Animation variants for framer-motion
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: 20,
+      scale: 0.95
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.5,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  const chartVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: 30,
+      scale: 0.9
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.8,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  // Function to calculate trend for disease cases using real historical data
+  const calculateTrend = (diseaseName, currentCount) => {
+    const trendData = diseaseTrends[diseaseName];
+    if (!trendData || !trendData.cases || trendData.cases.length < 2) {
+      return 'neutral'; // No historical data to compare
+    }
+    
+    const cases = trendData.cases;
+    const currentPeriod = cases[cases.length - 1]; // Most recent period
+    const previousPeriod = cases[cases.length - 2]; // Previous period
+    
+    if (previousPeriod === 0) {
+      return currentPeriod > 0 ? 'rising' : 'neutral';
+    }
+    
+    const percentageChange = ((currentPeriod - previousPeriod) / previousPeriod) * 100;
+    if (percentageChange > 5) return 'rising';
+    if (percentageChange < -5) return 'falling';
+    return 'neutral';
+  };
+
+  // Function to get trend icon and color
+  const getTrendDisplay = (trend) => {
+    switch (trend) {
+      case 'rising':
+        return { icon: FaArrowUp, color: 'text-red-500', bgColor: 'bg-red-50' };
+      case 'falling':
+        return { icon: FaArrowDown, color: 'text-green-500', bgColor: 'bg-green-50' };
+      default:
+        return { icon: FaMinus, color: 'text-gray-500', bgColor: 'bg-gray-50' };
+    }
+  };
 
   useEffect(() => {
     fetchCurrentUser();
     fetchDashboardData();
+    fetchDiseaseTrends();
     // Auto-refresh every 5 minutes for real-time updates (reduced from 30 seconds)
-    const interval = setInterval(fetchDashboardData, 300000);
+    const interval = setInterval(() => {
+      fetchDashboardData();
+      fetchDiseaseTrends();
+    }, 300000);
     return () => clearInterval(interval);
   }, []);
 
@@ -77,8 +167,8 @@ const Dashboard = () => {
   useEffect(() => {
     if (alerts.length > 0 && alertCountdown > 0) {
       const timer = setTimeout(() => {
-        setAlertCountdown(prev => prev - 1);
-      }, 1000);
+        setAlertCountdown(prev => prev - 0.2);
+      }, 500);
       return () => clearTimeout(timer);
     } else if (alerts.length > 0 && alertCountdown === 0) {
       // Auto-hide alerts after countdown
@@ -158,6 +248,20 @@ const Dashboard = () => {
       }
     } catch (err) {
       console.error("Background refresh failed:", err);
+    }
+  };
+
+  const fetchDiseaseTrends = async () => {
+    try {
+      const response = await axios.get('http://localhost/prms/prms-backend/get_disease_trends.php?period=7');
+      
+      if (response.data.success) {
+        setDiseaseTrends(response.data.trends);
+      } else {
+        console.error('Failed to fetch disease trends:', response.data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching disease trends:', error);
     }
   };
 
@@ -385,8 +489,15 @@ const Dashboard = () => {
       }
     },
     animation: {
-      duration: 1000,
-      easing: 'easeInOutQuart'
+      duration: 800,
+      easing: 'easeOut',
+      delay: (context) => {
+        let delay = 0;
+        if (context.type === 'data' && context.mode === 'default') {
+          delay = context.dataIndex * 100 + context.datasetIndex * 100;
+        }
+        return delay;
+      }
     }
   };
 
@@ -434,8 +545,15 @@ const Dashboard = () => {
     animation: {
       animateRotate: true,
       animateScale: true,
-      duration: 1000,
-      easing: 'easeInOutQuart'
+      duration: 800,
+      easing: 'easeOut',
+      delay: (context) => {
+        let delay = 0;
+        if (context.type === 'data' && context.mode === 'default') {
+          delay = context.dataIndex * 150;
+        }
+        return delay;
+      }
     }
   };
 
@@ -514,74 +632,155 @@ const Dashboard = () => {
         )}
 
         {/* Essential Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="modern-summary-card">
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div 
+            className="modern-summary-card"
+            variants={cardVariants}
+            whileHover={{ 
+              scale: 1.02,
+              transition: { duration: 0.2 }
+            }}
+          >
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="modern-icon-container bg-blue-50">
                   <FaUsers className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
-              <div className="ml-4">
-                <p className="modern-card-label">Total Patients</p>
-                <p className="modern-card-value">{stats.total_patients}</p>
+              <div className="ml-4 flex-1">
+                <div className="flex items-center space-x-2">
+                  <p className="modern-card-label">Total Patients</p>
+                  <HelpTooltip
+                    content="Total number of patients registered in the system. This includes all patients regardless of their current health status."
+                    position="top"
+                    size="sm"
+                  />
+                </div>
+                <p className="modern-card-value">
+                  <CountUp end={stats.total_patients} duration={2000} />
+                </p>
                 <p className="modern-card-description">Registered patients</p>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="modern-summary-card">
+          <motion.div 
+            className="modern-summary-card"
+            variants={cardVariants}
+            whileHover={{ 
+              scale: 1.02,
+              transition: { duration: 0.2 }
+            }}
+          >
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="modern-icon-container bg-red-50">
                   <FaVirus className="h-6 w-6 text-red-600" />
                 </div>
               </div>
-              <div className="ml-4">
-                <p className="modern-card-label">Diseases Tracked</p>
-                <p className="modern-card-value">{stats.total_diseases}</p>
+              <div className="ml-4 flex-1">
+                <div className="flex items-center space-x-2">
+                  <p className="modern-card-label">Diseases Tracked</p>
+                  <HelpTooltip
+                    content="Number of different diseases being monitored in the system. This helps track disease diversity and outbreak potential."
+                    position="top"
+                    size="sm"
+                  />
+                </div>
+                <p className="modern-card-value">
+                  <CountUp end={stats.total_diseases} duration={2000} />
+                </p>
                 <p className="modern-card-description">Active diseases</p>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="modern-summary-card">
+          <motion.div 
+            className="modern-summary-card"
+            variants={cardVariants}
+            whileHover={{ 
+              scale: 1.02,
+              transition: { duration: 0.2 }
+            }}
+          >
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="modern-icon-container bg-orange-50">
                   <FaExclamationTriangle className="h-6 w-6 text-orange-600" />
                 </div>
               </div>
-              <div className="ml-4">
-                <p className="modern-card-label">Active Cases</p>
-                <p className="modern-card-value">{stats.active_cases}</p>
+              <div className="ml-4 flex-1">
+                <div className="flex items-center space-x-2">
+                  <p className="modern-card-label">Active Cases</p>
+                  <HelpTooltip
+                    content="Number of patients currently being treated or monitored for diseases. This indicates the current workload and health status."
+                    position="top"
+                    size="sm"
+                  />
+                </div>
+                <p className="modern-card-value">
+                  <CountUp end={stats.active_cases} duration={2000} />
+                </p>
                 <p className="modern-card-description">Current patients</p>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="modern-summary-card">
+          <motion.div 
+            className="modern-summary-card"
+            variants={cardVariants}
+            whileHover={{ 
+              scale: 1.02,
+              transition: { duration: 0.2 }
+            }}
+          >
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="modern-icon-container bg-green-50">
                   <FaUserMd className="h-6 w-6 text-green-600" />
                 </div>
               </div>
-              <div className="ml-4">
-                <p className="modern-card-label">New This Month</p>
-                <p className="modern-card-value">{stats.new_patients_this_month}</p>
+              <div className="ml-4 flex-1">
+                <div className="flex items-center space-x-2">
+                  <p className="modern-card-label">New This Month</p>
+                  <HelpTooltip
+                    content="Number of new patients registered this month. This shows the growth rate and system adoption."
+                    position="top"
+                    size="sm"
+                  />
+                </div>
+                <p className="modern-card-value">
+                  <CountUp end={stats.new_patients_this_month} duration={2000} />
+                </p>
                 <p className="modern-card-description">New patients</p>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-        </div>
+        </motion.div>
 
 
         {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <motion.div 
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           {/* Dynamic Trends Chart */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <motion.div 
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            variants={chartVariants}
+            whileHover={{ 
+              scale: 1.01,
+              transition: { duration: 0.2 }
+            }}
+          >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                 <FaChartLine className="mr-2 text-blue-600" />
@@ -637,10 +836,17 @@ const Dashboard = () => {
                 options={chartOptions} 
               />
             </div>
-          </div>
+          </motion.div>
 
           {/* Age Distribution Chart */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <motion.div 
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            variants={chartVariants}
+            whileHover={{ 
+              scale: 1.01,
+              transition: { duration: 0.2 }
+            }}
+          >
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <FaChartPie className="mr-2 text-green-600" />
               Age Distribution
@@ -648,81 +854,193 @@ const Dashboard = () => {
             <div className="h-64">
               <Doughnut data={ageChartData} options={doughnutOptions} />
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Disease Statistics and Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <motion.div 
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           {/* Top Diseases */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <motion.div 
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            variants={chartVariants}
+            whileHover={{ 
+              scale: 1.01,
+              transition: { duration: 0.2 }
+            }}
+          >
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <FaStethoscope className="mr-2 text-red-600" />
               Top Diseases
             </h3>
             <div className="space-y-3">
               {disease_stats.length > 0 ? (
-                disease_stats.map((disease, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-3">
-                        <span className="text-sm font-semibold text-red-600">{index + 1}</span>
+                disease_stats.map((disease, index) => {
+                  // Calculate trend using real historical data
+                  const trend = calculateTrend(disease.disease, disease.case_count);
+                  const trendDisplay = getTrendDisplay(trend);
+                  const TrendIcon = trendDisplay.icon;
+                  
+                  return (
+                    <motion.div 
+                      key={index} 
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      whileHover={{ 
+                        scale: 1.02,
+                        transition: { duration: 0.2 }
+                      }}
+                    >
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                          <span className="text-sm font-semibold text-red-600">{index + 1}</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{disease.disease}</p>
+                          <p className="text-sm text-gray-500">{disease.unique_patients} patients</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{disease.disease}</p>
-                        <p className="text-sm text-gray-500">{disease.unique_patients} patients</p>
+                      <div className="text-right flex items-center space-x-2">
+                        <div className="text-right">
+                          <p className="text-lg font-semibold text-gray-900">{disease.case_count}</p>
+                          <p className="text-xs text-gray-500">cases</p>
+                        </div>
+                        <div className={`flex items-center justify-center w-8 h-8 rounded-full ${trendDisplay.bgColor} transition-all duration-200`}>
+                          <TrendIcon className={`text-sm ${trendDisplay.color}`} />
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-semibold text-gray-900">{disease.case_count}</p>
-                      <p className="text-xs text-gray-500">cases</p>
-                    </div>
-                  </div>
-                ))
+                    </motion.div>
+                  );
+                })
               ) : (
                 <p className="text-gray-500 text-center py-4">No disease data available</p>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* Quick Actions */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <motion.div 
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            variants={chartVariants}
+            whileHover={{ 
+              scale: 1.01,
+              transition: { duration: 0.2 }
+            }}
+          >
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <FaCog className="mr-2 text-blue-600" />
               Quick Actions
             </h3>
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              <a href="/patient" className="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200 group">
+            <motion.div 
+              className="grid grid-cols-2 lg:grid-cols-3 gap-4"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <motion.a 
+                href="/patient" 
+                className="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200 group"
+                variants={cardVariants}
+                whileHover={{ 
+                  scale: 1.05,
+                  transition: { duration: 0.2 }
+                }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <FaUser className="h-6 w-6 text-blue-600 mr-3 group-hover:scale-110 transition-transform" />
                 <span className="text-blue-800 font-medium">Patient</span>
-              </a>
-              <a href="/records" className="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors duration-200 group">
+              </motion.a>
+              <motion.a 
+                href="/records" 
+                className="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors duration-200 group"
+                variants={cardVariants}
+                whileHover={{ 
+                  scale: 1.05,
+                  transition: { duration: 0.2 }
+                }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <FaFileAlt className="h-6 w-6 text-green-600 mr-3 group-hover:scale-110 transition-transform" />
                 <span className="text-green-800 font-medium">Records</span>
-              </a>
-              <a href="/diseases" className="flex items-center p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors duration-200 group">
+              </motion.a>
+              <motion.a 
+                href="/diseases" 
+                className="flex items-center p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors duration-200 group"
+                variants={cardVariants}
+                whileHover={{ 
+                  scale: 1.05,
+                  transition: { duration: 0.2 }
+                }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <FaStethoscope className="h-6 w-6 text-red-600 mr-3 group-hover:scale-110 transition-transform" />
                 <span className="text-red-800 font-medium">Diseases</span>
-              </a>
-              <a href="/tracker" className="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors duration-200 group">
+              </motion.a>
+              <motion.a 
+                href="/tracker" 
+                className="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors duration-200 group"
+                variants={cardVariants}
+                whileHover={{ 
+                  scale: 1.05,
+                  transition: { duration: 0.2 }
+                }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <FaMapMarkerAlt className="h-6 w-6 text-purple-600 mr-3 group-hover:scale-110 transition-transform" />
                 <span className="text-purple-800 font-medium">Tracker</span>
-              </a>
-              <a href="/arima-forecast" className="flex items-center p-4 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors duration-200 group">
+              </motion.a>
+              <motion.a 
+                href="/arima-forecast" 
+                className="flex items-center p-4 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors duration-200 group"
+                variants={cardVariants}
+                whileHover={{ 
+                  scale: 1.05,
+                  transition: { duration: 0.2 }
+                }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <FaChartLine className="h-6 w-6 text-indigo-600 mr-3 group-hover:scale-110 transition-transform" />
                 <span className="text-indigo-800 font-medium">Forecast</span>
-              </a>
-              <a href="/reports" className="flex items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors duration-200 group">
+              </motion.a>
+              <motion.a 
+                href="/reports" 
+                className="flex items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors duration-200 group"
+                variants={cardVariants}
+                whileHover={{ 
+                  scale: 1.05,
+                  transition: { duration: 0.2 }
+                }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <FaChartBar className="h-6 w-6 text-orange-600 mr-3 group-hover:scale-110 transition-transform" />
                 <span className="text-orange-800 font-medium">Reports</span>
-              </a>
-            </div>
-          </div>
-        </div>
+              </motion.a>
+            </motion.div>
+          </motion.div>
+        </motion.div>
 
         {/* Recent Activities */}
-        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
+        <motion.div 
+          className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           {/* Recent Activities */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <motion.div 
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            variants={chartVariants}
+            whileHover={{ 
+              scale: 1.01,
+              transition: { duration: 0.2 }
+            }}
+          >
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <FaClock className="mr-2 text-green-600" />
               Recent Activities
@@ -730,7 +1048,17 @@ const Dashboard = () => {
             <div className="space-y-3">
               {recent_activities.length > 0 ? (
                 recent_activities.map((activity, index) => (
-                  <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <motion.div 
+                    key={index} 
+                    className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ 
+                      scale: 1.02,
+                      transition: { duration: 0.2 }
+                    }}
+                  >
                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                       <FaUserMd className="h-4 w-4 text-blue-600" />
                     </div>
@@ -744,18 +1072,30 @@ const Dashboard = () => {
                       </p>
                     </div>
                     <FaClock className="h-4 w-4 text-gray-400" />
-                  </div>
+                  </motion.div>
                 ))
               ) : (
                 <p className="text-gray-500 text-center py-4">No recent activities</p>
               )}
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Recent Consultations */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <motion.div 
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div 
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            variants={chartVariants}
+            whileHover={{ 
+              scale: 1.01,
+              transition: { duration: 0.2 }
+            }}
+          >
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <FaStethoscope className="mr-2 text-teal-600" />
               Recent Consultations (Last 7 Days)
@@ -763,7 +1103,17 @@ const Dashboard = () => {
             <div className="space-y-3">
               {recent_consultations.length > 0 ? (
                 recent_consultations.map((consultation, index) => (
-                  <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <motion.div 
+                    key={index} 
+                    className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ 
+                      scale: 1.02,
+                      transition: { duration: 0.2 }
+                    }}
+                  >
                     <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center">
                       <FaUserMd className="h-4 w-4 text-teal-600" />
                     </div>
@@ -780,16 +1130,23 @@ const Dashboard = () => {
                       </p>
                     </div>
                     <FaClock className="h-4 w-4 text-gray-400" />
-                  </div>
+                  </motion.div>
                 ))
               ) : (
                 <p className="text-gray-500 text-center py-4">No recent consultations</p>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* Top Locations */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <motion.div 
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            variants={chartVariants}
+            whileHover={{ 
+              scale: 1.01,
+              transition: { duration: 0.2 }
+            }}
+          >
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <FaMapMarkerAlt className="mr-2 text-green-600" />
               Top Locations
@@ -797,7 +1154,17 @@ const Dashboard = () => {
             <div className="space-y-3">
               {top_locations.length > 0 ? (
                 top_locations.map((location, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <motion.div 
+                    key={index} 
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ 
+                      scale: 1.02,
+                      transition: { duration: 0.2 }
+                    }}
+                  >
                     <div className="flex items-center">
                       <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
                         <span className="text-sm font-semibold text-green-600">{index + 1}</span>
@@ -810,14 +1177,14 @@ const Dashboard = () => {
                       <p className="text-lg font-semibold text-gray-900">{location.patient_count}</p>
                       <p className="text-xs text-gray-500">patients</p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))
               ) : (
                 <p className="text-gray-500 text-center py-4">No location data available</p>
               )}
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
       </div>
     </div>

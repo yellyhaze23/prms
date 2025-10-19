@@ -16,7 +16,7 @@ if (!$username || !$password) {
     exit;
 }
 
-$sql = "SELECT * FROM users WHERE username = ?";
+$sql = "SELECT * FROM users WHERE username = ? AND status = 'active'";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("s", $username);
 $stmt->execute();
@@ -30,16 +30,15 @@ if ($result->num_rows === 1) {
         // Log successful login
         $auditLogger->logLogin($user['id'], $role, $user['username'], 'success');
         
-        // Set session variables for staff users
-        if ($role === 'staff') {
-            if (session_status() === PHP_SESSION_NONE) {
-                session_start();
-            }
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['role'] = $role;
-            $_SESSION['name'] = $user['full_name'] ?? $user['username'];
+        // Set session variables for all users
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
         }
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['username'] = $user['username'];
+        $_SESSION['role'] = $role;
+        $_SESSION['name'] = $user['full_name'] ?? $user['username'];
+        $_SESSION['last_activity'] = time(); // Set initial activity time
         
         echo json_encode([
             'success' => true,
@@ -55,8 +54,21 @@ if ($result->num_rows === 1) {
         echo json_encode(['success' => false, 'message' => 'Invalid password.']);
     }
 } else {
-    // Log failed login attempt
-    $auditLogger->logLogin(0, 'unknown', $username, 'failed', 'User not found');
-    echo json_encode(['success' => false, 'message' => 'User not found.']);
+    // Check if user exists but is inactive
+    $checkSql = "SELECT id FROM users WHERE username = ?";
+    $checkStmt = $conn->prepare($checkSql);
+    $checkStmt->bind_param("s", $username);
+    $checkStmt->execute();
+    $checkResult = $checkStmt->get_result();
+    
+    if ($checkResult->num_rows === 1) {
+        // User exists but is inactive
+        $auditLogger->logLogin(0, 'unknown', $username, 'failed', 'Account deactivated');
+        echo json_encode(['success' => false, 'message' => 'Your account has been deactivated. Please contact an administrator.']);
+    } else {
+        // User doesn't exist
+        $auditLogger->logLogin(0, 'unknown', $username, 'failed', 'User not found');
+        echo json_encode(['success' => false, 'message' => 'User not found.']);
+    }
 }
 ?>

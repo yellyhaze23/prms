@@ -17,14 +17,17 @@ if (($userId <= 0 && $username === '') || $old === '' || $new === '') {
   exit;
 }
 
-// fetch user by id or username
+// fetch user by id or username using prepared statements
 if ($userId > 0) {
-  $res = mysqli_query($conn, "SELECT * FROM users WHERE id = $userId LIMIT 1");
+  $stmt = $conn->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
+  $stmt->bind_param("i", $userId);
 } else {
-  $unameEsc = mysqli_real_escape_string($conn, $username);
-  $res = mysqli_query($conn, "SELECT * FROM users WHERE username = '".$unameEsc."' LIMIT 1");
+  $stmt = $conn->prepare("SELECT * FROM users WHERE username = ? LIMIT 1");
+  $stmt->bind_param("s", $username);
 }
-$user = $res ? mysqli_fetch_assoc($res) : null;
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result ? $result->fetch_assoc() : null;
 if (!$user) {
   echo json_encode(['success' => false, 'message' => 'User not found']);
   exit;
@@ -38,7 +41,9 @@ if (!password_verify($old, $user['password'])) {
 
 $hash = password_hash($new, PASSWORD_BCRYPT);
 $targetId = $userId > 0 ? $userId : (int)$user['id'];
-$ok = mysqli_query($conn, "UPDATE users SET password='" . mysqli_real_escape_string($conn, $hash) . "' WHERE id=".$targetId);
+$stmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
+$stmt->bind_param("si", $hash, $targetId);
+$ok = $stmt->execute();
 
 if ($ok) {
   echo json_encode(['success' => true, 'message' => 'Password changed successfully']);

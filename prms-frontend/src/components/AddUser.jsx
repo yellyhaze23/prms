@@ -9,6 +9,8 @@ function AddUser({ isOpen, onClose, onSubmit, editing, userData,  }) {
     oldPassword: "",
     password: "",
     confirmPassword: "",
+    role: "staff",
+    status: "active",
   });
   const [error, setError] = useState("");
   const [showPasswords, setShowPasswords] = useState({
@@ -25,6 +27,8 @@ function AddUser({ isOpen, onClose, onSubmit, editing, userData,  }) {
         oldPassword: "",
         password: "",
         confirmPassword: "",
+        role: userData.role || "staff",
+        status: userData.status || "active",
       });
     } else {
       setForm({
@@ -33,6 +37,8 @@ function AddUser({ isOpen, onClose, onSubmit, editing, userData,  }) {
         oldPassword: "",
         password: "",
         confirmPassword: "",
+        role: "staff",
+        status: "active",
       });
     }
     setError("");
@@ -187,6 +193,40 @@ const handleSubmit = async (e) => {
                 {showPasswords.confirmPassword ? <FaEyeSlash className="w-4 h-4" /> : <FaEye className="w-4 h-4" />}
               </button>
             </div>
+          </div>
+
+          {/* Role Field */}
+          <div className="user-modal-field">
+            <label className="user-modal-label">
+              <FaUser className="w-4 h-4" />
+              Role
+            </label>
+            <select
+              value={form.role}
+              onChange={(e) => setForm({ ...form, role: e.target.value })}
+              className="user-modal-input"
+              required
+            >
+              <option value="staff">Staff</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          {/* Status Field */}
+          <div className="user-modal-field">
+            <label className="user-modal-label">
+              <FaUser className="w-4 h-4" />
+              Status
+            </label>
+            <select
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
+              className="user-modal-input"
+              required
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
           </div>
 
           {/* Error Message */}

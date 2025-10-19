@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { FaTimes, FaSearch, FaDownload, FaUser, FaCalendarAlt, FaStethoscope, FaEye } from 'react-icons/fa';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FaTimes, FaDownload, FaUser, FaCalendarAlt, FaStethoscope, FaEye } from 'react-icons/fa';
 import axios from 'axios';
 import Toast from './Toast';
 import Pagination from './Pagination';
+import SearchInput from './SearchInput';
 import { formatPatientID } from '../utils/patientUtils';
 
 const DiseaseCasesModal = ({ disease, onClose }) => {
@@ -11,6 +12,7 @@ const DiseaseCasesModal = ({ disease, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState(null);
+  const [isVisible, setIsVisible] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -21,25 +23,49 @@ const DiseaseCasesModal = ({ disease, onClose }) => {
     setToast({ message, type, visible: true });
   };
 
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(() => {
+      onClose();
+    }, 200);
+  };
+
   useEffect(() => {
     if (disease) {
       fetchDiseaseCases();
     }
   }, [disease]);
 
-  // Handle click outside to close modal
+  // Animation effect for smooth modal opening - optimized for performance
+  useEffect(() => {
+    // Use requestAnimationFrame for better performance
+    const frame = requestAnimationFrame(() => {
+      setIsVisible(true);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  // Handle click outside and keyboard escape to close modal
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (event.target === event.currentTarget) {
-        onClose();
+        handleClose();
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        handleClose();
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose]);
+  }, []);
 
   // Calculate pagination
   const calculatePagination = (data) => {
@@ -53,26 +79,28 @@ const DiseaseCasesModal = ({ disease, onClose }) => {
     }
   };
 
-  // Get current page data
-  const getCurrentPageData = () => {
+  // Get current page data - optimized with useMemo
+  const currentPageData = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filteredCases.slice(startIndex, endIndex);
-  };
+  }, [filteredCases, currentPage, itemsPerPage]);
 
-  useEffect(() => {
-    // Filter cases based on search term
+  // Optimize filtering with useMemo
+  const filteredCasesMemo = useMemo(() => {
     if (searchTerm) {
-      const filtered = cases.filter(case_ => 
+      return cases.filter(case_ => 
         case_.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         formatPatientID(case_.patient_id).includes(searchTerm) ||
         (case_.address && case_.address.toLowerCase().includes(searchTerm.toLowerCase()))
       );
-      setFilteredCases(filtered);
-    } else {
-      setFilteredCases(cases);
     }
+    return cases;
   }, [searchTerm, cases]);
+
+  useEffect(() => {
+    setFilteredCases(filteredCasesMemo);
+  }, [filteredCasesMemo]);
 
   // Update pagination when filtered cases change
   useEffect(() => {
@@ -162,48 +190,54 @@ const DiseaseCasesModal = ({ disease, onClose }) => {
 
   return (
     <div 
-      className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      className={`fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${
+        isVisible ? 'opacity-100' : 'opacity-0'
+      }`}
+      onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
-      <div className="relative mx-auto border w-full max-w-6xl shadow-xl rounded-lg bg-white max-h-[95vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
+      <div className={`relative mx-auto border-0 w-full max-w-7xl shadow-2xl rounded-2xl bg-white max-h-[95vh] overflow-hidden flex flex-col transform transition-all duration-200 ease-out ${
+        isVisible ? 'scale-100 opacity-100 translate-y-0' : 'scale-98 opacity-0 translate-y-2'
+      }`}>
+        {/* Modern Header */}
+        <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 px-8 py-6 text-white shadow-xl">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold flex items-center">
-                <FaStethoscope className="mr-3" />
-                {disease} Cases
-              </h2>
-              <p className="text-blue-100 mt-1">
-                {filteredCases.length} case{filteredCases.length !== 1 ? 's' : ''} found
-                {searchTerm && ` (filtered from ${cases.length} total)`}
-              </p>
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-white/20 rounded-xl">
+                <FaStethoscope className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold flex items-center">
+                  {disease} Cases
+                </h2>
+                <p className="text-blue-100 mt-2 text-lg">
+                  {filteredCases.length} case{filteredCases.length !== 1 ? 's' : ''} found
+                  {searchTerm && ` (filtered from ${cases.length} total)`}
+                </p>
+              </div>
             </div>
             <button
-              onClick={onClose}
-              className="text-white hover:text-blue-200 transition-colors duration-200 p-2 hover:bg-blue-600 rounded-full"
+              onClick={handleClose}
+              className="text-white hover:text-blue-200 transition-all duration-200 p-3 hover:bg-white/20 rounded-xl transform hover:scale-105"
             >
               <FaTimes className="h-6 w-6" />
             </button>
           </div>
         </div>
 
-        {/* Search and Actions */}
-        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                type="text"
+        {/* Modern Search and Actions */}
+        <div className="px-6 py-6 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row gap-4 items-center">
+            <div className="flex-1">
+              <SearchInput
                 placeholder="Search by patient name, ID, or address..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                onChange={setSearchTerm}
+                className="w-full"
               />
             </div>
             <button
               onClick={handleExport}
-              className="inline-flex items-center px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
               <FaDownload className="h-4 w-4 mr-2" />
               Export CSV
@@ -214,43 +248,47 @@ const DiseaseCasesModal = ({ disease, onClose }) => {
         {/* Cases List */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {filteredCases.length === 0 ? (
-            <div className="text-center py-12">
-              <FaStethoscope className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <div className="text-center py-16">
+              <div className="mx-auto w-24 h-24 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mb-6">
+                <FaStethoscope className="h-12 w-12 text-blue-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
                 {searchTerm ? 'No cases found matching your search' : 'No cases found'}
               </h3>
-              <p className="text-gray-500">
-                {searchTerm ? 'Try adjusting your search terms' : `No patients have been diagnosed with ${disease}`}
+              <p className="text-gray-600 text-lg max-w-md mx-auto">
+                {searchTerm ? 'Try adjusting your search terms or clear the search to see all cases' : `No patients have been diagnosed with ${disease} yet`}
               </p>
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
+                >
+                  Clear Search
+                </button>
+              )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl shadow-lg border border-gray-200">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Patient
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Diagnosis Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Onset Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Symptoms
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Treatment
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Address
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {getCurrentPageData().map((case_, index) => (
-                    <tr key={index} className="hover:bg-gray-50 transition-colors duration-200">
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {currentPageData.map((case_, index) => (
+                    <tr key={index} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-300 border-b border-gray-100">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mr-4 shadow-sm">
@@ -270,23 +308,6 @@ const DiseaseCasesModal = ({ disease, onClose }) => {
                         <div className="flex items-center text-sm text-gray-900">
                           <FaCalendarAlt className="h-4 w-4 mr-2 text-blue-600" />
                           {formatDate(case_.diagnosis_date)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center text-sm text-gray-900">
-                          <FaCalendarAlt className="h-4 w-4 mr-2 text-green-600" />
-                          {formatDate(case_.onset_date)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs">
-                          {case_.symptoms ? (
-                            <span className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
-                              {case_.symptoms.length > 50 ? `${case_.symptoms.substring(0, 50)}...` : case_.symptoms}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400 italic">Not recorded</span>
-                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">

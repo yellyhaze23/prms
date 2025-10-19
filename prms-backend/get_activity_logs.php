@@ -30,53 +30,98 @@ if (!in_array($sortBy, $allowedSortFields)) {
 
 $sortOrder = strtoupper($sortOrder) === 'DESC' ? 'DESC' : 'ASC';
 
-// Build search condition
-$searchCondition = '';
+// Build search and filter conditions with prepared statements
+$whereConditions = [];
+$params = [];
+$paramTypes = '';
+
 if (!empty($search)) {
-    $search = mysqli_real_escape_string($conn, $search);
-    $searchCondition = " AND (activity_type LIKE '%$search%' OR user_type LIKE '%$search%' OR description LIKE '%$search%' OR ip_address LIKE '%$search%')";
+    $whereConditions[] = "(activity_type LIKE ? OR user_type LIKE ? OR description LIKE ? OR ip_address LIKE ?)";
+    $searchParam = "%$search%";
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $paramTypes .= 'ssss';
 }
 
-// Build filter conditions
-$filterConditions = '';
 if ($user_type) {
-    $user_type = mysqli_real_escape_string($conn, $user_type);
-    $filterConditions .= " AND user_type = '$user_type'";
+    $whereConditions[] = "user_type = ?";
+    $params[] = $user_type;
+    $paramTypes .= 's';
 }
 
 if ($activity_type) {
-    $activity_type = mysqli_real_escape_string($conn, $activity_type);
-    $filterConditions .= " AND activity_type LIKE '%$activity_type%'";
+    $whereConditions[] = "activity_type LIKE ?";
+    $params[] = "%$activity_type%";
+    $paramTypes .= 's';
 }
 
 if ($date_from) {
-    $date_from = mysqli_real_escape_string($conn, $date_from);
-    $filterConditions .= " AND DATE(created_at) >= '$date_from'";
+    $whereConditions[] = "DATE(created_at) >= ?";
+    $params[] = $date_from;
+    $paramTypes .= 's';
 }
 
 if ($date_to) {
-    $date_to = mysqli_real_escape_string($conn, $date_to);
-    $filterConditions .= " AND DATE(created_at) <= '$date_to'";
+    $whereConditions[] = "DATE(created_at) <= ?";
+    $params[] = $date_to;
+    $paramTypes .= 's';
 }
 
-// Get total count for pagination
-$countSql = "SELECT COUNT(*) as total FROM activity_logs WHERE 1=1 $searchCondition $filterConditions";
-$countResult = mysqli_query($conn, $countSql);
-$totalRecords = mysqli_fetch_assoc($countResult)['total'];
-$totalPages = ceil($totalRecords / $limit);
+$whereClause = !empty($whereConditions) ? "WHERE " . implode(' AND ', $whereConditions) : "WHERE 1=1";
 
-// Get activity logs with pagination
-$sql = "SELECT * FROM activity_logs WHERE 1=1 $searchCondition $filterConditions ORDER BY $sortBy $sortOrder LIMIT $limit OFFSET $offset";
-$result = mysqli_query($conn, $sql);
-
-if (!$result) {
+// Get total count for pagination using prepared statements
+$countSql = "SELECT COUNT(*) as total FROM activity_logs $whereClause";
+$countStmt = $conn->prepare($countSql);
+if (!$countStmt) {
     http_response_code(500);
-    echo json_encode(['error' => 'Database error: ' . mysqli_error($conn)]);
+    echo json_encode(['error' => 'Count prepare failed: ' . $conn->error]);
     exit;
 }
 
+if (!empty($params)) {
+    $countStmt->bind_param($paramTypes, ...$params);
+}
+
+if (!$countStmt->execute()) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Count execute failed: ' . $countStmt->error]);
+    exit;
+}
+
+$countResult = $countStmt->get_result();
+$totalRecords = $countResult->fetch_assoc()['total'];
+$totalPages = ceil($totalRecords / $limit);
+
+// Get activity logs with pagination using prepared statements
+$sql = "SELECT * FROM activity_logs $whereClause ORDER BY $sortBy $sortOrder LIMIT ? OFFSET ?";
+$stmt = $conn->prepare($sql);
+if (!$stmt) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Prepare failed: ' . $conn->error]);
+    exit;
+}
+
+// Add limit and offset to parameters
+$allParams = $params;
+$allParams[] = $limit;
+$allParams[] = $offset;
+$allParamTypes = $paramTypes . 'ii';
+
+if (!empty($allParams)) {
+    $stmt->bind_param($allParamTypes, ...$allParams);
+}
+
+if (!$stmt->execute()) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Execute failed: ' . $stmt->error]);
+    exit;
+}
+
+$result = $stmt->get_result();
 $logs = [];
-while ($row = mysqli_fetch_assoc($result)) {
+while ($row = $result->fetch_assoc()) {
     $logs[] = $row;
 }
 

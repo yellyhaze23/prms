@@ -4,7 +4,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import { staffNav } from '../config/navConfig';
 
-export default function Layout({ title = 'RHU PRS', subtitle = 'Staff Portal', nav = staffNav, headerTitle = 'Staff Portal', headerSubtitle }) {
+export default function Layout({ title = 'Tracely', subtitle = 'Track disease easily', nav = staffNav, headerTitle = 'Staff Portal', headerSubtitle }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar nav={nav} brandTitle={title} brandSubtitle={subtitle} />

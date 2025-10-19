@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
-import { FaUser, FaCog, FaSignOutAlt, FaBars } from 'react-icons/fa';
+import { FaUser, FaCog, FaSignOutAlt, FaBars, FaQuestionCircle } from 'react-icons/fa';
 import NotificationBell from './NotificationBell';
 import BackupStatusIndicator from './BackupStatusIndicator';
 import ConfirmationModal from './ConfirmationModal';
 import DateTimeDisplay from './DateTimeDisplay';
 import LogoutAnimationModal from './LogoutAnimationModal';
+import HelpModal from './HelpModal';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,6 +13,7 @@ const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", onToggleSid
   const [showModal, setShowModal] = useState(false);
   const [showLogoutAnimation, setShowLogoutAnimation] = useState(false);
   const [logoutStage, setLogoutStage] = useState('loading');
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const navigate = useNavigate();
 
 
@@ -76,6 +78,15 @@ const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", onToggleSid
             
             {/* User Menu */}
             <div className="flex items-center space-x-3">
+              {/* Help */}
+              <button
+                onClick={() => setShowHelpModal(true)}
+                className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                title="Help & Documentation"
+              >
+                <FaQuestionCircle className="w-5 h-5" />
+              </button>
+
               {/* Settings */}
               <button
                 onClick={() => navigate('/settings')}
@@ -104,7 +115,7 @@ const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", onToggleSid
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">RHU</span>
+              <span className="text-white font-bold text-sm">Tracely</span>
             </div>
             <div className="flex flex-col">
               <h2 className="text-base font-semibold text-gray-900">PRMS</h2>
@@ -116,6 +127,13 @@ const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", onToggleSid
             <BackupStatusIndicator />
             <DateTimeDisplay />
             <NotificationBell userId={userId} />
+            <button
+              onClick={() => setShowHelpModal(true)}
+              className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+              title="Help & Documentation"
+            >
+              <FaQuestionCircle className="w-5 h-5" />
+            </button>
             <button
               onClick={() => setShowModal(true)}
               className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
@@ -143,6 +161,12 @@ const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", onToggleSid
       <LogoutAnimationModal 
         isVisible={showLogoutAnimation} 
         stage={logoutStage} 
+      />
+
+      {/* Help Modal */}
+      <HelpModal 
+        isOpen={showHelpModal} 
+        onClose={() => setShowHelpModal(false)} 
       />
     </>
   );

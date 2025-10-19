@@ -12,8 +12,9 @@ import { formatPatientID } from '../../utils/patientUtils';
 export default function StaffRecords() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [patients, setPatients] = useState([]);
+  const [diseases, setDiseases] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [diseaseFilter, setDiseaseFilter] = useState('All Patients');
+  const [diseaseFilter, setDiseaseFilter] = useState('all');
   const [sortBy, setSortBy] = useState('updated_at');
   const [sortOrder, setSortOrder] = useState('desc');
   const [loading, setLoading] = useState(false);
@@ -27,15 +28,16 @@ export default function StaffRecords() {
     { value: 'diagnosis', label: 'Diagnosis' }
   ];
 
-  // Filter options for FilterControl
-  const filterOptions = [
-    { value: 'All Patients', label: 'All Patients' },
-    { value: 'chickenpox', label: 'Chickenpox' },
-    { value: 'dengue', label: 'Dengue' },
-    { value: 'hepatitis', label: 'Hepatitis' },
-    { value: 'measles', label: 'Measles' },
-    { value: 'tuberculosis', label: 'Tuberculosis' }
-  ];
+  // Filter options for FilterControl - created after diseases are loaded
+  const filterOptions = React.useMemo(() => [
+    { value: "all", label: "All Patients" },
+    ...diseases
+      .filter(disease => disease.name !== "Test Disease") // Remove Test Disease
+      .map(disease => ({
+        value: disease.name,
+        label: disease.name
+      }))
+  ], [diseases]);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,7 +51,17 @@ export default function StaffRecords() {
 
   useEffect(() => {
     fetchPatients();
+    fetchDiseases();
   }, [currentPage, itemsPerPage, searchTerm, diseaseFilter]);
+
+  const fetchDiseases = async () => {
+    try {
+      const response = await axios.get('http://localhost/prms/prms-backend/get_diseases.php');
+      setDiseases(response.data);
+    } catch (error) {
+      console.error('Error fetching diseases:', error);
+    }
+  };
 
   const fetchPatients = async () => {
     setLoading(true);
@@ -58,7 +70,7 @@ export default function StaffRecords() {
         page: currentPage,
         limit: itemsPerPage,
         q: searchTerm,
-        disease: diseaseFilter === 'All Patients' ? '' : diseaseFilter
+        disease: diseaseFilter === 'all' ? '' : diseaseFilter
       });
 
       const response = await axios.get(`http://localhost/prms/prms-backend/api/staff/patients.php?${params}`);

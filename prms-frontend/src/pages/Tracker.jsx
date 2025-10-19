@@ -1,9 +1,23 @@
 import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./Tracker.css";
 import { FaBuilding, FaUserInjured, FaShieldAlt, FaPercentage } from 'react-icons/fa';
+import SearchInput from '../components/SearchInput';
+import FilterControl from '../components/FilterControl';
+import SortControl from '../components/SortControl';
+import CountUp from '../components/CountUp';
+// Animation variants
+import { 
+  pageVariants, 
+  containerVariants, 
+  cardVariants, 
+  chartVariants,
+  buttonVariants,
+  hoverScale 
+} from '../utils/animations';
 
 // Fix for default markers in React Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -73,6 +87,25 @@ function Tracker() {
   const [searchTerm, setSearchTerm] = useState("");
   const [riskFilter, setRiskFilter] = useState("all");
   const [sortBy, setSortBy] = useState("patients");
+  const [sortOrder, setSortOrder] = useState("desc");
+
+  // Sort options for SortControl
+  const sortOptions = [
+    { value: "patients", label: "Patient Count" },
+    { value: "sick-rate", label: "Disease Rate" },
+    { value: "name", label: "Barangay Name" }
+  ];
+
+  // Filter options for FilterControl
+  const filterOptions = [
+    { value: "all", label: "All Risk Levels" },
+    { value: "very-high", label: "🔴 Very High (80%+)" },
+    { value: "high", label: "🟠 High (60-79%)" },
+    { value: "medium-high", label: "🟡 Medium-High (40-59%)" },
+    { value: "medium", label: "🟢 Medium (20-39%)" },
+    { value: "low", label: "🔵 Low (10-19%)" },
+    { value: "very-low", label: "⚪ Very Low (<10%)" }
+  ];
 
   useEffect(() => {
     const fetchBarangayHeatmap = async () => {
@@ -129,20 +162,49 @@ function Tracker() {
 
     // Sort data
     filtered.sort((a, b) => {
+      let comparison = 0;
       switch (sortBy) {
         case "patients":
-          return b.total_patients - a.total_patients;
+          comparison = b.total_patients - a.total_patients;
+          break;
         case "sick-rate":
-          return b.sick_rate - a.sick_rate;
+          comparison = b.sick_rate - a.sick_rate;
+          break;
         case "name":
-          return a.barangay.localeCompare(b.barangay);
+          comparison = a.barangay.localeCompare(b.barangay);
+          break;
         default:
           return 0;
       }
+      return sortOrder === "asc" ? -comparison : comparison;
     });
 
     setFilteredData(filtered);
-  }, [barangayData, searchTerm, riskFilter, sortBy]);
+  }, [barangayData, searchTerm, riskFilter, sortBy, sortOrder]);
+
+  // Handler functions for controls
+  const handleSearch = (term) => {
+    setSearchTerm(term);
+  };
+
+  const handleRiskFilter = (filter) => {
+    setRiskFilter(filter);
+  };
+
+  const handleSort = (sort) => {
+    setSortBy(sort);
+  };
+
+  const handleSortOrderToggle = () => {
+    setSortOrder(prev => prev === "asc" ? "desc" : "asc");
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setRiskFilter("all");
+    setSortBy("patients");
+    setSortOrder("desc");
+  };
 
   // Helper functions for heatmap visualization
   const getHotspotColor = (sickRate) => {
@@ -197,31 +259,54 @@ function Tracker() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6">
+    <motion.div 
+      className="min-h-screen bg-gray-50 py-6 pt-8"
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         {/* Modern Header with Controls */}
-        <div className="mb-5">
+        <motion.div 
+          className="mb-5"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           <div className="flex items-center justify-between mb-4">
-            <div>
+            <motion.div variants={cardVariants}>
               <h1 className="text-3xl font-bold text-blue-600">Disease Hotspot Tracker</h1>
               <p className="text-gray-700 mt-2">Real-time barangay-level disease monitoring across Los Baños</p>
-            </div>
+            </motion.div>
             
             {/* Controls on the right */}
-            <div className="flex items-center space-x-4">
+            <motion.div 
+              className="flex items-center space-x-4"
+              variants={cardVariants}
+            >
               <div className="text-gray-600 text-sm flex items-center">
                 <span className="inline mr-1">🗺️</span>
-                {filteredData.length} areas monitored
+                <CountUp end={filteredData.length} duration={2000} /> areas monitored
               </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           {/* Total Barangays Card */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <motion.div 
+            className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+            variants={cardVariants}
+            whileHover={hoverScale}
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-lg">
@@ -229,14 +314,20 @@ function Tracker() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">Total Barangays</p>
-                  <p className="text-3xl font-semibold text-gray-900">{filteredData.length}</p>
+                  <p className="text-3xl font-semibold text-gray-900">
+                    <CountUp end={filteredData.length} duration={2000} />
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Total Patients Card */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <motion.div 
+            className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+            variants={cardVariants}
+            whileHover={hoverScale}
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-lg">
@@ -244,14 +335,20 @@ function Tracker() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">Total Patients</p>
-                  <p className="text-3xl font-semibold text-gray-900">{totalPatients.toLocaleString()}</p>
+                  <p className="text-3xl font-semibold text-gray-900">
+                    <CountUp end={totalPatients} duration={2000} />
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* High Risk Areas Card */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <motion.div 
+            className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+            variants={cardVariants}
+            whileHover={hoverScale}
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center shadow-lg">
@@ -259,14 +356,20 @@ function Tracker() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">High Risk Areas</p>
-                  <p className="text-3xl font-semibold text-gray-900">{highRiskBarangays}</p>
+                  <p className="text-3xl font-semibold text-gray-900">
+                    <CountUp end={highRiskBarangays} duration={2000} />
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Overall Sick Rate Card */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <motion.div 
+            className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+            variants={cardVariants}
+            whileHover={hoverScale}
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl flex items-center justify-center shadow-lg">
@@ -274,89 +377,63 @@ function Tracker() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">Overall Sick Rate</p>
-                  <p className="text-3xl font-semibold text-gray-900">{overallSickRate}%</p>
+                  <p className="text-3xl font-semibold text-gray-900">
+                    <CountUp end={overallSickRate} duration={2000} decimals={1} suffix="%" />
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
-        {/* Controls */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Map Controls</h3>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Search */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Search Barangays
-                </label>
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by barangay name..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+        {/* Modern Controls */}
+        <div className="mb-8 mt-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">Map Controls</h3>
+              <p className="text-sm text-gray-600">Filter and sort barangay data for better analysis</p>
+            </div>
+            
+            {/* Modern Controls */}
+            <div className="flex items-center space-x-4">
+              {/* Modern Search Input */}
+              <SearchInput
+                placeholder="Search by barangay name..."
+                value={searchTerm}
+                onChange={handleSearch}
+                className="w-80"
+              />
 
-              {/* Risk Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Filter by Risk Level
-                </label>
-                <select
-                  value={riskFilter}
-                  onChange={(e) => setRiskFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">All Risk Levels</option>
-                  <option value="very-high">🔴 Very High (80%+)</option>
-                  <option value="high">🟠 High (60-79%)</option>
-                  <option value="medium-high">🟡 Medium-High (40-59%)</option>
-                  <option value="medium">🟢 Medium (20-39%)</option>
-                  <option value="low">🔵 Low (10-19%)</option>
-                  <option value="very-low">⚪ Very Low (&lt;10%)</option>
-                </select>
-              </div>
+              {/* Modern Filter Control */}
+              <FilterControl
+                label="Risk Level"
+                value={riskFilter}
+                options={filterOptions}
+                onChange={handleRiskFilter}
+              />
 
-              {/* Sort By */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Sort By
-                </label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="patients">Patient Count</option>
-                  <option value="sick-rate">Disease Rate</option>
-                  <option value="name">Barangay Name</option>
-                </select>
-              </div>
+              {/* Modern Sort Control */}
+              <SortControl
+                value={sortBy}
+                order={sortOrder}
+                options={sortOptions}
+                onChange={handleSort}
+                onToggleOrder={handleSortOrderToggle}
+              />
 
-              {/* Clear Filters */}
-              <div className="flex items-end">
-                <button
-                  onClick={() => {
-                    setSearchTerm("");
-                    setRiskFilter("all");
-                    setSortBy("patients");
-                  }}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  Clear Filters
-                </button>
-              </div>
+              {/* Clear Filters Button */}
+              <button
+                onClick={handleClearFilters}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
+              >
+                <span>Clear Filters</span>
+              </button>
             </div>
           </div>
         </div>
 
         {/* Map Container */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-lg shadow relative z-0">
           <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
             <h3 className="text-lg font-medium text-gray-900">
               Barangay Disease Hotspots ({filteredData.length} areas)
@@ -454,7 +531,7 @@ function Tracker() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

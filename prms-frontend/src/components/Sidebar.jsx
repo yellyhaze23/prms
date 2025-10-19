@@ -10,9 +10,8 @@ import {
   FaMapMarkerAlt,
   FaChartBar,
   FaChevronRight,
-  FaHospital,
+  FaChartLine,
   FaStethoscope,
-  FaChartLine, // Added FaChartLine icon for ARIMA Forecasting
   FaShieldAlt, // Added FaShieldAlt icon for Audit Logs
 } from "react-icons/fa";
 import ConfirmationModal from "./ConfirmationModal";
@@ -90,12 +89,12 @@ function Sidebar({ collapsed = false }) {
         <div className={`border-b border-slate-700/50 ${collapsed ? 'p-4' : 'p-6'}`}>
           <div className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'}`}>
             <div className={`bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg ${collapsed ? 'w-8 h-8' : 'w-12 h-12'}`}>
-              <FaHospital className={`text-white ${collapsed ? 'text-sm' : 'text-xl'}`} />
+              <FaChartLine className={`text-white ${collapsed ? 'text-sm' : 'text-xl'}`} />
             </div>
             {!collapsed && (
               <div>
-                <h1 className="text-white font-bold text-lg">RHU</h1>
-                <p className="text-slate-400 text-xs">Patient Record System</p>
+                <h1 className="text-white font-bold text-lg">Tracely</h1>
+                <p className="text-slate-400 text-xs">Track disease easily</p>
               </div>
             )}
           </div>
