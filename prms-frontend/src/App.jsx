@@ -2,7 +2,7 @@ import React, { useState, useEffect, Suspense, lazy } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
-import Login from "./pages/Login";
+import Login from "./admin/Login";
 import SessionManager from "./components/SessionManager";
 import { BackupProvider } from "./contexts/BackupContext";
 import "./App.css";
@@ -13,15 +13,15 @@ import { preloadAllData } from './utils/dataPreloader';
 import { clearCache } from './utils/cache';
 
 // Lazy load all pages for faster initial load
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Patient = lazy(() => import('./pages/Patient'));
-const Records = lazy(() => import('./pages/Records'));
-const Diseases = lazy(() => import('./pages/Diseases'));
-const Tracker = lazy(() => import('./pages/Tracker'));
-const ARIMAForecast = lazy(() => import('./pages/ARIMAForecast'));
-const Reports = lazy(() => import('./pages/Reports'));
-const AuditLogs = lazy(() => import('./pages/AuditLogs'));
-const Settings = lazy(() => import('./pages/Settings'));
+const Dashboard = lazy(() => import('./admin/Dashboard'));
+const Patient = lazy(() => import('./admin/Patient'));
+const Records = lazy(() => import('./admin/Records'));
+const Diseases = lazy(() => import('./admin/Diseases'));
+const Tracker = lazy(() => import('./admin/Tracker'));
+const ARIMAForecast = lazy(() => import('./admin/ARIMAForecast'));
+const Reports = lazy(() => import('./admin/Reports'));
+const AuditLogs = lazy(() => import('./admin/AuditLogs'));
+const Settings = lazy(() => import('./admin/Settings'));
 const NotificationCenter = lazy(() => import('./components/NotificationCenter'));
 
 // Staff portal lazy loading
@@ -30,6 +30,7 @@ const StaffLayout = lazy(() => import('./staff/layouts/StaffLayout'));
 const StaffDashboard = lazy(() => import('./staff/pages/Dashboard'));
 const StaffPatients = lazy(() => import('./staff/pages/Patients'));
 const StaffRecords = lazy(() => import('./staff/pages/Records'));
+const StaffDiseases = lazy(() => import('./staff/pages/StaffDiseases'));
 const StaffTracker = lazy(() => import('./staff/pages/Tracking'));
 const StaffReports = lazy(() => import('./staff/pages/Reports'));
 const StaffLogs = lazy(() => import('./staff/pages/AuditLogs'));
@@ -95,14 +96,13 @@ function App() {
       
       try {
         if (user?.role === 'staff') {
-          // Set temporary token/role only for staff while backend JWT is not wired
-          localStorage.setItem('token', 'test-staff-token');
-          localStorage.setItem('role', 'staff');
+          // Namespaced staff auth keys to avoid colliding with admin state
+          localStorage.setItem('staff_token', 'test-staff-token');
+          localStorage.setItem('staff_role', 'staff');
           navigate('/staff/dashboard', { replace: true });
         } else {
-          // Ensure admin doesn't inherit staff token/role
-          localStorage.removeItem('token');
-          localStorage.removeItem('role');
+          // Optional: set admin-specific keys without touching staff keys
+          localStorage.setItem('admin_role', 'admin');
           navigate('/', { replace: true });
         }
       } catch {}
@@ -152,6 +152,7 @@ function App() {
                 <Route path="dashboard" element={<StaffDashboard />} />
                 <Route path="patients" element={<StaffPatients />} />
                 <Route path="records" element={<StaffRecords />} />
+                <Route path="diseases" element={<StaffDiseases />} />
                 <Route path="tracking" element={<StaffTracker />} />
                 <Route path="reports" element={<StaffReports />} />
                 <Route path="audit-logs" element={<StaffLogs />} />

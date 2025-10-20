@@ -7,7 +7,12 @@ import {
   FaCheckCircle,
   FaClock,
   FaChartLine,
-  FaChartPie
+  FaChartPie,
+  FaStethoscope,
+  FaUserPlus,
+  FaHeartbeat,
+  FaCalendarAlt,
+  FaHistory
 } from 'react-icons/fa';
 // Animation variants
 import { 
@@ -44,28 +49,46 @@ export default function StaffDashboard() {
     return <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">{String(error)}</div>;
   }
 
-  const kpis = data?.kpis || { assigned_patients: 0, active_cases: 0, tasks_due_today: 0 };
+  const kpis = data?.kpis || { 
+    total_patients: 0, 
+    active_cases: 0, 
+    infected_patients: 0, 
+    healthy_patients: 0, 
+    recent_patients: 0, 
+    tasks_due_today: 0 
+  };
+  const charts = data?.charts || { disease_distribution: [], weekly_trends: [], age_distribution: [] };
+  const activities = data?.recent_activities || [];
   const lastUpdated = new Date();
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   return (
     <motion.div 
-      className="min-h-screen"
+      className="min-h-screen space-y-6"
       variants={pageVariants}
       initial="hidden"
       animate="visible"
       exit="exit"
     >
-      {/* Hero header (matches Admin look) */}
+      {/* Hero header */}
       <motion.div 
-        className="mb-8 bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-lg shadow-lg"
+        className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-lg shadow-lg"
         variants={cardVariants}
         initial="hidden"
         animate="visible"
       >
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">Tracely Patient Record System</h1>
-            <p className="text-blue-100 mt-2">Welcome to the Rural Health Unit Patient Management System</p>
+            <h1 className="text-3xl font-bold text-white">Staff Dashboard</h1>
+            <p className="text-blue-100 mt-2">Your patient management overview</p>
           </div>
           <div className="flex items-center space-x-4">
             <div className="text-blue-100 text-sm">
@@ -78,7 +101,7 @@ export default function StaffDashboard() {
 
       {/* KPI cards */}
       <motion.div 
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -95,9 +118,47 @@ export default function StaffDashboard() {
               </div>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Assigned Patients</p>
-              <p className="text-2xl font-semibold text-gray-900">{kpis.assigned_patients}</p>
-              <p className="text-xs text-gray-500">Patients linked to you</p>
+              <p className="text-sm font-medium text-gray-500">Total Patients</p>
+              <p className="text-2xl font-semibold text-gray-900">{kpis.total_patients}</p>
+              <p className="text-xs text-gray-500">Assigned to you</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+          variants={cardVariants}
+          whileHover={hoverScale}
+        >
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                <FaStethoscope className="h-6 w-6 text-red-600" />
+              </div>
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Infected Patients</p>
+              <p className="text-2xl font-semibold text-gray-900">{kpis.infected_patients}</p>
+              <p className="text-xs text-gray-500">With diagnoses</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+          variants={cardVariants}
+          whileHover={hoverScale}
+        >
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <FaHeartbeat className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Healthy Patients</p>
+              <p className="text-2xl font-semibold text-gray-900">{kpis.healthy_patients}</p>
+              <p className="text-xs text-gray-500">No active diagnoses</p>
             </div>
           </div>
         </motion.div>
@@ -116,7 +177,7 @@ export default function StaffDashboard() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Active Cases</p>
               <p className="text-2xl font-semibold text-gray-900">{kpis.active_cases}</p>
-              <p className="text-xs text-gray-500">Current patients</p>
+              <p className="text-xs text-gray-500">Recent medical records</p>
             </div>
           </div>
         </motion.div>
@@ -128,41 +189,139 @@ export default function StaffDashboard() {
         >
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <FaCheckCircle className="h-6 w-6 text-green-600" />
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <FaUserPlus className="h-6 w-6 text-purple-600" />
               </div>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Tasks Due Today</p>
+              <p className="text-sm font-medium text-gray-500">Recent Patients</p>
+              <p className="text-2xl font-semibold text-gray-900">{kpis.recent_patients}</p>
+              <p className="text-xs text-gray-500">Last 7 days</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+          variants={cardVariants}
+          whileHover={hoverScale}
+        >
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <FaCalendarAlt className="h-6 w-6 text-yellow-600" />
+              </div>
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Follow-ups Due</p>
               <p className="text-2xl font-semibold text-gray-900">{kpis.tasks_due_today}</p>
-              <p className="text-xs text-gray-500">Reminders</p>
+              <p className="text-xs text-gray-500">Require attention</p>
             </div>
           </div>
         </motion.div>
       </motion.div>
 
-      {/* Charts Row (placeholders) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      {/* Charts and Data Visualization */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Disease Distribution */}
+        <motion.div 
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+          variants={cardVariants}
+        >
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <FaChartLine className="mr-2 text-blue-600" />
-            Weekly Trends
+            <FaChartPie className="mr-2 text-blue-600" />
+            Disease Distribution
           </h3>
-          <div className="h-64 bg-slate-100 rounded flex items-center justify-center text-slate-500">
-            Chart placeholder
-          </div>
-        </div>
+          {charts.disease_distribution.length > 0 ? (
+            <div className="space-y-3">
+              {charts.disease_distribution.map((item, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">{item.disease}</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ width: `${(item.count / Math.max(...charts.disease_distribution.map(d => d.count))) * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm text-gray-500 w-8 text-right">{item.count}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-500">
+              No disease data available
+            </div>
+          )}
+        </motion.div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        {/* Age Distribution */}
+        <motion.div 
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+          variants={cardVariants}
+        >
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <FaChartPie className="mr-2 text-green-600" />
             Age Distribution
           </h3>
-          <div className="h-64 bg-slate-100 rounded flex items-center justify-center text-slate-500">
-            Doughnut placeholder
-          </div>
-        </div>
+          {charts.age_distribution.length > 0 ? (
+            <div className="space-y-3">
+              {charts.age_distribution.map((item, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">{item.age_group}</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-green-600 h-2 rounded-full" 
+                        style={{ width: `${(item.count / Math.max(...charts.age_distribution.map(a => a.count))) * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm text-gray-500 w-8 text-right">{item.count}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-500">
+              No age data available
+            </div>
+          )}
+        </motion.div>
       </div>
+
+      {/* Recent Activities */}
+      <motion.div 
+        className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+        variants={cardVariants}
+      >
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <FaHistory className="mr-2 text-purple-600" />
+          Recent Activities
+        </h3>
+        {activities.length > 0 ? (
+          <div className="space-y-3">
+            {activities.map((activity, index) => (
+              <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-2 h-2 rounded-full ${
+                    activity.activity === 'New Patient' ? 'bg-blue-500' : 'bg-green-500'
+                  }`}></div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{activity.activity}</p>
+                    <p className="text-xs text-gray-500">{activity.patient_name}</p>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400">{formatDate(activity.timestamp)}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-500">
+            No recent activities
+          </div>
+        )}
+      </motion.div>
     </motion.div>
   );
 }

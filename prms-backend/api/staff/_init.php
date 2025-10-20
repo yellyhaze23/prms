@@ -2,6 +2,13 @@
 require_once __DIR__ . '/../../cors.php';
 require_once __DIR__ . '/../../config.php';
 
+// Ensure staff endpoints use an isolated PHP session cookie
+if (session_status() === PHP_SESSION_NONE) {
+    // Use a distinct session name for staff to avoid colliding with admin sessions
+    session_name('STAFFSESSID');
+    session_start();
+}
+
 function get_bearer_token() {
     $headers = function_exists('getallheaders') ? getallheaders() : [];
     $auth = $headers['Authorization'] ?? $headers['authorization'] ?? '';

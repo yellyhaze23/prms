@@ -1,6 +1,7 @@
 <?php
 // Start session BEFORE any headers
 if (session_status() === PHP_SESSION_NONE) {
+    session_name('STAFFSESSID');
     session_start();
 }
 

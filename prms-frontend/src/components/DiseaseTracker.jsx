@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaVirus, FaExclamationTriangle, FaChartLine, FaUsers, FaMapMarkerAlt, FaCalendarAlt, FaStethoscope, FaShieldAlt, FaThermometerHalf, FaEye, FaLungs, FaHeartbeat, FaPlus } from "react-icons/fa";
 import axios from "axios";
 import DiseaseCaseForm from "./DiseaseCaseForm";
-import "../pages/Dashboard.css";
+import "../admin/Dashboard.css";
 
 const diseases = [
   {
