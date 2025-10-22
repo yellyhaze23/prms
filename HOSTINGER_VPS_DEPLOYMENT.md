@@ -261,16 +261,19 @@ cd /var/www/prms/prms-frontend
 # Install dependencies
 npm install
 
-# Update API URL in frontend config
-# Edit src/config.js or wherever your API URL is defined
-nano src/config.js
+# Create production environment file
+cp .env.example .env
+
+# Edit .env with your production domain
+nano .env
 ```
 
-Update API URL to point to your domain:
+Update the API URLs to point to your domain:
 
-```javascript
-// Change from localhost to your domain
-export const API_BASE_URL = 'https://yourdomain.com/prms-backend';
+```bash
+# Change from localhost to your production domain
+VITE_API_BASE_URL=https://yourdomain.com/prms-backend
+VITE_STAFF_API_BASE_URL=https://yourdomain.com/prms-backend/api/staff
 ```
 
 ```bash
@@ -279,6 +282,8 @@ npm run build
 
 # The build output will be in the 'dist' folder
 ```
+
+> **Note**: The `.env` file is ignored by Git for security. Always create it from `.env.example` on each environment.
 
 ---
 

@@ -24,6 +24,7 @@ $sex = trim($input['sex'] ?? '');
 $address = trim($input['address'] ?? '');
 $contact_number = trim($input['contact_number'] ?? '');
 $date_of_birth = trim($input['date_of_birth'] ?? '');
+$barangay_id = isset($input['barangay_id']) ? intval($input['barangay_id']) : null;
 
 if ($full_name === '' || !$age || $sex === '' || $address === '') {
   http_response_code(400);
@@ -35,9 +36,10 @@ $full_name_sql = $conn->real_escape_string($full_name);
 $sex_sql = $conn->real_escape_string($sex);
 $address_sql = $conn->real_escape_string($address);
 $date_of_birth_sql = $date_of_birth ? "'" . $conn->real_escape_string($date_of_birth) . "'" : 'NULL';
+$barangay_id_sql = $barangay_id ? $barangay_id : 'NULL';
 
-$sql = "INSERT INTO patients (full_name, age, sex, address, date_of_birth, added_by)
-        VALUES ('$full_name_sql', $age, '$sex_sql', '$address_sql', $date_of_birth_sql, $staffId)";
+$sql = "INSERT INTO patients (full_name, age, sex, address, date_of_birth, barangay_id, added_by)
+        VALUES ('$full_name_sql', $age, '$sex_sql', '$address_sql', $date_of_birth_sql, $barangay_id_sql, $staffId)";
 
 if (!$conn->query($sql)) {
   http_response_code(500);

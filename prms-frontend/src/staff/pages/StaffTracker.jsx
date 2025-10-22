@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../../lib/api/axios';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import './StaffTracker.css';
 
 export default function StaffTracker() {
@@ -15,10 +16,16 @@ export default function StaffTracker() {
     setLoading(true);
     api.get('/heatmap.php')
       .then((r)=> {
+        console.log('Heatmap API Response:', r.data);
         const d = r.data?.data || [];
         const s = r.data?.summary || { total_barangays: 0, total_patients: 0, total_sick: 0, overall_sick_rate: 0 };
+        console.log('Heatmap data:', d);
+        console.log('Summary:', s);
         setHeatmap(d);
         setSummary(s);
+      })
+      .catch((err) => {
+        console.error('Heatmap API Error:', err);
       })
       .finally(()=> setLoading(false));
   }, []);
@@ -158,15 +165,28 @@ export default function StaffTracker() {
       </div>
 
       <div className="bg-white border rounded-lg p-4 min-h-[300px]">
-        <div className="font-medium text-slate-700 mb-2">Disease Hotspot Tracker (Staff Patients)</div>
+        <div className="font-medium text-slate-700 mb-2">
+          Disease Hotspot Tracker (Staff Patients)
+          <span className="ml-4 text-sm text-gray-500">
+            ({getFilteredHeatmap().filter(b => b.latitude && b.longitude).length} markers)
+          </span>
+        </div>
         <div className="h-[500px] w-full">
           {loading ? (
             <div className="h-full bg-slate-100 rounded flex items-center justify-center">Loading map...</div>
+          ) : heatmap.length === 0 ? (
+            <div className="h-full bg-slate-100 rounded flex items-center justify-center flex-col gap-2">
+              <p className="text-slate-600">No barangay data available</p>
+              <p className="text-sm text-slate-500">Make sure patients have barangay assignments with coordinates</p>
+            </div>
           ) : (
-            <MapContainer center={[14.1706, 121.2436]} zoom={13} className="h-full w-full">
+            <MapContainer center={[14.1706, 121.2436]} zoom={12} className="h-full w-full">
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
               <MapLegend />
-              {getFilteredHeatmap().filter(b => b.latitude && b.longitude).map((b, idx) => {
+              {(() => {
+                const filtered = getFilteredHeatmap().filter(b => b.latitude && b.longitude);
+                console.log('Filtered markers to render:', filtered.length, filtered);
+                return filtered.map((b, idx) => {
                 const size = Math.max(25, Math.min(80, (b.total_patients || 0) / 3));
                 const rate = Number(b.sick_rate || 0);
                 const color = rate >= 80 ? 'rgba(255,0,0,0.8)'
@@ -197,7 +217,7 @@ export default function StaffTracker() {
                     </Popup>
                   </Marker>
                 );
-              })}
+              })})()}
             </MapContainer>
           )}
         </div>

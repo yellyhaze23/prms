@@ -18,6 +18,7 @@ $age = isset($input['age']) ? intval($input['age']) : null;
 $sex = trim($input['sex'] ?? '');
 $address = trim($input['address'] ?? '');
 $date_of_birth = trim($input['date_of_birth'] ?? '');
+$barangay_id = isset($input['barangay_id']) ? intval($input['barangay_id']) : null;
 
 if ($patientId <= 0) {
     http_response_code(400);
@@ -49,13 +50,15 @@ $full_name_sql = $conn->real_escape_string($full_name);
 $sex_sql = $conn->real_escape_string($sex);
 $address_sql = $conn->real_escape_string($address);
 $date_of_birth_sql = $date_of_birth ? "'" . $conn->real_escape_string($date_of_birth) . "'" : 'NULL';
+$barangay_id_sql = $barangay_id ? $barangay_id : 'NULL';
 
 $sql = "UPDATE patients SET 
         full_name = '$full_name_sql',
         age = $age,
         sex = '$sex_sql',
         address = '$address_sql',
-        date_of_birth = $date_of_birth_sql
+        date_of_birth = $date_of_birth_sql,
+        barangay_id = $barangay_id_sql
         WHERE id = $patientId AND added_by = $staffId";
 
 if (!$conn->query($sql)) {

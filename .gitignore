@@ -18,6 +18,10 @@ build/
 .env.test.local
 .env.production.local
 
+# Keep .env.example for reference
+!.env.example
+!prms-frontend/.env.example
+
 # IDE and Editor files
 .vscode/
 .idea/
