@@ -1,13 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import api from '../../lib/api/axios';
 import StaffMedicalRecords from '../components/StaffMedicalRecords';
 import Pagination from '../../components/Pagination';
 import SearchInput from '../../components/SearchInput';
 import SortControl from '../../components/SortControl';
 import FilterControl from '../../components/FilterControl';
-import { FaSearch, FaUser, FaFileMedicalAlt, FaIdCard, FaCalendarAlt, FaMapMarkerAlt, FaStethoscope, FaSort, FaEye, FaAddressCard } from 'react-icons/fa';
+import { FaSearch, FaUser, FaFileMedicalAlt, FaIdCard, FaCalendarAlt, FaMapMarkerAlt, FaStethoscope, FaSort, FaEye, FaAddressCard, FaEllipsisV, FaEdit } from 'react-icons/fa';
 import Toast from '../../components/Toast';
 import { formatPatientID } from '../../utils/patientUtils';
+import { 
+  pageVariants, 
+  containerVariants, 
+  cardVariants, 
+  buttonVariants,
+  hoverScale 
+} from '../../utils/animations';
 
 export default function StaffRecords() {
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -19,6 +27,8 @@ export default function StaffRecords() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success', visible: false });
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const menuRef = useRef(null);
 
   // Sort options for SortControl
   const sortOptions = [
@@ -49,15 +59,27 @@ export default function StaffRecords() {
     setToast({ message, type, visible: true });
   };
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenMenuId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   useEffect(() => {
     fetchPatients();
     fetchDiseases();
-  }, [currentPage, itemsPerPage, searchTerm, diseaseFilter]);
+  }, [currentPage, itemsPerPage, searchTerm, diseaseFilter, sortBy, sortOrder]);
 
   const fetchDiseases = async () => {
     try {
-      const response = await axios.get('http://localhost/prms/prms-backend/get_diseases.php');
-      setDiseases(response.data);
+      const response = await api.get('/get_diseases.php');
+      setDiseases(response.data?.data || response.data);
     } catch (error) {
       console.error('Error fetching diseases:', error);
     }
@@ -70,10 +92,12 @@ export default function StaffRecords() {
         page: currentPage,
         limit: itemsPerPage,
         q: searchTerm,
-        disease: diseaseFilter === 'all' ? '' : diseaseFilter
+        disease: diseaseFilter === 'all' ? '' : diseaseFilter,
+        sortBy: sortBy,
+        sortOrder: sortOrder
       });
 
-      const response = await axios.get(`http://localhost/prms/prms-backend/api/staff/patients.php?${params}`);
+      const response = await api.get(`/patients.php?${params}`);
       if (response.data.success) {
         setPatients(response.data.data || []);
         setTotalPages(response.data.pagination.totalPages);
@@ -125,6 +149,17 @@ export default function StaffRecords() {
     setSelectedPatient(null);
   };
 
+  const toggleMenu = (patientId, event) => {
+    event.stopPropagation(); // Prevent row click when clicking menu
+    setOpenMenuId(openMenuId === patientId ? null : patientId);
+  };
+
+  const handleEditRecords = (patient, event) => {
+    event.stopPropagation(); // Prevent row click
+    setOpenMenuId(null);
+    handlePatientSelect(patient);
+  };
+
   if (selectedPatient) {
     return (
       <div className="space-y-6">
@@ -147,90 +182,115 @@ export default function StaffRecords() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-lg shadow-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Medical Records</h1>
-            <p className="text-blue-100 mt-1">View and manage patient medical records</p>
-          </div>
-          <FaFileMedicalAlt className="h-8 w-8 text-white" />
-        </div>
-      </div>
+    <motion.div 
+      className="space-y-6"
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
+      {/* Modern Header - Enhanced like Admin Portal */}
+      <motion.div 
+        className="mb-5"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <motion.div variants={cardVariants}>
+            <h1 className="text-3xl font-bold text-blue-600">Medical Records</h1>
+            <p className="text-gray-700 mt-2">View and manage patient medical records</p>
+          </motion.div>
+          
+          {/* Controls on the right */}
+          <motion.div 
+            className="flex items-center space-x-4"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {/* Modern Search Input */}
+            <motion.div variants={cardVariants}>
+              <SearchInput
+                placeholder="Search patients by name, contact, address, or disease..."
+                value={searchTerm}
+                onChange={handleSearch}
+                className="w-80"
+              />
+            </motion.div>
 
-      {/* Modern Search and Filter */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-          <div className="flex-1 max-w-md">
-            <SearchInput
-              placeholder="Search patients by name, contact, address, or disease..."
-              value={searchTerm}
-              onChange={handleSearch}
-              className="w-full"
-            />
-          </div>
-          <div className="flex items-center gap-4">
-            <FilterControl
-              label="Filter by Disease"
-              value={diseaseFilter}
-              options={filterOptions}
-              onChange={handleDiseaseFilter}
-            />
-            <SortControl
-              value={sortBy}
-              order={sortOrder}
-              options={sortOptions}
-              onChange={handleSort}
-              onToggleOrder={handleSortOrderToggle}
-            />
-          </div>
+            {/* Modern Filter Control */}
+            <motion.div variants={cardVariants}>
+              <FilterControl
+                label="Filter"
+                value={diseaseFilter}
+                options={filterOptions}
+                onChange={handleDiseaseFilter}
+              />
+            </motion.div>
+
+            {/* Modern Sort Control */}
+            <motion.div variants={cardVariants}>
+              <SortControl
+                value={sortBy}
+                order={sortOrder}
+                options={sortOptions}
+                onChange={handleSort}
+                onToggleOrder={handleSortOrderToggle}
+              />
+            </motion.div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Patients Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <motion.div
+        className="bg-white rounded-lg shadow-sm border border-gray-200"
+        variants={cardVariants}
+        initial="hidden"
+        animate="visible"
+      >
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-100">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <div className="flex items-center">
-                    <FaIdCard className="h-4 w-4 mr-2" />
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <FaIdCard className="h-4 w-4" />
                     PATIENT ID
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <div className="flex items-center">
-                    <FaUser className="h-4 w-4 mr-2" />
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <FaUser className="h-4 w-4" />
                     PATIENT NAME
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <div className="flex items-center">
-                    <FaCalendarAlt className="h-4 w-4 mr-2" />
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <FaCalendarAlt className="h-4 w-4" />
                     AGE & GENDER
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <div className="flex items-center">
-                    <FaMapMarkerAlt className="h-4 w-4 mr-2" />
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <FaMapMarkerAlt className="h-4 w-4" />
                     ADDRESS
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <div className="flex items-center">
-                    <FaStethoscope className="h-4 w-4 mr-2" />
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <FaStethoscope className="h-4 w-4" />
                     DIAGNOSIS
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <div className="flex items-center">
-                    <FaCalendarAlt className="h-4 w-4 mr-2" />
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <FaCalendarAlt className="h-4 w-4" />
                     LAST VISIT
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">
                   ACTIONS
                 </th>
               </tr>
@@ -247,7 +307,11 @@ export default function StaffRecords() {
                 </tr>
               ) : patients.length > 0 ? (
                 patients.map((patient) => (
-                  <tr key={patient.id} className="hover:bg-gray-50">
+                  <tr 
+                    key={patient.id} 
+                    onClick={() => handlePatientSelect(patient)}
+                    className="hover:bg-blue-50 cursor-pointer transition-colors duration-150"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       #{formatPatientID(patient.id)}
                     </td>
@@ -274,16 +338,37 @@ export default function StaffRecords() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {patient.last_visit ? new Date(patient.last_visit).toLocaleDateString() : 'N/A'}
+                      {patient.last_visit_date ? new Date(patient.last_visit_date).toLocaleDateString() : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handlePatientSelect(patient)}
-                          className="inline-flex items-center px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors duration-200"
+                      <div className="relative" ref={openMenuId === patient.id ? menuRef : null}>
+                        <button
+                          onClick={(e) => toggleMenu(patient.id, e)}
+                          className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-150"
+                          aria-label="Actions menu"
                         >
-                        <FaEye className="h-3 w-3 mr-1" />
-                        View Records
-                      </button>
+                          <FaEllipsisV className="h-4 w-4 text-gray-600" />
+                        </button>
+                        
+                        {openMenuId === patient.id && (
+                          <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-10 overflow-hidden">
+                            <div className="py-2">
+                              <button
+                                onClick={(e) => handleEditRecords(patient, e)}
+                                className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-start transition-colors duration-150"
+                              >
+                                <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                                  <FaEdit className="h-4 w-4 text-green-600" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-semibold text-gray-900">Edit Records</div>
+                                  <div className="text-xs text-gray-500 mt-0.5">Update medical records</div>
+                                </div>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -305,19 +390,25 @@ export default function StaffRecords() {
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          itemsPerPage={itemsPerPage}
-          totalItems={totalRecords}
-          showPageSizeSelector={true}
-          pageSizeOptions={[10, 25, 50, 100]}
-        />
+        <motion.div
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            itemsPerPage={itemsPerPage}
+            totalItems={totalRecords}
+            showPageSizeSelector={true}
+            pageSizeOptions={[10, 25, 50, 100]}
+          />
+        </motion.div>
       )}
 
       {toast.visible && (
@@ -327,6 +418,6 @@ export default function StaffRecords() {
           onClose={() => setToast(prev => ({ ...prev, visible: false }))}
         />
       )}
-    </div>
+    </motion.div>
   );
 }

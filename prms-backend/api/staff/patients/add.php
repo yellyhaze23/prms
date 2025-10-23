@@ -1,10 +1,4 @@
 <?php
-// Start session BEFORE any headers
-if (session_status() === PHP_SESSION_NONE) {
-    session_name('STAFFSESSID');
-    session_start();
-}
-
 // Disable error display to prevent HTML output
 error_reporting(0);
 ini_set('display_errors', 0);
@@ -22,13 +16,12 @@ $full_name = trim($input['full_name'] ?? '');
 $age = isset($input['age']) ? intval($input['age']) : null;
 $sex = trim($input['sex'] ?? '');
 $address = trim($input['address'] ?? '');
-$contact_number = trim($input['contact_number'] ?? '');
 $date_of_birth = trim($input['date_of_birth'] ?? '');
-$barangay_id = isset($input['barangay_id']) ? intval($input['barangay_id']) : null;
+$barangay_id = isset($input['barangay_id']) && $input['barangay_id'] ? intval($input['barangay_id']) : null;
 
 if ($full_name === '' || !$age || $sex === '' || $address === '') {
   http_response_code(400);
-  echo json_encode(['success' => false, 'error' => 'Missing required fields']);
+  echo json_encode(['success' => false, 'error' => 'Missing required fields (name, age, sex, address)']);
   exit;
 }
 
@@ -49,11 +42,30 @@ if (!$conn->query($sql)) {
 
 $newId = $conn->insert_id;
 
-// Optionally seed related rows like health_examinations/medical_records/diagnostics
-// These are not critical for basic listing; uncomment if needed
-// $conn->query("INSERT INTO health_examinations (patient_id) VALUES ($newId)");
-// $conn->query("INSERT INTO medical_records (patient_id) VALUES ($newId)");
-// $conn->query("INSERT INTO diagnostics (patient_id) VALUES ($newId)");
+// Create medical record with additional fields
+$surname = $conn->real_escape_string($input['surname'] ?? '');
+$first_name = $conn->real_escape_string($input['first_name'] ?? '');
+$middle_name = $conn->real_escape_string($input['middle_name'] ?? '');
+$suffix = $conn->real_escape_string($input['suffix'] ?? '');
+$philhealth_id = $conn->real_escape_string($input['philhealth_id'] ?? '');
+$priority = $conn->real_escape_string($input['priority'] ?? 'medium');
+
+// Get barangay name
+$barangayName = '';
+if ($barangay_id) {
+    $barangayResult = $conn->query("SELECT name FROM barangays WHERE id = $barangay_id");
+    if ($barangayResult && $barangayResult->num_rows > 0) {
+        $barangayName = $barangayResult->fetch_assoc()['name'];
+    }
+}
+
+// Create medical record entry
+$medicalRecordSql = "INSERT INTO medical_records 
+    (patient_id, surname, first_name, middle_name, suffix, date_of_birth, barangay, philhealth_id, priority) 
+    VALUES 
+    ($newId, '$surname', '$first_name', '$middle_name', '$suffix', $date_of_birth_sql, '" . $conn->real_escape_string($barangayName) . "', '$philhealth_id', '$priority')";
+    
+$conn->query($medicalRecordSql);
 
 $data = [
   'id' => $newId,
@@ -62,6 +74,7 @@ $data = [
   'sex' => $sex,
   'address' => $address,
   'date_of_birth' => $date_of_birth,
+  'barangay_id' => $barangay_id,
 ];
 
 echo json_encode(['success' => true, 'data' => $data]);

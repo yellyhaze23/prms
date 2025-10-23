@@ -175,34 +175,34 @@ function PatientList({ patients, onSelect, onEdit, onDelete, loading, error }) {
 
                       {/* Modern Dropdown Menu with Animation */}
                       {activeDropdown === patient.id && (
-                        <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl z-[99999] border border-gray-100 overflow-hidden animate-in slide-in-from-top-2 duration-200" style={{zIndex: 99999}}>
+                        <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl z-[99999] border border-gray-100 overflow-hidden animate-in slide-in-from-top-2 duration-200" style={{zIndex: 99999}}>
                           <div className="py-2">
                             {/* Edit Patient */}
                             <button
-                              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all duration-150 group/edit"
+                              className="flex items-start w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-all duration-150"
                               onClick={(e) => handleActionClick('edit', patient, e)}
                             >
-                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 group-hover/edit:bg-red-200 transition-colors duration-150 mr-3">
-                                <FaEdit className="h-3.5 w-3.5 text-red-600" />
+                              <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                                <FaEdit className="h-4 w-4 text-green-600" />
                               </div>
-                              <div className="flex flex-col items-start">
-                                <span className="font-medium">Edit Patient</span>
-                                <span className="text-xs text-gray-500">Update patient information</span>
+                              <div className="flex-1 text-left">
+                                <div className="font-semibold text-gray-900">Edit Patient</div>
+                                <div className="text-xs text-gray-500 mt-0.5">Update patient information</div>
                               </div>
                             </button>
                             
                             {/* Delete Patient - only show if onDelete function exists */}
                             {onDelete && (
                               <button
-                                className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all duration-150 group/delete"
+                                className="flex items-start w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-all duration-150"
                                 onClick={(e) => handleActionClick('delete', patient, e)}
                               >
-                                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 group-hover/delete:bg-red-200 transition-colors duration-150 mr-3">
-                                  <FaTrash className="h-3.5 w-3.5 text-red-600" />
+                                <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                                  <FaTrash className="h-4 w-4 text-red-600" />
                                 </div>
-                                <div className="flex flex-col items-start">
-                                  <span className="font-medium">Delete Patient</span>
-                                  <span className="text-xs text-gray-500">Remove from system</span>
+                                <div className="flex-1 text-left">
+                                  <div className="font-semibold text-gray-900">Delete Patient</div>
+                                  <div className="text-xs text-gray-500 mt-0.5">Remove from system</div>
                                 </div>
                               </button>
                             )}

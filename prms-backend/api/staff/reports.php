@@ -1,25 +1,31 @@
 <?php
+// Add CORS headers
+header('Access-Control-Allow-Origin: http://localhost:5173');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Credentials: true');
+
+// Handle preflight requests
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
 require_once __DIR__ . '/_init.php';
 $user = current_user_or_401();
 $staffId = intval($user['id']);
 
-$from = $_GET['from'] ?? null;
-$to = $_GET['to'] ?? null;
+$days = $_GET['days'] ?? null;
 $disease = $_GET['disease'] ?? null;
-$status = $_GET['status'] ?? null;
 
 // Build WHERE clause for date filtering
 $dateWhere = '';
-if ($from && $to) {
-    $dateWhere = "AND DATE(created_at) BETWEEN '$from' AND '$to'";
-} elseif ($from) {
-    $dateWhere = "AND DATE(created_at) >= '$from'";
-} elseif ($to) {
-    $dateWhere = "AND DATE(created_at) <= '$to'";
+if ($days && $days !== 'all') {
+    $dateWhere = "AND DATE(p.created_at) >= DATE_SUB(NOW(), INTERVAL $days DAY)";
 }
 
 // Get total patients assigned to this staff member
-$totalPatientsQuery = "SELECT COUNT(*) as total FROM patients WHERE added_by = $staffId $dateWhere";
+$totalPatientsQuery = "SELECT COUNT(*) as total FROM patients p WHERE added_by = $staffId $dateWhere";
 $totalResult = $conn->query($totalPatientsQuery);
 $totalPatients = $totalResult ? intval($totalResult->fetch_assoc()['total']) : 0;
 
@@ -49,7 +55,10 @@ $patientQuery = "SELECT p.id, p.full_name, p.age, p.sex, p.address, p.created_at
                                 AND mr.diagnosis != 'Healthy'
                             ) THEN 'infected'
                             ELSE 'healthy'
-                        END as status
+                        END as status,
+                        (SELECT MAX(mr.updated_at) 
+                         FROM medical_records mr 
+                         WHERE mr.patient_id = p.id) as last_visit_date
                  FROM patients p 
                  WHERE p.added_by = $staffId $dateWhere";
 
@@ -60,27 +69,6 @@ if ($disease) {
         WHERE mr.patient_id = p.id 
         AND mr.diagnosis = '$disease'
     )";
-}
-
-// Add status filtering if specified
-if ($status) {
-    if ($status === 'healthy') {
-        $patientQuery .= " AND NOT EXISTS (
-            SELECT 1 FROM medical_records mr 
-            WHERE mr.patient_id = p.id 
-            AND mr.diagnosis IS NOT NULL 
-            AND mr.diagnosis != '' 
-            AND mr.diagnosis != 'Healthy'
-        )";
-    } elseif ($status === 'infected') {
-        $patientQuery .= " AND EXISTS (
-            SELECT 1 FROM medical_records mr 
-            WHERE mr.patient_id = p.id 
-            AND mr.diagnosis IS NOT NULL 
-            AND mr.diagnosis != '' 
-            AND mr.diagnosis != 'Healthy'
-        )";
-    }
 }
 
 $patientQuery .= " ORDER BY p.created_at DESC LIMIT 100";
@@ -100,5 +88,5 @@ json_ok([
         'healthy_patients' => $healthyPatients,
     ],
     'patients' => $patients,
-    'filters' => compact('from', 'to', 'disease', 'status'),
+    'filters' => compact('days', 'disease'),
 ]);

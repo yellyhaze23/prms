@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { FaTimes, FaUser, FaSave, FaMapMarkerAlt, FaCalendarAlt, FaVenusMars } from "react-icons/fa";
+import { FaTimes, FaUser, FaSave, FaMapMarkerAlt, FaCalendarAlt, FaVenusMars, FaIdCard } from "react-icons/fa";
 import axios from "axios";
 import Toast from "../../components/Toast";
 
 function StaffAddPatient({ onClose, onConfirm, patient = null }) {
   const [formData, setFormData] = useState({
-    full_name: patient?.full_name || "",
-    age: patient?.age || "",
+    // Name fields (separate components)
+    surname: patient?.surname || "",
+    first_name: patient?.first_name || "",
+    middle_name: patient?.middle_name || "",
+    suffix: patient?.suffix || "",
+    // Basic patient info
+    date_of_birth: patient?.date_of_birth || "",
     sex: patient?.sex || "",
     address: patient?.address || "",
-    contact_number: patient?.contact_number || "",
+    // Medical records fields
+    philhealth_id: patient?.philhealth_id || "",
+    priority: patient?.priority || "medium",
   });
 
   const [toast, setToast] = useState(null);
@@ -19,24 +26,65 @@ function StaffAddPatient({ onClose, onConfirm, patient = null }) {
     setToast({ message, type });
   };
 
-  const handleInputChange = (field, value) => {
+  // Parse full_name into name components if editing existing patient
+  useEffect(() => {
+    if (patient?.id && patient.full_name && !patient.first_name) {
+      // For staff patients, parse full_name into individual components
+      const nameParts = patient.full_name.trim().split(' ');
+      const parsedNames = {
+        first_name: nameParts[0] || "",
+        middle_name: nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : "",
+        surname: nameParts[nameParts.length - 1] || "",
+        suffix: ""
+      };
+      
+      setFormData(prev => ({
+        ...prev,
+        ...parsedNames,
+        date_of_birth: patient.date_of_birth || "",
+        sex: patient.sex || "",
+        address: patient.address || "",
+        philhealth_id: patient.philhealth_id || "",
+        priority: patient.priority || "medium",
+      }));
+    }
+  }, [patient]);
+
+  const handleChange = (e) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [e.target.name]: e.target.value
     }));
   };
 
+  // Calculate age from date of birth
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return 0;
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   const validateForm = () => {
-    if (!formData.full_name.trim()) {
-      showToast("Full name is required", "error");
+    if (!formData.first_name.trim()) {
+      showToast("First name is required", "error");
       return false;
     }
-    if (!formData.age || isNaN(Number(formData.age)) || Number(formData.age) < 0) {
-      showToast("Valid age is required", "error");
+    if (!formData.surname.trim()) {
+      showToast("Surname is required", "error");
+      return false;
+    }
+    if (!formData.date_of_birth) {
+      showToast("Date of birth is required", "error");
       return false;
     }
     if (!formData.sex) {
-      showToast("Sex is required", "error");
+      showToast("Gender is required", "error");
       return false;
     }
     if (!formData.address.trim()) {
@@ -54,13 +102,26 @@ function StaffAddPatient({ onClose, onConfirm, patient = null }) {
     setLoading(true);
 
     try {
+      // Combine name fields into full_name
+      const full_name = `${formData.first_name} ${formData.middle_name} ${formData.surname} ${formData.suffix}`.trim();
+      
       const url = patient 
         ? `http://localhost/prms/prms-backend/api/staff/patients/update.php`
         : `http://localhost/prms/prms-backend/api/staff/patients/add.php`;
 
       const payload = {
-        ...formData,
-        age: Number(formData.age)
+        full_name: full_name,
+        age: calculateAge(formData.date_of_birth),
+        sex: formData.sex,
+        date_of_birth: formData.date_of_birth,
+        address: formData.address,
+        // Include name components for medical records
+        surname: formData.surname,
+        first_name: formData.first_name,
+        middle_name: formData.middle_name,
+        suffix: formData.suffix,
+        philhealth_id: formData.philhealth_id,
+        priority: formData.priority
       };
 
       if (patient) {
@@ -70,13 +131,16 @@ function StaffAddPatient({ onClose, onConfirm, patient = null }) {
       const response = await axios.post(url, payload, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+          'Authorization': `Bearer ${localStorage.getItem('staff_token') || ''}`
         }
       });
 
       if (response.data.success) {
         showToast(patient ? "Patient updated successfully" : "Patient added successfully", "success");
-        onConfirm(response.data.data);
+        setTimeout(() => {
+          onConfirm(response.data.data);
+          onClose();
+        }, 1000);
       } else {
         throw new Error(response.data.error || "Failed to save patient");
       }
@@ -89,144 +153,224 @@ function StaffAddPatient({ onClose, onConfirm, patient = null }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30 backdrop-blur-sm">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <FaUser className="text-blue-600" />
-            </div>
+    <div 
+      className="fixed top-0 left-0 right-0 bottom-0 z-50 bg-slate-900/50 backdrop-blur-sm overflow-y-auto flex items-center justify-center p-4" 
+      style={{ margin: 0 }}
+    >
+      <div className="relative mx-auto w-full max-w-2xl my-4">
+        <div className="bg-white rounded-xl shadow-2xl ring-1 ring-slate-900/10">
+          {/* Header */}
+          <div className="px-6 py-3 border-b flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                {patient ? "Edit Patient" : "Add New Patient"}
-              </h2>
-              <p className="text-sm text-gray-500">
-                {patient ? "Update patient information" : "Enter patient details"}
+              <h3 className="text-xl font-semibold text-slate-900">
+                {patient ? "Edit Patient Record" : "Add New Patient Record"}
+              </h3>
+              <p className="text-sm text-slate-500 mt-1">
+                Fill in the required fields marked with <span className="text-red-500">*</span>
               </p>
             </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <FaTimes className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Full Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <FaUser className="inline mr-2 text-gray-400" />
-              Full Name *
-            </label>
-            <input
-              type="text"
-              value={formData.full_name}
-              onChange={(e) => handleInputChange('full_name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter full name"
-              required
-            />
+            <button onClick={onClose} className="text-slate-500 hover:text-slate-700" aria-label="Close">
+              <FaTimes className="h-5 w-5" />
+            </button>
           </div>
 
-          {/* Age and Sex */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <FaCalendarAlt className="inline mr-2 text-gray-400" />
-                Age *
-              </label>
-              <input
-                type="number"
-                value={formData.age}
-                onChange={(e) => handleInputChange('age', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter age"
-                min="0"
-                max="120"
-                required
-              />
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+            <div className="grid grid-cols-1 gap-4">
+              {/* Name Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* First Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <FaUser className="inline h-4 w-4 mr-2" />
+                    First Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="first_name"
+                    placeholder="Enter first name"
+                    value={formData.first_name}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                  />
+                </div>
+
+                {/* Surname */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <FaUser className="inline h-4 w-4 mr-2" />
+                    Surname <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="surname"
+                    placeholder="Enter surname"
+                    value={formData.surname}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Middle Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <FaUser className="inline h-4 w-4 mr-2" />
+                    Middle Name <span className="text-gray-400">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="middle_name"
+                    placeholder="Enter middle name"
+                    value={formData.middle_name}
+                    onChange={handleChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                  />
+                </div>
+
+                {/* Suffix */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <FaUser className="inline h-4 w-4 mr-2" />
+                    Suffix <span className="text-gray-400">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="suffix"
+                    placeholder="e.g. Jr., Sr., III"
+                    value={formData.suffix}
+                    onChange={handleChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Date of Birth */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <FaCalendarAlt className="inline h-4 w-4 mr-2" />
+                    Date of Birth <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="date_of_birth"
+                    value={formData.date_of_birth}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                  />
+                </div>
+
+                {/* Gender */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <FaVenusMars className="inline h-4 w-4 mr-2" />
+                    Gender <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="sex"
+                    value={formData.sex}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Address */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <FaMapMarkerAlt className="inline h-4 w-4 mr-2" />
+                  Address <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="address"
+                  placeholder="Street, house number, landmarks, etc."
+                  value={formData.address}
+                  onChange={handleChange}
+                  required
+                  rows={3}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                />
+              </div>
+
+              {/* Additional Medical Record Fields */}
+              <div>
+                {/* PhilHealth ID */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <FaIdCard className="inline h-4 w-4 mr-2" />
+                    PhilHealth ID No. <span className="text-gray-400">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="philhealth_id"
+                    placeholder="Enter PhilHealth ID"
+                    value={formData.philhealth_id}
+                    onChange={handleChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Priority */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <FaUser className="inline h-4 w-4 mr-2" />
+                  Priority <span className="text-gray-400">(Optional)</span>
+                </label>
+                <select
+                  name="priority"
+                  value={formData.priority}
+                  onChange={handleChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                >
+                  <option value="low">Low Priority</option>
+                  <option value="medium">Medium Priority</option>
+                  <option value="high">High Priority</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <FaVenusMars className="inline mr-2 text-gray-400" />
-                Sex *
-              </label>
-              <select
-                value={formData.sex}
-                onChange={(e) => handleInputChange('sex', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
+
+            {/* Footer */}
+            <div className="pt-4 border-t flex items-center justify-end gap-2 bg-slate-50 -mx-6 -mb-4 px-6 py-3 rounded-b-xl">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-150"
               >
-                <option value="">Select sex</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    {patient ? "Updating..." : "Adding..."}
+                  </>
+                ) : (
+                  <>
+                    <FaSave className="h-4 w-4 mr-2" />
+                    {patient ? "Update Patient Record" : "Add Patient Record"}
+                  </>
+                )}
+              </button>
             </div>
-          </div>
-
-          {/* Address */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <FaMapMarkerAlt className="inline mr-2 text-gray-400" />
-              Address *
-            </label>
-            <textarea
-              value={formData.address}
-              onChange={(e) => handleInputChange('address', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter address"
-              rows={3}
-              required
-            />
-          </div>
-
-          {/* Contact Number */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Contact Number
-            </label>
-            <input
-              type="tel"
-              value={formData.contact_number}
-              onChange={(e) => handleInputChange('contact_number', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter contact number"
-            />
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {patient ? "Updating..." : "Adding..."}
-                </>
-              ) : (
-                <>
-                  <FaSave className="w-4 h-4 mr-2" />
-                  {patient ? "Update Patient" : "Add Patient"}
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
 
       {toast && (

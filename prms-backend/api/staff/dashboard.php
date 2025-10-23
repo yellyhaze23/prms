@@ -72,24 +72,38 @@ try {
         }
     }
 
-    // Get weekly trends (last 7 days)
-    $trendsQuery = "SELECT DATE(mr.created_at) as date, COUNT(*) as cases 
+    // Get weekly trends (last 7 days with zero-filling)
+    // First, create an array of the last 7 days
+    $weeklyTrends = [];
+    for ($i = 6; $i >= 0; $i--) {
+        $date = date('Y-m-d', strtotime("-$i days"));
+        $weeklyTrends[$date] = [
+            'date' => $date,
+            'count' => 0
+        ];
+    }
+    
+    // Now get actual data
+    $trendsQuery = "SELECT DATE(mr.created_at) as date, COUNT(*) as count 
                     FROM patients p 
                     INNER JOIN medical_records mr ON p.id = mr.patient_id 
                     WHERE p.added_by = $staffId 
-                    AND mr.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                    AND DATE(mr.created_at) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+                    AND DATE(mr.created_at) <= CURDATE()
                     GROUP BY DATE(mr.created_at) 
                     ORDER BY date ASC";
     $trendsResult = $conn->query($trendsQuery);
-    $weeklyTrends = [];
     if ($trendsResult) {
         while ($row = $trendsResult->fetch_assoc()) {
-            $weeklyTrends[] = [
+            $weeklyTrends[$row['date']] = [
                 'date' => $row['date'],
-                'cases' => intval($row['cases'])
+                'count' => intval($row['count'])
             ];
         }
     }
+    
+    // Convert associative array to indexed array
+    $weeklyTrends = array_values($weeklyTrends);
 
     // Get age distribution
     $ageQuery = "SELECT 
@@ -118,6 +132,30 @@ try {
         while ($row = $ageResult->fetch_assoc()) {
             $ageDistribution[] = [
                 'age_group' => $row['age_group'],
+                'count' => intval($row['count'])
+            ];
+        }
+    }
+
+    // Get top barangays (by patient count with recent medical records)
+    $barangaysQuery = "SELECT 
+                          b.name as barangay,
+                          COUNT(DISTINCT p.id) as count
+                       FROM patients p
+                       LEFT JOIN barangays b ON p.barangay_id = b.id
+                       INNER JOIN medical_records mr ON p.id = mr.patient_id
+                       WHERE p.added_by = $staffId
+                       AND mr.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                       AND b.name IS NOT NULL
+                       GROUP BY b.name
+                       ORDER BY count DESC
+                       LIMIT 5";
+    $barangaysResult = $conn->query($barangaysQuery);
+    $topBarangays = [];
+    if ($barangaysResult) {
+        while ($row = $barangaysResult->fetch_assoc()) {
+            $topBarangays[] = [
+                'barangay' => $row['barangay'],
                 'count' => intval($row['count'])
             ];
         }
@@ -168,6 +206,7 @@ try {
             'weekly_trends' => $weeklyTrends,
             'age_distribution' => $ageDistribution
         ],
+        'top_barangays' => $topBarangays,
         'recent_activities' => $recentActivities
     ]);
 

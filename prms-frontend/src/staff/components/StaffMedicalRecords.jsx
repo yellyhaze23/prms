@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../lib/api/axios";
 import { FaEdit, FaSave, FaUser, FaCalendarAlt, FaVenusMars, FaPhone, FaEnvelope, FaMapMarkerAlt, FaHeartbeat, FaWeight, FaEye, FaStethoscope, FaFileMedicalAlt, FaTimes, FaUserMd, FaFlask, FaPills, FaCommentMedical, FaHistory, FaEye as FaView, FaIdCard, FaCog, FaWeightHanging, FaThermometer, FaRuler, FaComment, FaMapMarkerAlt as FaLocationDot, FaStethoscope as FaStethoscopeIcon, FaCalendar, FaUserMd as FaUserDoctor, FaDownload } from "react-icons/fa";
 import ModernToast from "../../components/ModernToast";
 import { formatPatientID } from "../../utils/patientUtils";
@@ -26,7 +26,7 @@ function StaffMedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
   useEffect(() => {
     if (patient?.id) {
       // Fetch current medical record (latest) using staff API
-      axios.get(`http://localhost/prms/prms-backend/api/staff/medical-records/get.php?patient_id=${patient.id}`)
+      api.get(`/medical-records/get.php?patient_id=${patient.id}`)
         .then((res) => {
           console.log("Medical record response:", res.data);
           // The API already returns merged patient and medical record data
@@ -39,7 +39,7 @@ function StaffMedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
         });
 
       // Fetch consultation history (all records) using staff API
-      axios.get(`http://localhost/prms/prms-backend/api/staff/medical-records/get-all.php?patient_id=${patient.id}`)
+      api.get(`/medical-records/get-all.php?patient_id=${patient.id}`)
         .then((res) => {
           console.log("Consultation history response:", res.data);
           // Ensure we always have an array
@@ -71,7 +71,7 @@ function StaffMedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
 
   const handleViewRecord = async (recordId) => {
     try {
-      const response = await axios.get(`http://localhost/prms/prms-backend/api/staff/medical-records/get-by-id.php?record_id=${recordId}&patient_id=${patient.id}`);
+      const response = await api.get(`/medical-records/get-by-id.php?record_id=${recordId}&patient_id=${patient.id}`);
       setSelectedRecord(response.data);
       setShowHistoryModal(true);
     } catch (error) {
@@ -103,8 +103,8 @@ function StaffMedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
     if (isEditing) {
       // Save changes
       try {
-        const response = await axios.post(
-          `http://localhost/prms/prms-backend/api/staff/medical-records/update.php`,
+        const response = await api.post(
+          `/medical-records/update.php`,
           {
             patient_id: patient.id,
             ...medicalRecord
@@ -116,7 +116,7 @@ function StaffMedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
           setIsEditing(false);
           
           // Refresh data
-          const res = await axios.get(`http://localhost/prms/prms-backend/api/staff/medical-records/get.php?patient_id=${patient.id}`);
+          const res = await api.get(`/medical-records/get.php?patient_id=${patient.id}`);
           const mergedData = {
             ...patient,
             ...res.data

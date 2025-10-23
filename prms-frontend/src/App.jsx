@@ -2,6 +2,7 @@ import React, { useState, useEffect, Suspense, lazy } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
+import StaffTopBar from "./staff/components/StaffTopBar";
 import Login from "./admin/Login";
 import SessionManager from "./components/SessionManager";
 import { BackupProvider } from "./contexts/BackupContext";
@@ -33,7 +34,7 @@ const StaffRecords = lazy(() => import('./staff/pages/Records'));
 const StaffDiseases = lazy(() => import('./staff/pages/StaffDiseases'));
 const StaffTracker = lazy(() => import('./staff/pages/Tracking'));
 const StaffReports = lazy(() => import('./staff/pages/Reports'));
-const StaffLogs = lazy(() => import('./staff/pages/AuditLogs'));
+const StaffLogs = lazy(() => import('./staff/pages/StaffLogs'));
 const StaffProfile = lazy(() => import('./staff/pages/Profile'));
 const StaffSettings = lazy(() => import('./staff/pages/Settings'));
 
@@ -53,6 +54,9 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem("sidebarCollapsed") === "true";
   });
+  const [staffSidebarCollapsed, setStaffSidebarCollapsed] = useState(() => {
+    return localStorage.getItem("staffSidebarCollapsed") === "true";
+  });
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -60,6 +64,12 @@ function App() {
     const newState = !sidebarCollapsed;
     setSidebarCollapsed(newState);
     localStorage.setItem("sidebarCollapsed", newState.toString());
+  };
+
+  const toggleStaffSidebar = () => {
+    const newState = !staffSidebarCollapsed;
+    setStaffSidebarCollapsed(newState);
+    localStorage.setItem("staffSidebarCollapsed", newState.toString());
   };
 
   // Performance optimization: Preload routes and data on app start
@@ -125,7 +135,8 @@ function App() {
     <div className="app-layout">
       {!isStaffRoute && <Sidebar collapsed={sidebarCollapsed} />}
       {!isStaffRoute && <TopBar userId={1} userName="Admin" userRole="Administrator" onToggleSidebar={toggleSidebar} sidebarCollapsed={sidebarCollapsed} />}
-      <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${isTransitioning ? 'page-enter' : ''} ${isLoggingOut ? 'page-exit' : ''}`}>
+      {isStaffRoute && <StaffTopBar onToggleSidebar={toggleStaffSidebar} sidebarCollapsed={staffSidebarCollapsed} />}
+      <div className={`main-content ${isStaffRoute ? (staffSidebarCollapsed ? 'sidebar-collapsed' : '') : (sidebarCollapsed ? 'sidebar-collapsed' : '')} ${isTransitioning ? 'page-enter' : ''} ${isLoggingOut ? 'page-exit' : ''}`}>
         <Suspense fallback={<PageLoader />}>
               <Routes>
               <Route path="/" element={<Dashboard />} />
@@ -143,7 +154,7 @@ function App() {
                 path="/staff/*"
                 element={
                   <RequireStaff>
-                    <StaffLayout />
+                    <StaffLayout sidebarCollapsed={staffSidebarCollapsed} />
                   </RequireStaff>
                 }
               >

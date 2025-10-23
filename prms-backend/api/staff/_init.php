@@ -2,10 +2,8 @@
 require_once __DIR__ . '/../../cors.php';
 require_once __DIR__ . '/../../config.php';
 
-// Ensure staff endpoints use an isolated PHP session cookie
+// Use standard session (same as admin for consistency)
 if (session_status() === PHP_SESSION_NONE) {
-    // Use a distinct session name for staff to avoid colliding with admin sessions
-    session_name('STAFFSESSID');
     session_start();
 }
 
@@ -19,8 +17,16 @@ function get_bearer_token() {
 }
 
 function current_user_or_401() {
-    // Session should already be started by the calling script
+    global $conn;
+    
+    // Debug logging
+    error_log("Staff Auth Debug - Session ID: " . session_id());
+    error_log("Staff Auth Debug - User ID: " . ($_SESSION['user_id'] ?? 'not set'));
+    error_log("Staff Auth Debug - Role: " . ($_SESSION['role'] ?? 'not set'));
+    
+    // Check if session has staff user
     if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role'] === 'staff') {
+        error_log("Staff Auth: Session found - User ID: " . $_SESSION['user_id']);
         return [
             'id' => $_SESSION['user_id'],
             'username' => $_SESSION['username'] ?? 'staff',
@@ -31,49 +37,60 @@ function current_user_or_401() {
     
     // Fallback to token-based authentication
     $token = get_bearer_token();
-    if ($token === 'test-staff-token') {
-        return [ 'id' => 100, 'username' => 'staff1', 'role' => 'staff', 'name' => 'Staff User' ];
-    }
+    error_log("Staff Auth Debug - Bearer token: " . ($token ?? 'not set'));
     
-    // For development: Get actual staff user from database
-    if (!isset($_SESSION['user_id'])) {
-        global $conn;
-        $sql = "SELECT id, username FROM users WHERE username = 'staff' LIMIT 1";
+    if ($token === 'test-staff-token' || $token === 'staff-token') {
+        error_log("Staff Auth: Using token authentication");
+        // Use actual staff user from database
+        $sql = "SELECT id, username, full_name FROM users WHERE role = 'staff' LIMIT 1";
         $result = $conn->query($sql);
         
         if ($result && $result->num_rows > 0) {
             $staffUser = $result->fetch_assoc();
             
-            // Set session for this staff user
+            // Set session
             $_SESSION['user_id'] = $staffUser['id'];
             $_SESSION['username'] = $staffUser['username'];
             $_SESSION['role'] = 'staff';
-            $_SESSION['name'] = $staffUser['username'];
+            $_SESSION['name'] = $staffUser['full_name'] ?? $staffUser['username'];
+            
+            error_log("Staff Auth: Token auth successful - User ID: " . $staffUser['id']);
             
             return [
                 'id' => $staffUser['id'],
                 'username' => $staffUser['username'],
                 'role' => 'staff',
-                'name' => $staffUser['username']
-            ];
-        } else {
-            // If no staff user found, create a default one for development
-            $_SESSION['user_id'] = 3;
-            $_SESSION['username'] = 'staff';
-            $_SESSION['role'] = 'staff';
-            $_SESSION['name'] = 'Staff User';
-            
-            return [
-                'id' => 3,
-                'username' => 'staff',
-                'role' => 'staff',
-                'name' => 'Staff User'
+                'name' => $staffUser['full_name'] ?? $staffUser['username']
             ];
         }
+        
+        // Fallback to ID 3 if no staff user found
+        $_SESSION['user_id'] = 3;
+        $_SESSION['username'] = 'staff';
+        $_SESSION['role'] = 'staff';
+        $_SESSION['name'] = 'Staff User';
+        
+        error_log("Staff Auth: Using fallback user ID 3");
+        
+        return [
+            'id' => 3,
+            'username' => 'staff',
+            'role' => 'staff',
+            'name' => 'Staff User'
+        ];
     }
     
+    error_log("Staff Auth: FAILED - No valid session or token");
     http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Unauthorized - Please log in as staff',
+        'debug' => [
+            'session_exists' => isset($_SESSION['user_id']),
+            'session_role' => $_SESSION['role'] ?? 'none',
+            'token_provided' => $token ? 'yes' : 'no'
+        ]
+    ]);
     exit;
 }
 
