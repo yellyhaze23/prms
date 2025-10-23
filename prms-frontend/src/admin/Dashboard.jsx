@@ -619,6 +619,8 @@ const Dashboard = () => {
                   title={alert.type === 'danger' ? 'Outbreak Alert' : alert.type === 'warning' ? 'System Warning' : 'System Info'}
                   message={alert.message}
                   onClose={() => setAlerts(prev => prev.filter((_, i) => i !== index))}
+                  autoHide={true}
+                  duration={5000}
                   action={alert.count && (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 text-gray-800">
                       {alert.count} cases

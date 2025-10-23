@@ -8,6 +8,14 @@ const SessionManager = ({ children }) => {
   const [isActive, setIsActive] = useState(true);
   const [warningTime, setWarningTime] = useState(5);
   const navigate = useNavigate();
+  
+  // Check if we're on a staff route - if so, don't manage session
+  const isStaffRoute = window.location.pathname.startsWith('/staff');
+  
+  // If on staff route, just render children without session management
+  if (isStaffRoute) {
+    return <>{children}</>;
+  }
 
   // Activity detection
   const resetTimer = useCallback(async () => {

@@ -60,7 +60,32 @@ if (!in_array($sortBy, $allowedSortFields)) {
     $sortBy = 'id';
 }
 
-$sql = "SELECT id, full_name, age, sex, date_of_birth, address, created_at FROM patients $where ORDER BY $sortBy $sortOrder LIMIT $pageSize OFFSET $offset";
+$sql = "SELECT 
+    p.id, 
+    p.full_name, 
+    p.age, 
+    p.sex, 
+    p.date_of_birth, 
+    p.address, 
+    p.created_at,
+    (SELECT mr.diagnosis 
+     FROM medical_records mr 
+     WHERE mr.patient_id = p.id 
+     AND mr.diagnosis IS NOT NULL 
+     AND mr.diagnosis != '' 
+     AND mr.diagnosis != 'Healthy'
+     ORDER BY mr.updated_at DESC 
+     LIMIT 1) as diagnosis,
+    (SELECT mr.updated_at 
+     FROM medical_records mr 
+     WHERE mr.patient_id = p.id 
+     ORDER BY mr.updated_at DESC 
+     LIMIT 1) as last_visit
+FROM patients p 
+$where 
+ORDER BY p.$sortBy $sortOrder 
+LIMIT $pageSize OFFSET $offset";
+
 $res = $conn->query($sql);
 $list = [];
 if ($res) {

@@ -263,9 +263,9 @@ try {
             $consultation_year = mt_rand(2021, 2025);
             $consultation_month = mt_rand(1, 12);
             
-            // Skip future months for 2025
-            if ($consultation_year == 2025 && $consultation_month > 9) {
-                $consultation_month = mt_rand(1, 9);
+            // Skip future months for 2025 (current month is October = 10)
+            if ($consultation_year == 2025 && $consultation_month > 10) {
+                $consultation_month = mt_rand(1, 10); // Allow up to October 2025
             }
             
             $consultation_day = mt_rand(1, 28);

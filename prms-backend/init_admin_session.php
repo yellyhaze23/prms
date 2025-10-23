@@ -2,8 +2,6 @@
 require 'cors.php';
 require 'config.php';
 
-header('Content-Type: application/json');
-
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

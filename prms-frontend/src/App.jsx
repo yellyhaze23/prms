@@ -120,14 +120,13 @@ function App() {
 
   const isStaffRoute = location.pathname.startsWith('/staff');
 
-  return (
-    <BackupProvider>
-      <SessionManager>
-        <div className="app-layout">
-          {!isStaffRoute && <Sidebar collapsed={sidebarCollapsed} />}
-          {!isStaffRoute && <TopBar userId={1} userName="Admin" userRole="Administrator" onToggleSidebar={toggleSidebar} sidebarCollapsed={sidebarCollapsed} />}
-          <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${isTransitioning ? 'page-enter' : ''} ${isLoggingOut ? 'page-exit' : ''}`}>
-            <Suspense fallback={<PageLoader />}>
+  // Wrap content with SessionManager only for admin routes
+  const appContent = (
+    <div className="app-layout">
+      {!isStaffRoute && <Sidebar collapsed={sidebarCollapsed} />}
+      {!isStaffRoute && <TopBar userId={1} userName="Admin" userRole="Administrator" onToggleSidebar={toggleSidebar} sidebarCollapsed={sidebarCollapsed} />}
+      <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${isTransitioning ? 'page-enter' : ''} ${isLoggingOut ? 'page-exit' : ''}`}>
+        <Suspense fallback={<PageLoader />}>
               <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/records" element={<Records />} />
@@ -164,7 +163,11 @@ function App() {
           </Suspense>
         </div>
       </div>
-      </SessionManager>
+  );
+
+  return (
+    <BackupProvider>
+      {isStaffRoute ? appContent : <SessionManager>{appContent}</SessionManager>}
     </BackupProvider>
   );
 }

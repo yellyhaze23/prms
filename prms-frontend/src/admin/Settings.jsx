@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { FaCog, FaEdit, FaTrash, FaClock, FaUser, FaShieldAlt, FaEllipsisV, FaDatabase, FaDownload, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaKey, FaFileAlt, FaMapMarkerAlt } from "react-icons/fa";
+import { FaCog, FaEdit, FaTrash, FaClock, FaUser, FaShieldAlt, FaEllipsisV, FaDatabase, FaDownload, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaKey, FaFileAlt, FaMapMarkerAlt, FaEnvelope, FaPhone, FaBriefcase, FaHospital, FaCamera, FaIdCard } from "react-icons/fa";
 import SettingsToolbar from "../components/SettingsToolbar";
 import UserModal from "../components/AddUser";
 import ModernToast from "../components/ModernToast";
@@ -23,7 +23,7 @@ import {
 import "./Settings.css";
 
 function Settings() {
-  const [activeTab, setActiveTab] = useState("users"); // users | account | security | activity | backup
+  const [activeTab, setActiveTab] = useState("users"); // users | profile | account | security | activity | backup
   const [users, setUsers] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
   const [search, setSearch] = useState("");
@@ -70,6 +70,21 @@ function Settings() {
     confirm_password: "",
   });
 
+  // Profile state
+  const [profile, setProfile] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    position: "",
+    department: "",
+    rhu_name: "",
+    rhu_address: "",
+    profile_picture: null
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileErrors, setProfileErrors] = useState({});
+
   // Settings state
   const [settings, setSettings] = useState({
     session_timeout_minutes: 30,
@@ -83,6 +98,41 @@ function Settings() {
     confirm_password: "",
   });
   const [passwordMatch, setPasswordMatch] = useState(false);
+
+  // Fetch admin profile
+  const fetchProfile = async () => {
+    setProfileLoading(true);
+    try {
+      const response = await axios.get('http://localhost/prms/prms-backend/get_admin_profile.php', {
+        withCredentials: true
+      });
+      if (response.data.success && response.data.data) {
+        setProfile({
+          full_name: response.data.data.full_name || "",
+          email: response.data.data.email || "",
+          phone: response.data.data.phone || "",
+          position: response.data.data.position || "",
+          department: response.data.data.department || "",
+          rhu_name: response.data.data.rhu_name || "",
+          rhu_address: response.data.data.rhu_address || "",
+          profile_picture: null
+        });
+        // Also set account username
+        setAccount(prev => ({
+          ...prev,
+          username: response.data.data.username || "",
+          currentUsername: response.data.data.username || "",
+          role: response.data.data.role || ""
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      setToast({ message: "Failed to load profile data", type: "error" });
+      setTimeout(() => setToast({ message: "", type: "error" }), 3000);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   // Password validation functions
   const validatePassword = (password) => {
@@ -147,6 +197,11 @@ function Settings() {
   const toggleBackupMenu = (filename) => {
     setActiveBackupMenu(activeBackupMenu === filename ? null : filename);
   };
+
+  // Load profile data on component mount
+  React.useEffect(() => {
+    fetchProfile();
+  }, []);
 
   // Close backup menu when clicking outside
   React.useEffect(() => {
@@ -543,6 +598,17 @@ function Settings() {
           Users
         </button>
             <button
+              onClick={() => setActiveTab('profile')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'profile'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <FaIdCard className="inline h-4 w-4 mr-2" />
+          Profile
+        </button>
+            <button
               onClick={() => setActiveTab('account')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'account'
@@ -831,6 +897,291 @@ function Settings() {
       )}
 
       {/* Clinic tab removed */}
+
+      {activeTab === 'profile' && (
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm mx-6">
+          {/* Header Section */}
+          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                  <FaIdCard className="h-5 w-5 text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">My Profile</h3>
+                  <p className="text-sm text-gray-600">View and manage your personal and organizational information</p>
+                </div>
+              </div>
+              {account.currentUsername && (
+                <div className="bg-white/60 backdrop-blur rounded-lg px-4 py-2 border border-indigo-200">
+                  <div className="text-xs text-gray-500">Logged in as</div>
+                  <div className="font-semibold text-indigo-700 flex items-center gap-2">
+                    <FaUser className="h-3 w-3" />
+                    {account.currentUsername}
+                    <span className="ml-2 text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full">
+                      {account.role}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {profileLoading ? (
+            <div className="p-12 text-center">
+              <FaSpinner className="animate-spin h-12 w-12 text-indigo-600 mx-auto mb-4" />
+              <p className="text-gray-600">Loading profile information...</p>
+            </div>
+          ) : (
+            <div className="p-6 space-y-8">
+            {/* Personal Information Section */}
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-1 h-6 bg-indigo-500 rounded-full"></div>
+                <h4 className="text-md font-semibold text-gray-900">Personal Information</h4>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Full Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <FaUser className="inline h-4 w-4 mr-2 text-gray-500" />
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        value={profile.full_name || ""} 
+                        onChange={(e) => setProfile({...profile, full_name: e.target.value})} 
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 bg-white ${
+                          profileErrors.full_name 
+                            ? "border-red-300 focus:ring-red-500" 
+                            : "border-gray-300 focus:ring-indigo-500"
+                        }`}
+                        placeholder="Enter your full name"
+                      />
+                      <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    </div>
+                    {profileErrors.full_name && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center">
+                        <FaExclamationTriangle className="h-4 w-4 mr-1" />
+                        {profileErrors.full_name}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <FaEnvelope className="inline h-4 w-4 mr-2 text-gray-500" />
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="email"
+                        value={profile.email || ""} 
+                        onChange={(e) => setProfile({...profile, email: e.target.value})} 
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 bg-white ${
+                          profileErrors.email 
+                            ? "border-red-300 focus:ring-red-500" 
+                            : "border-gray-300 focus:ring-indigo-500"
+                        }`}
+                        placeholder="your.email@example.com"
+                      />
+                      <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    </div>
+                    {profileErrors.email && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center">
+                        <FaExclamationTriangle className="h-4 w-4 mr-1" />
+                        {profileErrors.email}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <FaPhone className="inline h-4 w-4 mr-2 text-gray-500" />
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="tel"
+                        value={profile.phone || ""} 
+                        onChange={(e) => setProfile({...profile, phone: e.target.value})} 
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 bg-white ${
+                          profileErrors.phone 
+                            ? "border-red-300 focus:ring-red-500" 
+                            : "border-gray-300 focus:ring-indigo-500"
+                        }`}
+                        placeholder="+63 912 345 6789"
+                      />
+                      <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    </div>
+                    {profileErrors.phone && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center">
+                        <FaExclamationTriangle className="h-4 w-4 mr-1" />
+                        {profileErrors.phone}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Position */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <FaBriefcase className="inline h-4 w-4 mr-2 text-gray-500" />
+                      Position/Title
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        value={profile.position || ""} 
+                        onChange={(e) => setProfile({...profile, position: e.target.value})} 
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white"
+                        placeholder="e.g., RHU Health Officer"
+                      />
+                      <FaBriefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Professional Details Section */}
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-1 h-6 bg-purple-500 rounded-full"></div>
+                <h4 className="text-md font-semibold text-gray-900">Professional Details</h4>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-6">
+                <div className="grid grid-cols-1 gap-6">
+                  {/* Department/Unit */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <FaHospital className="inline h-4 w-4 mr-2 text-gray-500" />
+                      Department/Unit
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        value={profile.department || ""} 
+                        onChange={(e) => setProfile({...profile, department: e.target.value})} 
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white"
+                        placeholder="e.g., Health Services Department"
+                      />
+                      <FaHospital className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Health Facility Information Section */}
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-1 h-6 bg-green-500 rounded-full"></div>
+                <h4 className="text-md font-semibold text-gray-900">Health Facility Information</h4>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-6">
+                <div className="grid grid-cols-1 gap-6">
+                  {/* RHU Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <FaHospital className="inline h-4 w-4 mr-2 text-gray-500" />
+                      RHU/Health Facility Name
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        value={profile.rhu_name || ""} 
+                        onChange={(e) => setProfile({...profile, rhu_name: e.target.value})} 
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white"
+                        placeholder="e.g., Rural Health Unit - Barangay Centro"
+                      />
+                      <FaHospital className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    </div>
+                  </div>
+
+                  {/* RHU Address */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <FaMapMarkerAlt className="inline h-4 w-4 mr-2 text-gray-500" />
+                      Facility Address
+                    </label>
+                    <div className="relative">
+                      <textarea 
+                        value={profile.rhu_address || ""} 
+                        onChange={(e) => setProfile({...profile, rhu_address: e.target.value})} 
+                        rows="3"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white"
+                        placeholder="Enter complete address of the health facility"
+                      />
+                      <FaMapMarkerAlt className="absolute left-3 top-3 text-gray-400 h-4 w-4" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  // Reset to original values
+                  fetchProfile();
+                  setProfileErrors({});
+                }}
+                className="px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  // Validate and save profile
+                  const errors = {};
+                  if (!profile.full_name) errors.full_name = "Full name is required";
+                  if (!profile.email) errors.email = "Email is required";
+                  else if (!/\S+@\S+\.\S+/.test(profile.email)) errors.email = "Email is invalid";
+                  if (!profile.phone) errors.phone = "Phone number is required";
+                  
+                  setProfileErrors(errors);
+                  
+                  if (Object.keys(errors).length === 0) {
+                    setProfileSaving(true);
+                    try {
+                      await axios.put('http://localhost/prms/prms-backend/update_admin_profile.php', profile, {
+                        withCredentials: true
+                      });
+                      setToast({ message: "Profile updated successfully!", type: "success" });
+                      setTimeout(() => setToast({ message: "", type: "success" }), 3000);
+                    } catch (error) {
+                      setToast({ message: "Failed to update profile. Please try again.", type: "error" });
+                      setTimeout(() => setToast({ message: "", type: "error" }), 3000);
+                    } finally {
+                      setProfileSaving(false);
+                    }
+                  }
+                }}
+                disabled={profileSaving}
+                className="px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                {profileSaving ? (
+                  <>
+                    <FaSpinner className="animate-spin h-4 w-4 mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <FaCheckCircle className="h-4 w-4 mr-2" />
+                    Save Profile
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+          )}
+        </div>
+      )}
 
       {activeTab === 'account' && (
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm mx-6">
@@ -1295,7 +1646,7 @@ function Settings() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200">
                             {log.activity_type}
                           </span>

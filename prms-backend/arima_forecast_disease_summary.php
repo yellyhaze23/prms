@@ -1,4 +1,10 @@
 <?php
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Don't display to browser
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/logs/overall_forecast_errors.log');
+
 require 'cors.php';
 require 'config.php';
 
@@ -20,6 +26,8 @@ if (!$input) {
 
 $disease = isset($input['disease']) ? $input['disease'] : null;
 $forecast_period = isset($input['forecast_period']) ? (int)$input['forecast_period'] : 3;
+
+error_log("Overall forecast request - Disease: " . ($disease ?: 'all') . ", Period: " . $forecast_period);
 
 // Create cache directory if it doesn't exist
 $cache_dir = __DIR__ . '/../forecasting/cache';
@@ -106,6 +114,7 @@ try {
     // Save forecast to database
     $save_sql = "INSERT INTO forecasts (
         disease, 
+        forecast_type,
         forecast_period, 
         population, 
         forecast_results, 
@@ -113,27 +122,46 @@ try {
         area_data, 
         current_data, 
         generated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
     
     $stmt = $conn->prepare($save_sql);
-    $forecast_json = json_encode($forecast_data['forecast_results']);
-    $indicators_json = json_encode($forecast_data['summary']);
-    $area_json = json_encode(['total_diseases' => $forecast_data['summary']['total_diseases']]);
-    $current_json = json_encode(['generated_at' => $forecast_data['summary']['generated_at']]);
     
-    $disease_name = $disease ?: 'All Diseases';
-    $population = 1000;
-    
-    $stmt->bind_param("siissss", 
-        $disease_name, 
-        $forecast_period, 
-        $population,
-        $forecast_json, 
-        $indicators_json, 
-        $area_json, 
-        $current_json
-    );
-    $stmt->execute();
+    if (!$stmt) {
+        error_log("Failed to prepare INSERT statement for overall forecast: " . $conn->error);
+        error_log("SQL: " . $save_sql);
+    } else {
+        $forecast_json = json_encode($forecast_data['forecast_results']);
+        $indicators_json = json_encode($forecast_data['summary']);
+        $area_json = json_encode(['total_diseases' => $forecast_data['summary']['total_diseases']]);
+        $current_json = json_encode(['generated_at' => $forecast_data['summary']['generated_at']]);
+        
+        $disease_name = $disease ?: 'All Diseases';
+        $forecast_type = 'overall';
+        $population = 1000;
+        
+        error_log("Attempting to save overall forecast - Disease: $disease_name, Type: $forecast_type, Period: $forecast_period");
+        
+        if (!$stmt->bind_param("ssiissss", 
+            $disease_name,
+            $forecast_type,
+            $forecast_period, 
+            $population,
+            $forecast_json, 
+            $indicators_json, 
+            $area_json, 
+            $current_json
+        )) {
+            error_log("Failed to bind parameters for overall forecast: " . $stmt->error);
+        } else {
+            if (!$stmt->execute()) {
+                error_log("Failed to execute INSERT for overall forecast: " . $stmt->error);
+            } else {
+                $insert_id = $conn->insert_id;
+                error_log("✓ Overall forecast saved to database successfully! Insert ID: $insert_id");
+            }
+        }
+        $stmt->close();
+    }
     
     // Clean up temp file
     if (file_exists($json_file)) {

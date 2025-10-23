@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { 
   FaCheckCircle, 
   FaExclamationTriangle, 
@@ -15,8 +15,27 @@ const ModernAlert = ({
   onClose,
   dismissible = true,
   icon = null,
-  action = null
+  action = null,
+  autoHide = false,
+  duration = 5000 // 5 seconds default
 }) => {
+  const timeoutRef = useRef(null);
+
+  // Auto-hide functionality
+  useEffect(() => {
+    if (autoHide && onClose) {
+      timeoutRef.current = setTimeout(() => {
+        onClose();
+      }, duration);
+
+      // Cleanup timeout on unmount or when dependencies change
+      return () => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+      };
+    }
+  }, [autoHide, duration, onClose]);
   const getAlertConfig = () => {
     switch (type) {
       case 'success':

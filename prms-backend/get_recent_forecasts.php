@@ -6,7 +6,7 @@ header("Content-Type: application/json");
 
 try {
     // Get recent forecasts from database
-    $sql = "SELECT id, disease, forecast_period, population, forecast_results, 
+    $sql = "SELECT id, disease, forecast_type, forecast_period, population, forecast_results, 
                    indicators, area_data, current_data, generated_at
             FROM forecasts 
             ORDER BY generated_at DESC 
@@ -19,6 +19,7 @@ try {
         $forecasts[] = [
             'id' => $row['id'],
             'disease' => $row['disease'],
+            'forecast_type' => $row['forecast_type'],
             'forecast_period' => $row['forecast_period'],
             'population' => $row['population'],
             'forecast_results' => json_decode($row['forecast_results'], true),
