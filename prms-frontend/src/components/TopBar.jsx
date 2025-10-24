@@ -17,17 +17,27 @@ const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", onToggleSid
   const navigate = useNavigate();
 
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     console.log('Logout initiated - showing animation');
     setShowModal(false);
     
     // Use setTimeout to ensure state updates are applied
-    setTimeout(() => {
+    setTimeout(async () => {
       console.log('Setting logout animation to true');
       setShowLogoutAnimation(true);
       setLogoutStage('loading');
       
-      // Simulate logout process
+      // Call backend logout endpoint
+      try {
+        await fetch('http://localhost/prms/prms-backend/logout.php', {
+          method: 'POST',
+          credentials: 'include'
+        });
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+      
+      // Show success animation
       setTimeout(() => {
         console.log('Logout stage: success');
         setLogoutStage('success');

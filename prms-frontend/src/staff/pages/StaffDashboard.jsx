@@ -32,6 +32,7 @@ import {
   FaVirus,
   FaClipboardList
 } from 'react-icons/fa';
+import ModernToast from '../../components/ModernToast';
 
 // Register Chart.js components
 ChartJS.register(
@@ -60,6 +61,7 @@ export default function StaffDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [currentUser, setCurrentUser] = useState({ name: 'Staff' });
   const navigate = useNavigate();
@@ -93,9 +95,18 @@ export default function StaffDashboard() {
       const data = await response.json();
       if (data.success) {
         setCurrentUser(data.user);
+      } else {
+        setToast({
+          type: 'error',
+          message: 'Failed to load user profile'
+        });
       }
     } catch (err) {
       console.error("Error fetching current user:", err);
+      setToast({
+        type: 'error',
+        message: 'Failed to load user profile'
+      });
     }
   };
 
@@ -110,7 +121,14 @@ export default function StaffDashboard() {
         setData(r.data?.data || r.data);
         setLastUpdated(new Date());
       })
-      .catch((e) => setError(e?.response?.data?.error || 'Failed to load'))
+      .catch((e) => {
+        const errorMsg = e?.response?.data?.error || 'Failed to load dashboard data';
+        setError(errorMsg);
+        setToast({
+          type: 'error',
+          message: errorMsg
+        });
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -698,6 +716,18 @@ export default function StaffDashboard() {
           </div>
         )}
       </motion.div>
+
+      {/* Modern Toast Notification */}
+      {toast && (
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : 'Error'}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={4000}
+        />
+      )}
     </motion.div>
   );
 }

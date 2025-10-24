@@ -9,6 +9,7 @@ import { FaBuilding, FaUserInjured, FaShieldAlt, FaPercentage } from 'react-icon
 import SearchInput from '../../components/SearchInput';
 import FilterControl from '../../components/FilterControl';
 import SortControl from '../../components/SortControl';
+import ModernToast from '../../components/ModernToast';
 import { 
   pageVariants, 
   containerVariants, 
@@ -21,6 +22,7 @@ export default function StaffTracker() {
   const [heatmap, setHeatmap] = useState([]);
   const [summary, setSummary] = useState({ total_barangays: 0, total_patients: 0, total_sick: 0, overall_sick_rate: 0 });
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [riskFilter, setRiskFilter] = useState('all');
   const [sortBy, setSortBy] = useState('patients');
@@ -58,6 +60,10 @@ export default function StaffTracker() {
       })
       .catch((err) => {
         console.error('Heatmap API Error:', err);
+        setToast({
+          type: 'error',
+          message: 'Failed to load heatmap data. Please try again.'
+        });
       })
       .finally(()=> setLoading(false));
   }, []);
@@ -418,6 +424,18 @@ export default function StaffTracker() {
           </div>
         </div>
       </div>
+
+      {/* Modern Toast Notification */}
+      {toast && (
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : 'Error'}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={4000}
+        />
+      )}
     </motion.div>
   );
 }

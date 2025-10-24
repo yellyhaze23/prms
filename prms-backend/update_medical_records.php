@@ -1,6 +1,12 @@
 <?php
 require 'cors.php';
 require 'config.php';
+require 'api/staff/simple_logger.php';
+
+// Start session to get user info
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -11,6 +17,11 @@ if (!$data || !isset($data['id'])) {
 }
 
 $patient_id = intval($data['id']);
+
+// Get current user info for logging
+$userId = $_SESSION['user_id'] ?? 0;
+$userType = $_SESSION['role'] ?? 'unknown';
+$username = $_SESSION['username'] ?? 'unknown';
 
 // Get input data without escaping (prepared statements will handle it)
 $surname = $data['surname'] ?? '';
@@ -37,6 +48,15 @@ $place_of_consultation_medical = $data['place_of_consultation_medical'] ?? '';
 $date_of_consultation_medical = $data['date_of_consultation_medical'] ?? '';
 $health_provider_medical = $data['health_provider_medical'] ?? '';
 $medical_remarks = $data['medical_remarks'] ?? '';
+
+// Get old medical record data for audit logging
+$oldRecordQuery = "SELECT id, diagnosis, priority FROM medical_records WHERE patient_id = ? LIMIT 1";
+$oldStmt = $conn->prepare($oldRecordQuery);
+$oldStmt->bind_param("i", $patient_id);
+$oldStmt->execute();
+$oldResult = $oldStmt->get_result();
+$oldRecord = $oldResult->fetch_assoc();
+$recordId = $oldRecord['id'] ?? 0;
 
 // Use prepared statement for update
 $stmt = $conn->prepare("
@@ -82,6 +102,13 @@ if (!$stmt->execute()) {
     echo json_encode(['error' => 'Failed to update medical record: ' . $stmt->error]);
     exit;
 }
+
+// Simple logging - never fails
+simpleLog($conn, $userId, $userType, $username, 'update', 'medical_record', $recordId, [
+    'patient_id' => $patient_id,
+    'diagnosis' => $diagnosis,
+    'priority' => $priority
+]);
 
 echo json_encode(['success' => true]);
 ?>

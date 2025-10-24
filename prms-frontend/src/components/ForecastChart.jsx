@@ -25,9 +25,12 @@ ChartJS.register(
   Filler
 );
 
-const ForecastChart = ({ forecastData, historicalData, diseaseName, forecastPeriod }) => {
+const ForecastChart = ({ forecastData, historicalData, diseaseName, forecastPeriod, predictions, disease }) => {
   const [selectedDiseases, setSelectedDiseases] = useState([]);
   const [chartData, setChartData] = useState(null);
+
+  // Handle simple predictions array format (from staff forecast page)
+  const isSimpleFormat = predictions && Array.isArray(predictions);
 
   // Get unique diseases from forecast data
   const availableDiseases = forecastData ? 
@@ -40,8 +43,38 @@ const ForecastChart = ({ forecastData, historicalData, diseaseName, forecastPeri
     }
   }, [availableDiseases, selectedDiseases.length]);
 
-  // Process data for chart
+  // Process data for simple predictions format
   useEffect(() => {
+    if (isSimpleFormat && predictions && predictions.length > 0) {
+      const color = '#3B82F6'; // Blue
+      
+      const datasets = [{
+        label: disease || diseaseName || 'Forecast',
+        data: predictions.map(p => ({
+          x: p.month,
+          y: p.cases
+        })),
+        borderColor: color,
+        backgroundColor: color + '20',
+        borderWidth: 3,
+        fill: false,
+        tension: 0.4,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        pointBackgroundColor: color,
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        order: 1
+      }];
+
+      setChartData({ datasets });
+      return;
+    }
+  }, [isSimpleFormat, predictions, disease, diseaseName]);
+
+  // Process data for chart (original format)
+  useEffect(() => {
+    if (isSimpleFormat) return; // Skip if using simple format
     if (!forecastData || forecastData.length === 0) return;
 
     // Group forecast data by disease
@@ -304,75 +337,73 @@ const ForecastChart = ({ forecastData, historicalData, diseaseName, forecastPeri
   };
 
   if (!chartData || chartData.datasets.length === 0) {
-    return (
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-        <div className="text-center text-gray-500">
-          <FaChartLine className="text-4xl mx-auto mb-4 text-gray-300" />
-          <p>No forecast data available for chart visualization</p>
-        </div>
-      </div>
-    );
+    return null; // Don't show anything if no data
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-      {/* Chart Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-            <FaChartLine className="text-blue-600 w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">Forecast Visualization</h3>
-            <p className="text-sm text-gray-500">Historical trends and future predictions</p>
+    <div className={isSimpleFormat ? "" : "bg-white rounded-xl shadow-lg border border-gray-200 p-6"}>
+      {/* Chart Header (only for complex format) */}
+      {!isSimpleFormat && (
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              <FaChartLine className="text-blue-600 w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Forecast Visualization</h3>
+              <p className="text-sm text-gray-500">Historical trends and future predictions</p>
+            </div>
           </div>
         </div>
-        
-      </div>
+      )}
 
-      {/* Disease Filter */}
-      <div className="mb-6">
-        <div className="flex items-center space-x-2 mb-3">
-          <FaFilter className="text-gray-400 w-4 h-4" />
-          <span className="text-sm font-medium text-gray-700">Filter Diseases:</span>
+      {/* Disease Filter (only for complex format with multiple diseases) */}
+      {!isSimpleFormat && availableDiseases.length > 1 && (
+        <div className="mb-6">
+          <div className="flex items-center space-x-2 mb-3">
+            <FaFilter className="text-gray-400 w-4 h-4" />
+            <span className="text-sm font-medium text-gray-700">Filter Diseases:</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {availableDiseases.map((disease) => (
+              <button
+                key={disease}
+                onClick={() => handleDiseaseToggle(disease)}
+                className={`px-3 py-1 text-sm rounded-full transition-colors duration-150 ${
+                  selectedDiseases.includes(disease)
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {disease}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {availableDiseases.map((disease) => (
-            <button
-              key={disease}
-              onClick={() => handleDiseaseToggle(disease)}
-              className={`px-3 py-1 text-sm rounded-full transition-colors duration-150 ${
-                selectedDiseases.includes(disease)
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {disease}
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* Chart */}
-      <div className="h-96">
+      <div className={isSimpleFormat ? "h-80" : "h-96"}>
         <Line
           data={chartData}
           options={chartOptions}
         />
       </div>
 
-      {/* Chart Info */}
-      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-        <div className="flex items-center justify-between text-sm text-gray-600">
-          <div className="flex items-center space-x-4">
-            <span>• Historical data and forecast predictions</span>
-            <span>• Red line marks forecast start</span>
-          </div>
-          <div className="text-xs text-gray-500">
-            Generated: {new Date().toLocaleDateString()}
+      {/* Chart Info (only for complex format) */}
+      {!isSimpleFormat && (
+        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <div className="flex items-center space-x-4">
+              <span>• Historical data and forecast predictions</span>
+              <span>• Red line marks forecast start</span>
+            </div>
+            <div className="text-xs text-gray-500">
+              Generated: {new Date().toLocaleDateString()}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

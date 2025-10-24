@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { FaStethoscope, FaVirus, FaExclamationTriangle, FaLungs, FaHeartbeat, FaThermometerHalf, FaChartBar, FaEye } from 'react-icons/fa';
 import api from '../../lib/api/axios';
 import StaffDiseaseAnalytics from '../components/StaffDiseaseAnalytics';
+import ModernToast from '../../components/ModernToast';
 import { 
   pageVariants, 
   containerVariants, 
@@ -37,6 +38,7 @@ export default function StaffDiseases() {
   const [diseases, setDiseases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('analytics');
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     fetchDiseases();
@@ -48,6 +50,10 @@ export default function StaffDiseases() {
       setDiseases(response.data?.data || response.data || []);
     } catch (error) {
       console.error('Error fetching diseases:', error);
+      setToast({
+        type: 'error',
+        message: 'Failed to load diseases. Please try again.'
+      });
     } finally {
       setLoading(false);
     }
@@ -183,6 +189,18 @@ export default function StaffDiseases() {
             </div>
           )}
         </motion.div>
+      )}
+
+      {/* Modern Toast Notification */}
+      {toast && (
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : 'Error'}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={4000}
+        />
       )}
     </motion.div>
   );

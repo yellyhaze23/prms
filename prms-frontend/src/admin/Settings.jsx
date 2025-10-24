@@ -4,6 +4,7 @@ import axios from "axios";
 import { FaCog, FaEdit, FaTrash, FaClock, FaUser, FaShieldAlt, FaEllipsisV, FaDatabase, FaDownload, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaKey, FaFileAlt, FaMapMarkerAlt, FaEnvelope, FaPhone, FaBriefcase, FaHospital, FaCamera, FaIdCard } from "react-icons/fa";
 import SettingsToolbar from "../components/SettingsToolbar";
 import UserModal from "../components/AddUser";
+import UserProfileModal from "../components/UserProfileModal";
 import ModernToast from "../components/ModernToast";
 import ConfirmationModal from "../components/ConfirmationModal";
 import Pagination from "../components/Pagination";
@@ -46,6 +47,11 @@ function Settings() {
   const [isReauthRequired, setIsReauthRequired] = useState(false);
   const [authError, setAuthError] = useState("");
   const [activeDropdown, setActiveDropdown] = useState(null);
+  
+  // User profile modal state
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [selectedUserProfile, setSelectedUserProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
 
   // Modern controls options
   const sortOptions = [
@@ -260,6 +266,33 @@ function Settings() {
   const fetchUsers = async () => {
     const res = await axios.get("http://localhost/prms/prms-backend/get_users.php");
     if (res.data.success) setUsers(res.data.users);
+  };
+
+  const fetchUserProfile = async (userId) => {
+    setLoadingProfile(true);
+    try {
+      const res = await axios.get(`http://localhost/prms/prms-backend/get_user_profile.php?id=${userId}`);
+      if (res.data.success) {
+        setSelectedUserProfile(res.data.user);
+        setProfileModalOpen(true);
+      } else {
+        showToast(res.data.message || 'Failed to load user profile', 'error');
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      showToast('Error loading user profile', 'error');
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const handleRowClick = (user) => {
+    fetchUserProfile(user.id);
+  };
+
+  const handleCloseProfileModal = () => {
+    setProfileModalOpen(false);
+    setSelectedUserProfile(null);
   };
 
   const fetchSettings = async () => {
@@ -657,7 +690,7 @@ function Settings() {
       </div>
 
       {activeTab === 'users' && (
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm mx-6">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm mx-6 min-h-[600px] pb-8" style={{ overflow: 'visible' }}>
           {/* Enhanced Header Section */}
           <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
             <div className="flex items-center justify-between">
@@ -707,7 +740,7 @@ function Settings() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto min-h-[400px]" style={{ overflowY: 'visible' }}>
             <table className="min-w-full divide-y divide-gray-200" key={`users-${sortKey}-${sortOrder}`}>
             <thead className="bg-blue-50">
               <tr>
@@ -751,7 +784,11 @@ function Settings() {
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
               {filteredUsers.map((u) => (
-                <tr key={u.id} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 group">
+                <tr 
+                  key={u.id} 
+                  className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 group cursor-pointer"
+                  onClick={() => handleRowClick(u)}
+                >
                   <td className="px-6 py-4 text-sm text-gray-700 font-medium">
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -799,7 +836,7 @@ function Settings() {
                       })}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
+                  <td className="px-6 py-4 text-sm text-gray-700" onClick={(e) => e.stopPropagation()}>
                     <div className="relative dropdown-container">
                       {/* Modern Kebab Menu Button */}
                       <button
@@ -980,20 +1017,40 @@ function Settings() {
                       <input 
                         type="email"
                         value={profile.email || ""} 
-                        onChange={(e) => setProfile({...profile, email: e.target.value})} 
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 bg-white ${
+                        onChange={(e) => {
+                          const value = e.target.value.toLowerCase().trim();
+                          setProfile({...profile, email: value});
+                        }}
+                        className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 bg-white ${
                           profileErrors.email 
                             ? "border-red-300 focus:ring-red-500" 
+                            : profile.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)
+                            ? "border-green-300 focus:ring-green-500"
                             : "border-gray-300 focus:ring-indigo-500"
                         }`}
                         placeholder="your.email@example.com"
                       />
                       <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      {profile.email && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email) ? (
+                            <FaCheckCircle className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <FaExclamationTriangle className="h-4 w-4 text-red-500" />
+                          )}
+                        </div>
+                      )}
                     </div>
                     {profileErrors.email && (
                       <p className="mt-1 text-sm text-red-600 flex items-center">
                         <FaExclamationTriangle className="h-4 w-4 mr-1" />
                         {profileErrors.email}
+                      </p>
+                    )}
+                    {profile.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email) && !profileErrors.email && (
+                      <p className="mt-1 text-sm text-green-600 flex items-center">
+                        <FaCheckCircle className="h-4 w-4 mr-1" />
+                        Valid email format
                       </p>
                     )}
                   </div>
@@ -1008,13 +1065,20 @@ function Settings() {
                       <input 
                         type="tel"
                         value={profile.phone || ""} 
-                        onChange={(e) => setProfile({...profile, phone: e.target.value})} 
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                          if (value.length <= 11) {
+                            setProfile({...profile, phone: value});
+                          }
+                        }}
+                        maxLength={11}
+                        pattern="[0-9]{11}"
                         className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 bg-white ${
                           profileErrors.phone 
                             ? "border-red-300 focus:ring-red-500" 
                             : "border-gray-300 focus:ring-indigo-500"
                         }`}
-                        placeholder="+63 912 345 6789"
+                        placeholder="09171234567"
                       />
                       <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     </div>
@@ -1022,6 +1086,12 @@ function Settings() {
                       <p className="mt-1 text-sm text-red-600 flex items-center">
                         <FaExclamationTriangle className="h-4 w-4 mr-1" />
                         {profileErrors.phone}
+                      </p>
+                    )}
+                    {profile.phone && profile.phone.length > 0 && profile.phone.length < 11 && (
+                      <p className="mt-1 text-sm text-gray-500 flex items-center">
+                        <FaExclamationTriangle className="h-4 w-4 mr-1 text-gray-400" />
+                        {profile.phone.length}/11 digits
                       </p>
                     )}
                   </div>
@@ -1140,9 +1210,20 @@ function Settings() {
                   // Validate and save profile
                   const errors = {};
                   if (!profile.full_name) errors.full_name = "Full name is required";
-                  if (!profile.email) errors.email = "Email is required";
-                  else if (!/\S+@\S+\.\S+/.test(profile.email)) errors.email = "Email is invalid";
-                  if (!profile.phone) errors.phone = "Phone number is required";
+                  if (!profile.email) {
+                    errors.email = "Email is required";
+                  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)) {
+                    errors.email = "Please enter a valid email address";
+                  } else if (profile.email.length > 100) {
+                    errors.email = "Email is too long (max 100 characters)";
+                  }
+                  if (!profile.phone) {
+                    errors.phone = "Phone number is required";
+                  } else if (profile.phone.length !== 11) {
+                    errors.phone = "Phone number must be exactly 11 digits";
+                  } else if (!/^09\d{9}$/.test(profile.phone)) {
+                    errors.phone = "Phone number must start with 09";
+                  }
                   
                   setProfileErrors(errors);
                   
@@ -1996,6 +2077,13 @@ function Settings() {
             console.log('Modal cancelled');
             setBackupConfirmModal({ show: false, action: '', file: null });
           }}
+        />
+      )}
+
+      {profileModalOpen && selectedUserProfile && (
+        <UserProfileModal
+          user={selectedUserProfile}
+          onClose={handleCloseProfileModal}
         />
       )}
     </motion.div>

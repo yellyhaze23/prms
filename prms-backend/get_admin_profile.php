@@ -21,12 +21,17 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Log session debug info
-error_log("Get Profile - Session ID: " . session_id());
-error_log("Get Profile - User ID: " . ($_SESSION['user_id'] ?? 'NOT SET'));
+error_log("Get Admin Profile - Session ID: " . session_id());
+error_log("Get Admin Profile - User ID: " . ($_SESSION['user_id'] ?? 'NOT SET'));
+error_log("Get Admin Profile - Role: " . ($_SESSION['role'] ?? 'NOT SET'));
+error_log("Get Admin Profile - Cookie: " . (isset($_COOKIE[session_name()]) ? $_COOKIE[session_name()] : 'NOT SET'));
+error_log("Get Admin Profile - Session Name: " . session_name());
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    error_log("Get Profile - Unauthorized: No user_id in session");
+    error_log("Get Admin Profile - UNAUTHORIZED: No user_id in session");
+    error_log("Get Admin Profile - All SESSION data: " . print_r($_SESSION, true));
+    error_log("Get Admin Profile - All COOKIE data: " . print_r($_COOKIE, true));
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized - Please log in']);
     exit;

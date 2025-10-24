@@ -26,6 +26,7 @@ import {
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import ModernAlert from '../components/ModernAlert';
 import CountUp from '../components/CountUp';
+import ModernToast from '../components/ModernToast';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -63,6 +64,7 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(false); // Start with false for instant display
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
   const [selectedTimeframe, setSelectedTimeframe] = useState('weekly');
   const [lastUpdated, setLastUpdated] = useState(null);
   const [syncing, setSyncing] = useState(false);
@@ -181,9 +183,18 @@ const Dashboard = () => {
       const data = await response.json();
       if (data.success) {
         setCurrentUser(data.user);
+      } else {
+        setToast({
+          type: 'error',
+          message: 'Failed to load user profile'
+        });
       }
     } catch (err) {
       console.error("Error fetching current user:", err);
+      setToast({
+        type: 'error',
+        message: 'Failed to load user profile'
+      });
     }
   };
 
@@ -225,10 +236,20 @@ const Dashboard = () => {
           setAlertCountdown(10);
         }
       } else {
-        setError(data.error || "Failed to fetch dashboard data");
+        const errorMsg = data.error || "Failed to fetch dashboard data";
+        setError(errorMsg);
+        setToast({
+          type: 'error',
+          message: errorMsg
+        });
       }
     } catch (err) {
-      setError("Server error. Please check your connection.");
+      const errorMsg = "Server error. Please check your connection.";
+      setError(errorMsg);
+      setToast({
+        type: 'error',
+        message: errorMsg
+      });
       console.error("Error fetching dashboard data:", err);
     } finally {
       setLoading(false);
@@ -247,6 +268,7 @@ const Dashboard = () => {
       }
     } catch (err) {
       console.error("Background refresh failed:", err);
+      // Silent fail for background refresh - no toast needed
     }
   };
 
@@ -258,9 +280,17 @@ const Dashboard = () => {
         setDiseaseTrends(response.data.trends);
       } else {
         console.error('Failed to fetch disease trends:', response.data.message);
+        setToast({
+          type: 'warning',
+          message: 'Failed to load disease trends'
+        });
       }
     } catch (error) {
       console.error('Error fetching disease trends:', error);
+      setToast({
+        type: 'warning',
+        message: 'Failed to load disease trends'
+      });
     }
   };
 
@@ -1168,6 +1198,18 @@ const Dashboard = () => {
         </motion.div>
 
       </div>
+
+      {/* Modern Toast Notification */}
+      {toast && (
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : toast.type === 'error' ? 'Error' : 'Notice'}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={4000}
+        />
+      )}
     </div>
   );
 };

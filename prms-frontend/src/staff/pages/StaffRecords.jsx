@@ -6,9 +6,10 @@ import Pagination from '../../components/Pagination';
 import SearchInput from '../../components/SearchInput';
 import SortControl from '../../components/SortControl';
 import FilterControl from '../../components/FilterControl';
-import { FaSearch, FaUser, FaFileMedicalAlt, FaIdCard, FaCalendarAlt, FaMapMarkerAlt, FaStethoscope, FaSort, FaEye, FaAddressCard, FaEllipsisV, FaEdit } from 'react-icons/fa';
-import Toast from '../../components/Toast';
+import { FaSearch, FaUser, FaFileMedicalAlt, FaIdCard, FaCalendarAlt, FaMapMarkerAlt, FaStethoscope, FaSort, FaEye, FaAddressCard, FaEllipsisV, FaEdit, FaDownload } from 'react-icons/fa';
+import ModernToast from '../../components/ModernToast';
 import { formatPatientID } from '../../utils/patientUtils';
+import { downloadMedicalRecord } from '../../utils/documentGenerator';
 import { 
   pageVariants, 
   containerVariants, 
@@ -26,7 +27,7 @@ export default function StaffRecords() {
   const [sortBy, setSortBy] = useState('updated_at');
   const [sortOrder, setSortOrder] = useState('desc');
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success', visible: false });
+  const [toast, setToast] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
   const menuRef = useRef(null);
 
@@ -56,7 +57,7 @@ export default function StaffRecords() {
   const [totalRecords, setTotalRecords] = useState(0);
 
   const showToast = (message, type = 'success') => {
-    setToast({ message, type, visible: true });
+    setToast({ message, type });
   };
 
   // Close menu when clicking outside
@@ -158,6 +159,30 @@ export default function StaffRecords() {
     event.stopPropagation(); // Prevent row click
     setOpenMenuId(null);
     handlePatientSelect(patient);
+  };
+
+  const handleDownloadRecord = async (patient, event) => {
+    event.stopPropagation(); // Prevent row click
+    setOpenMenuId(null);
+    
+    try {
+      // Fetch the complete medical record data
+      showToast('Preparing download...', 'info');
+      const response = await api.get(`/medical-records/get.php?patient_id=${patient.id}`);
+      const medicalRecord = response.data;
+      
+      // Download the record
+      const success = await downloadMedicalRecord(medicalRecord);
+      
+      if (success) {
+        showToast(`Medical record for ${patient.full_name} downloaded successfully!`, 'success');
+      } else {
+        showToast('Error generating download file', 'error');
+      }
+    } catch (error) {
+      console.error('Error downloading medical record:', error);
+      showToast('Error downloading medical record', 'error');
+    }
   };
 
   if (selectedPatient) {
@@ -365,6 +390,19 @@ export default function StaffRecords() {
                                   <div className="text-xs text-gray-500 mt-0.5">Update medical records</div>
                                 </div>
                               </button>
+                              
+                              <button
+                                onClick={(e) => handleDownloadRecord(patient, e)}
+                                className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-start transition-colors duration-150"
+                              >
+                                <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                  <FaDownload className="h-4 w-4 text-blue-600" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-semibold text-gray-900">Download Record</div>
+                                  <div className="text-xs text-gray-500 mt-0.5">Export as DOCX file</div>
+                                </div>
+                              </button>
                             </div>
                           </div>
                         )}
@@ -411,11 +449,14 @@ export default function StaffRecords() {
         </motion.div>
       )}
 
-      {toast.visible && (
-        <Toast
+      {toast && (
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : toast.type === 'error' ? 'Error' : 'Notice'}
           message={toast.message}
           type={toast.type}
-          onClose={() => setToast(prev => ({ ...prev, visible: false }))}
+          onClose={() => setToast(null)}
+          duration={4000}
         />
       )}
     </motion.div>

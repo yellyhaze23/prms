@@ -9,6 +9,7 @@ import SearchInput from '../components/SearchInput';
 import FilterControl from '../components/FilterControl';
 import SortControl from '../components/SortControl';
 import CountUp from '../components/CountUp';
+import ModernToast from '../components/ModernToast';
 // Animation variants
 import { 
   pageVariants, 
@@ -84,6 +85,7 @@ function Tracker() {
   const [summary, setSummary] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [riskFilter, setRiskFilter] = useState("all");
   const [sortBy, setSortBy] = useState("patients");
@@ -119,11 +121,21 @@ function Tracker() {
           setFilteredData(data.data);
           setSummary(data.summary);
         } else {
-          setError(data.error || 'Failed to load barangay data');
+          const errorMsg = data.error || 'Failed to load barangay data';
+          setError(errorMsg);
+          setToast({
+            type: 'error',
+            message: errorMsg
+          });
         }
       } catch (err) {
         console.error('Error loading barangay heatmap:', err);
-        setError('Failed to load barangay data');
+        const errorMsg = 'Failed to load barangay data';
+        setError(errorMsg);
+        setToast({
+          type: 'error',
+          message: errorMsg
+        });
       } finally {
         setLoading(false);
       }
@@ -534,6 +546,18 @@ function Tracker() {
           </div>
         </div>
       </div>
+
+      {/* Modern Toast Notification */}
+      {toast && (
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : 'Error'}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={4000}
+        />
+      )}
     </motion.div>
   );
 }

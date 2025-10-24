@@ -25,8 +25,10 @@ $action = $_GET['action'] ?? '';
 $dateFrom = $_GET['date_from'] ?? '';
 $dateTo = $_GET['date_to'] ?? '';
 
-// Build WHERE clause
+// Build WHERE clause - only show patient/medical record operations (not login/logout)
 $where = ["user_id = $staffId", "user_type = 'staff'"];
+$where[] = "action NOT IN ('login', 'logout', 'login_failed')";
+$where[] = "entity_type IN ('patient', 'medical_record')";
 
 if ($action) {
     $where[] = "action = '" . $conn->real_escape_string($action) . "'";
@@ -51,10 +53,9 @@ $totalPages = ceil($totalRecords / $limit);
 // Get logs with pagination
 $query = "SELECT 
     al.*,
-    s.username,
-    s.full_name
+    u.username as user_username
 FROM audit_logs al
-LEFT JOIN staff s ON al.user_id = s.id AND al.user_type = 'staff'
+LEFT JOIN users u ON al.user_id = u.id
 WHERE $whereClause
 ORDER BY al.created_at DESC
 LIMIT $limit OFFSET $offset";
@@ -68,7 +69,8 @@ if ($result) {
     }
 }
 
-json_ok([
+echo json_encode([
+    'success' => true,
     'data' => $logs,
     'pagination' => [
         'currentPage' => $page,

@@ -4,7 +4,7 @@ import api from "../../lib/api/axios";
 import PatientList from "../../components/PatientList";
 import StaffAddPatient from "../components/StaffAddPatient";
 import ConfirmationModal from "../../components/ConfirmationModal";
-import Toast from "../../components/Toast";
+import ModernToast from "../../components/ModernToast";
 import Pagination from "../../components/Pagination";
 import SearchInput from "../../components/SearchInput";
 import SortControl from "../../components/SortControl";
@@ -238,10 +238,13 @@ function StaffPatients() {
       )}
 
       {toast && (
-        <Toast
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : 'Error'}
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
+          duration={3000}
         />
       )}
     </motion.div>

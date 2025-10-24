@@ -4,8 +4,16 @@ require 'config.php';
 
 header('Content-Type: application/json');
 
-// Start session if not already started
+// Configure session cookie parameters (same as authenticate.php)
 if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => false,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
     session_start();
 }
 

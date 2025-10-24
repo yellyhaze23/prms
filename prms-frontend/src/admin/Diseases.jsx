@@ -7,7 +7,7 @@ import AddDiseaseModal from "../components/AddDiseaseModal";
 import DiseaseAnalytics from "../components/DiseaseAnalytics";
 import DiseaseCasesModal from "../components/DiseaseCasesModal";
 import ConfirmationModal from "../components/ConfirmationModal";
-import Toast from "../components/Toast";
+import ModernToast from "../components/ModernToast";
 import "./Diseases.css";
 // Animation variants
 import { 
@@ -373,10 +373,13 @@ function Diseases() {
       )}
 
       {toast && (
-        <Toast
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : toast.type === 'error' ? 'Error' : 'Notice'}
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
+          duration={4000}
         />
       )}
     </motion.div>

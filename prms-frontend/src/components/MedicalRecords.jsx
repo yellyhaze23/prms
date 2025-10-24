@@ -416,12 +416,32 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
                 PhilHealth ID No.
               </label>
               {isEditing ? (
-                <input
-                  name="philhealth_id"
-                  value={r.philhealth_id || ""}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
+                <div className="relative">
+                  <input
+                    name="philhealth_id"
+                    value={r.philhealth_id || ""}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                      if (value.length <= 12) {
+                        handleChange({ target: { name: 'philhealth_id', value } });
+                      }
+                    }}
+                    maxLength={12}
+                    placeholder="12 digits"
+                    className={`w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:border-transparent ${
+                      r.philhealth_id && r.philhealth_id.length > 0
+                        ? r.philhealth_id.length === 12
+                          ? "border-green-300 focus:ring-green-500"
+                          : "border-yellow-300 focus:ring-yellow-500"
+                        : "border-gray-300 focus:ring-blue-500"
+                    }`}
+                  />
+                  {r.philhealth_id && r.philhealth_id.length > 0 && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500">
+                      {r.philhealth_id.length}/12
+                    </div>
+                  )}
+                </div>
               ) : (
                 <p className="text-gray-900">{r.philhealth_id || "Not provided"}</p>
               )}

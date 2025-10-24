@@ -16,7 +16,18 @@ staffApi.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err?.response?.status === 401) {
-      window.location.href = '/';
+      // Only logout if we're not already on login page and session is truly invalid
+      // Check if staff token exists - if it does, the 401 might be a race condition
+      const staffToken = localStorage.getItem('staff_token');
+      const currentPath = window.location.pathname;
+      
+      // Don't redirect if we're already on login page or if token exists (might be timing issue)
+      if (currentPath !== '/' && !staffToken) {
+        console.warn('Unauthorized access - redirecting to login');
+        window.location.href = '/';
+      } else if (staffToken) {
+        console.warn('Got 401 but staff token exists - might be timing issue, not logging out');
+      }
     }
     return Promise.reject(err);
   }

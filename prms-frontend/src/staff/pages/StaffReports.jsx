@@ -6,6 +6,7 @@ import {
   FaUserMd, FaChartLine, FaChevronDown, FaChevronUp, FaCircle
 } from 'react-icons/fa';
 import api from '../../lib/api/axios';
+import ModernToast from '../../components/ModernToast';
 
 // Animation variants
 const pageVariants = {
@@ -34,6 +35,7 @@ export default function StaffReports() {
   const [diseases, setDiseases] = useState([]);
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
   const [diseaseOpen, setDiseaseOpen] = useState(false);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     fetchDiseases();
@@ -90,9 +92,20 @@ export default function StaffReports() {
         diseaseTracking: diseaseRes.data?.data || diseaseRes.data,
         activityLog: activityRes.data?.data || activityRes.data
       });
+      
+      // Show success toast
+      setToast({
+        type: 'success',
+        message: 'Report generated successfully!'
+      });
     } catch (error) {
       console.error('Error generating report:', error);
-      alert('Error generating report. Please check the console for details.');
+      
+      // Show error toast
+      setToast({
+        type: 'error',
+        message: 'Failed to generate report. Please try again.'
+      });
     } finally {
       setLoading(false);
     }
@@ -107,7 +120,10 @@ export default function StaffReports() {
       case 'patient-summary': {
         const patients = data.patientSummary?.patients || [];
         if (patients.length === 0) {
-          alert('No patient data to export. Please generate a report first.');
+          setToast({
+            type: 'warning',
+            message: 'No patient data to export. Please generate a report first.'
+          });
           return;
         }
         
@@ -129,7 +145,10 @@ export default function StaffReports() {
       case 'medical-records': {
         const records = data.medicalRecords?.records || [];
         if (records.length === 0) {
-          alert('No medical records to export. Please generate a report first.');
+          setToast({
+            type: 'warning',
+            message: 'No medical records to export. Please generate a report first.'
+          });
           return;
         }
         
@@ -149,7 +168,10 @@ export default function StaffReports() {
       case 'disease-tracking': {
         const diseaseStats = data.diseaseTracking?.disease_stats || [];
         if (diseaseStats.length === 0) {
-          alert('No disease tracking data to export. Please generate a report first.');
+          setToast({
+            type: 'warning',
+            message: 'No disease tracking data to export. Please generate a report first.'
+          });
           return;
         }
         
@@ -169,7 +191,10 @@ export default function StaffReports() {
       case 'activity-log': {
         const activities = data.activityLog?.activities || [];
         if (activities.length === 0) {
-          alert('No activity log data to export. Please generate a report first.');
+          setToast({
+            type: 'warning',
+            message: 'No activity log data to export. Please generate a report first.'
+          });
           return;
         }
         
@@ -187,7 +212,10 @@ export default function StaffReports() {
       }
 
       default:
-        alert('Please select a tab to export.');
+        setToast({
+          type: 'warning',
+          message: 'Please select a tab to export.'
+        });
         return;
     }
 
@@ -202,6 +230,12 @@ export default function StaffReports() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
+      // Show success toast
+      setToast({
+        type: 'success',
+        message: `Report exported successfully as ${filename}`
+      });
     }
   };
 
@@ -675,7 +709,7 @@ export default function StaffReports() {
               <button
                 type="button"
                 onClick={() => setDateRangeOpen(!dateRangeOpen)}
-                className="w-full bg-white border-2 border-blue-400 rounded-xl pl-4 pr-10 py-3 text-left text-gray-800 font-medium hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                className="w-full bg-white border-2 border-blue-400 rounded-xl pl-4 pr-10 py-2.5 text-left text-gray-800 font-medium hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
               >
                 {filters.dateRange === '7' && 'Last 7 days'}
                 {filters.dateRange === '30' && 'Last 30 days'}
@@ -734,7 +768,7 @@ export default function StaffReports() {
               <button
                 type="button"
                 onClick={() => setDiseaseOpen(!diseaseOpen)}
-                className="w-full bg-white border-2 border-blue-400 rounded-xl pl-4 pr-10 py-3 text-left text-gray-800 font-medium hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                className="w-full bg-white border-2 border-blue-400 rounded-xl pl-4 pr-10 py-2.5 text-left text-gray-800 font-medium hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
               >
                 {filters.disease || 'All Diseases'}
               </button>
@@ -793,7 +827,7 @@ export default function StaffReports() {
           <button
             onClick={generateReport}
             disabled={loading}
-              className="w-full inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-md text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] transition-all duration-200"
+              className="w-full inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl shadow-md text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] transition-all duration-200"
           >
             <FaChartBar className="h-4 w-4 mr-2" />
             {loading ? 'Generating...' : 'Generate Report'}
@@ -830,6 +864,18 @@ export default function StaffReports() {
           {activeTab === 'activity-log' && renderActivityLog()}
         </div>
       </div>
+
+      {/* Modern Toast Notification */}
+      {toast && (
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : toast.type === 'error' ? 'Error' : 'Notice'}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={4000}
+        />
+      )}
     </div>
   );
 }

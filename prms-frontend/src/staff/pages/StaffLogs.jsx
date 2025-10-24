@@ -5,6 +5,7 @@ import Pagination from '../../components/Pagination';
 import AuditLogDetailsModal from '../../components/AuditLogDetailsModal';
 import FilterControl from '../../components/FilterControl';
 import api from '../../lib/api/axios';
+import ModernToast from '../../components/ModernToast';
 
 // Animation variants
 const pageVariants = {
@@ -32,6 +33,7 @@ const hoverScale = { scale: 1.01 };
 export default function StaffLogs() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
   const [filters, setFilters] = useState({
     action: '',
     date_from: '',
@@ -48,11 +50,9 @@ export default function StaffLogs() {
   const [selectedLog, setSelectedLog] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Modern controls options
+  // Modern controls options - only patient/medical record operations
   const actionOptions = [
     { value: '', label: 'All Actions' },
-    { value: 'login', label: 'Login' },
-    { value: 'logout', label: 'Logout' },
     { value: 'create', label: 'Create' },
     { value: 'update', label: 'Update' },
     { value: 'delete', label: 'Delete' },
@@ -80,10 +80,18 @@ export default function StaffLogs() {
         setTotalRecords(response.data.pagination.totalRecords);
       } else {
         setAuditLogs([]);
+        setToast({
+          type: 'warning',
+          message: 'No audit logs found'
+        });
       }
     } catch (error) {
       console.error('Error fetching audit logs:', error);
       setAuditLogs([]);
+      setToast({
+        type: 'error',
+        message: 'Failed to load audit logs. Please try again.'
+      });
     } finally {
       setLoading(false);
     }
@@ -325,6 +333,18 @@ export default function StaffLogs() {
         onClose={handleCloseModal}
         logData={selectedLog}
       />
+
+      {/* Modern Toast Notification */}
+      {toast && (
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : toast.type === 'error' ? 'Error' : 'Notice'}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={4000}
+        />
+      )}
     </motion.div>
   );
 }

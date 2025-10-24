@@ -54,11 +54,27 @@ function Login({ onLogin }) {
     setShowLoadingModal(true);
     setLoadingStage('loading');
 
+    // Client-side validation
+    if (!username.trim()) {
+      setError("Please enter your username or email");
+      setShowLoadingModal(false);
+      setLoading(false);
+      return;
+    }
+
+    if (!password.trim()) {
+      setError("Please enter your password");
+      setShowLoadingModal(false);
+      setLoading(false);
+      return;
+    }
+
     try {
-      const res = await axios.post("http://localhost/prms/prms-backend/authenticate.php", {
-        username,
-        password,
-      });
+      const res = await axios.post(
+        "http://localhost/prms/prms-backend/authenticate.php", 
+        { username, password },
+        { timeout: 10000 }
+      );
 
       if (res.data.success) {
         if (rememberMe) {
@@ -70,17 +86,30 @@ function Login({ onLogin }) {
         // Show success animation
         setLoadingStage('success');
         
-        // Wait for success animation to complete, then proceed with login
+        // Wait for success animation to complete
         setTimeout(() => {
           onLogin(res.data.user);
         }, 1500);
       } else {
-        setError(res.data.message || "Login failed");
+        // Display backend error message
+        setError(res.data.message || "Login failed. Please try again.");
         setShowLoadingModal(false);
         setLoading(false);
       }
     } catch (err) {
-      setError("Server error. Please check your connection and try again.");
+      console.error("Login error:", err);
+      
+      // Handle network errors
+      if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
+        setError("Connection timeout. Please try again.");
+      } else if (err.message.includes('Network Error')) {
+        setError("Cannot connect to server. Please try again.");
+      } else if (err.response) {
+        setError("Server error. Please try again later.");
+      } else {
+        setError("An error occurred. Please try again.");
+      }
+      
       setShowLoadingModal(false);
       setLoading(false);
     }

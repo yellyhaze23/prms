@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { FaTimes, FaUser, FaSave, FaMapMarkerAlt, FaCalendarAlt, FaVenusMars, FaIdCard } from "react-icons/fa";
+import { FaTimes, FaUser, FaSave, FaMapMarkerAlt, FaCalendarAlt, FaVenusMars, FaIdCard, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
 import axios from "axios";
-import Toast from "../../components/Toast";
+import ModernToast from "../../components/ModernToast";
 
 function StaffAddPatient({ onClose, onConfirm, patient = null }) {
   const [formData, setFormData] = useState({
@@ -311,14 +311,49 @@ function StaffAddPatient({ onClose, onConfirm, patient = null }) {
                     <FaIdCard className="inline h-4 w-4 mr-2" />
                     PhilHealth ID No. <span className="text-gray-400">(Optional)</span>
                   </label>
-                  <input
-                    type="text"
-                    name="philhealth_id"
-                    placeholder="Enter PhilHealth ID"
-                    value={formData.philhealth_id}
-                    onChange={handleChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      name="philhealth_id"
+                      placeholder="12 digits (e.g., 123456789012)"
+                      value={formData.philhealth_id}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                        if (value.length <= 12) {
+                          setFormData(prev => ({ ...prev, philhealth_id: value }));
+                        }
+                      }}
+                      maxLength={12}
+                      className={`mt-1 block w-full pl-3 pr-10 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm ${
+                        formData.philhealth_id && formData.philhealth_id.length > 0
+                          ? formData.philhealth_id.length === 12
+                            ? "border-green-300 focus:ring-green-500"
+                            : "border-yellow-300 focus:ring-yellow-500"
+                          : "border-gray-300 focus:ring-blue-500"
+                      }`}
+                    />
+                    {formData.philhealth_id && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        {formData.philhealth_id.length === 12 ? (
+                          <FaCheckCircle className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <FaExclamationTriangle className="h-4 w-4 text-yellow-500" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {formData.philhealth_id && formData.philhealth_id.length > 0 && formData.philhealth_id.length < 12 && (
+                    <p className="mt-1 text-sm text-yellow-600 flex items-center">
+                      <FaExclamationTriangle className="h-3 w-3 mr-1" />
+                      {formData.philhealth_id.length}/12 digits
+                    </p>
+                  )}
+                  {formData.philhealth_id && formData.philhealth_id.length === 12 && (
+                    <p className="mt-1 text-sm text-green-600 flex items-center">
+                      <FaCheckCircle className="h-3 w-3 mr-1" />
+                      Valid PhilHealth ID format
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -374,10 +409,13 @@ function StaffAddPatient({ onClose, onConfirm, patient = null }) {
       </div>
 
       {toast && (
-        <Toast
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : 'Error'}
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
+          duration={3000}
         />
       )}
     </div>

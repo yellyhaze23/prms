@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { FaTimes, FaBell, FaCheck, FaCheckCircle, FaExclamationCircle, FaInfoCircle, FaTrashAlt } from 'react-icons/fa';
+import { FaTimes, FaBell, FaCheckCircle, FaExclamationCircle, FaInfoCircle, FaTrashAlt } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 
-const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
+const StaffNotificationDrawer = ({ isOpen, onClose, userId }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -12,9 +12,17 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
 
   // Fetch all notifications
   const fetchAllNotifications = async () => {
+    if (!userId) return;
+    
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost/prms/prms-backend/get_notifications.php?user_id=${userId}&limit=50`);
+      const response = await fetch(
+        `http://localhost/prms/prms-backend/api/staff/get_notifications.php?limit=50`,
+        {
+          method: 'GET',
+          credentials: 'include'
+        }
+      );
       const data = await response.json();
       
       if (data.success) {
@@ -31,16 +39,19 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
   // Mark notification as read
   const markAsRead = async (notificationId) => {
     try {
-      const response = await fetch('http://localhost/prms/prms-backend/mark_notification_read.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          notification_id: notificationId
-        })
-      });
+      const response = await fetch(
+        'http://localhost/prms/prms-backend/api/staff/mark_notification_read.php',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            notification_id: notificationId
+          })
+        }
+      );
       
       if (response.ok) {
         setNotifications(prev => 
@@ -60,16 +71,19 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
   // Mark all notifications as read
   const markAllAsRead = async () => {
     try {
-      const response = await fetch('http://localhost/prms/prms-backend/mark_notification_read.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          mark_all: true
-        })
-      });
+      const response = await fetch(
+        'http://localhost/prms/prms-backend/api/staff/mark_notification_read.php',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            mark_all: true
+          })
+        }
+      );
       
       if (response.ok) {
         setNotifications(prev => 
@@ -85,9 +99,9 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
   // Handle action button click
   const handleActionClick = (notification) => {
     if (notification.action_url) {
-      // Navigate to the action URL
+      // Navigate to the action URL within staff portal
       if (notification.action_url.startsWith('/')) {
-        window.location.href = notification.action_url;
+        window.location.href = '/staff' + notification.action_url;
       } else {
         window.open(notification.action_url, '_blank');
       }
@@ -97,11 +111,10 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
   // Handle close with animation
   const handleClose = () => {
     setIsAnimating(true);
-    // Wait for animation to complete before actually closing
     setTimeout(() => {
       setIsAnimating(false);
       onClose();
-    }, 300); // Match the animation duration
+    }, 300);
   };
 
   // Get notification icon based on type
@@ -133,15 +146,14 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
 
   // Fetch notifications when drawer opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && userId) {
       fetchAllNotifications();
     }
   }, [isOpen, userId]);
 
-  // Handle body scroll prevention only
+  // Handle body scroll prevention
   useEffect(() => {
     if (isOpen) {
-      // Prevent body scroll when drawer is open
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -350,4 +362,5 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
   );
 };
 
-export default NotificationDrawer;
+export default StaffNotificationDrawer;
+

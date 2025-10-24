@@ -5,6 +5,7 @@ import TopBar from "./components/TopBar";
 import StaffTopBar from "./staff/components/StaffTopBar";
 import Login from "./admin/Login";
 import SessionManager from "./components/SessionManager";
+import StaffSessionManager from "./staff/components/StaffSessionManager";
 import { BackupProvider } from "./contexts/BackupContext";
 import "./App.css";
 import "./index.css";
@@ -25,7 +26,8 @@ const AuditLogs = lazy(() => import('./admin/AuditLogs'));
 const Settings = lazy(() => import('./admin/Settings'));
 const NotificationCenter = lazy(() => import('./components/NotificationCenter'));
 
-// Staff portal lazy loading
+// Route protection components
+const RequireAdmin = lazy(() => import('./components/RequireAdmin'));
 const RequireStaff = lazy(() => import('./staff/components/RequireStaff'));
 const StaffLayout = lazy(() => import('./staff/layouts/StaffLayout'));
 const StaffDashboard = lazy(() => import('./staff/pages/Dashboard'));
@@ -34,9 +36,8 @@ const StaffRecords = lazy(() => import('./staff/pages/Records'));
 const StaffDiseases = lazy(() => import('./staff/pages/StaffDiseases'));
 const StaffTracker = lazy(() => import('./staff/pages/Tracking'));
 const StaffReports = lazy(() => import('./staff/pages/Reports'));
-const StaffLogs = lazy(() => import('./staff/pages/StaffLogs'));
-const StaffProfile = lazy(() => import('./staff/pages/Profile'));
 const StaffSettings = lazy(() => import('./staff/pages/Settings'));
+const StaffARIMAForecast = lazy(() => import('./staff/pages/StaffARIMAForecast'));
 
 // Loading component
 const PageLoader = () => (
@@ -105,13 +106,20 @@ function App() {
       setIsLoggedIn(true);
       
       try {
+        // Clear ALL auth tokens first to prevent conflicts
+        localStorage.removeItem('staff_token');
+        localStorage.removeItem('staff_role');
+        localStorage.removeItem('admin_role');
+        localStorage.removeItem('admin_token');
+        
         if (user?.role === 'staff') {
-          // Namespaced staff auth keys to avoid colliding with admin state
+          // Set staff auth keys
           localStorage.setItem('staff_token', 'test-staff-token');
           localStorage.setItem('staff_role', 'staff');
           navigate('/staff/dashboard', { replace: true });
         } else {
-          // Optional: set admin-specific keys without touching staff keys
+          // Set admin auth keys
+          localStorage.setItem('admin_token', 'test-admin-token');
           localStorage.setItem('admin_role', 'admin');
           navigate('/', { replace: true });
         }
@@ -120,6 +128,12 @@ function App() {
       // Reset transition state after navigation
       setTimeout(() => {
         setIsTransitioning(false);
+        
+        // Dispatch login event AFTER navigation completes to update user badges
+        // Increased delay to ensure session cookie is set
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('login'));
+        }, 500);
       }, 300);
     }, 100);
   };
@@ -139,16 +153,16 @@ function App() {
       <div className={`main-content ${isStaffRoute ? (staffSidebarCollapsed ? 'sidebar-collapsed' : '') : (sidebarCollapsed ? 'sidebar-collapsed' : '')} ${isTransitioning ? 'page-enter' : ''} ${isLoggingOut ? 'page-exit' : ''}`}>
         <Suspense fallback={<PageLoader />}>
               <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/records" element={<Records />} />
-              <Route path="/patient" element={<Patient />} />
-              <Route path="/diseases" element={<Diseases />} />
-              <Route path="/tracker" element={<Tracker />} />
-              <Route path="/arima-forecast" element={<ARIMAForecast />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/audit-logs" element={<AuditLogs />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/notifications" element={<NotificationCenter />} />
+              <Route path="/" element={<RequireAdmin><Dashboard /></RequireAdmin>} />
+              <Route path="/records" element={<RequireAdmin><Records /></RequireAdmin>} />
+              <Route path="/patient" element={<RequireAdmin><Patient /></RequireAdmin>} />
+              <Route path="/diseases" element={<RequireAdmin><Diseases /></RequireAdmin>} />
+              <Route path="/tracker" element={<RequireAdmin><Tracker /></RequireAdmin>} />
+              <Route path="/arima-forecast" element={<RequireAdmin><ARIMAForecast /></RequireAdmin>} />
+              <Route path="/reports" element={<RequireAdmin><Reports /></RequireAdmin>} />
+              <Route path="/audit-logs" element={<RequireAdmin><AuditLogs /></RequireAdmin>} />
+              <Route path="/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
+              <Route path="/notifications" element={<RequireAdmin><NotificationCenter /></RequireAdmin>} />
               {/** Staff Portal */}
               <Route
                 path="/staff/*"
@@ -164,9 +178,8 @@ function App() {
                 <Route path="records" element={<StaffRecords />} />
                 <Route path="diseases" element={<StaffDiseases />} />
                 <Route path="tracking" element={<StaffTracker />} />
+                <Route path="forecasts" element={<StaffARIMAForecast />} />
                 <Route path="reports" element={<StaffReports />} />
-                <Route path="audit-logs" element={<StaffLogs />} />
-                <Route path="profile" element={<StaffProfile />} />
                 <Route path="settings" element={<StaffSettings />} />
               </Route>
               <Route path="*" element={<Navigate to="/" />} />
@@ -178,7 +191,11 @@ function App() {
 
   return (
     <BackupProvider>
-      {isStaffRoute ? appContent : <SessionManager>{appContent}</SessionManager>}
+      {isStaffRoute ? (
+        <StaffSessionManager>{appContent}</StaffSessionManager>
+      ) : (
+        <SessionManager>{appContent}</SessionManager>
+      )}
     </BackupProvider>
   );
 }

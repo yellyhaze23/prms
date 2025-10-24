@@ -1,26 +1,63 @@
-import React, { useState } from 'react';
-import { FaUser, FaCog, FaSignOutAlt, FaBars } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaCog, FaSignOutAlt, FaBars } from 'react-icons/fa';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import LogoutAnimationModal from '../../components/LogoutAnimationModal';
 import DateTimeDisplay from '../../components/DateTimeDisplay';
+import StaffNotificationBell from './StaffNotificationBell';
 import { useNavigate } from 'react-router-dom';
 
 const StaffTopBar = ({ onToggleSidebar, sidebarCollapsed = false }) => {
   const [showModal, setShowModal] = useState(false);
   const [showLogoutAnimation, setShowLogoutAnimation] = useState(false);
   const [logoutStage, setLogoutStage] = useState('loading');
+  const [currentUserId, setCurrentUserId] = useState(null);
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  // Fetch current user ID for notifications
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch('http://localhost/prms/prms-backend/api/staff/me.php', {
+          method: 'GET',
+          credentials: 'include'
+        });
+        const data = await response.json();
+        if (data.success && data.user) {
+          setCurrentUserId(data.user.id);
+        }
+      } catch (err) {
+        console.error("Error fetching current user for notifications:", err);
+      }
+    };
+    
+    // Add delay to allow session to be established after login
+    const timer = setTimeout(() => {
+      fetchCurrentUser();
+    }, 2000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleLogout = async () => {
     console.log('Staff logout initiated - showing animation');
     setShowModal(false);
     
-    setTimeout(() => {
+    setTimeout(async () => {
       console.log('Setting logout animation to true');
       setShowLogoutAnimation(true);
       setLogoutStage('loading');
       
-      // Simulate logout process
+      // Call backend logout endpoint
+      try {
+        await fetch('http://localhost/prms/prms-backend/logout.php', {
+          method: 'POST',
+          credentials: 'include'
+        });
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+      
+      // Show success animation
       setTimeout(() => {
         console.log('Logout stage: success');
         setLogoutStage('success');
@@ -67,17 +104,11 @@ const StaffTopBar = ({ onToggleSidebar, sidebarCollapsed = false }) => {
             {/* Date and Time Display */}
             <DateTimeDisplay />
             
+            {/* Notification Bell */}
+            {currentUserId && <StaffNotificationBell userId={currentUserId} />}
+            
             {/* User Menu */}
             <div className="flex items-center space-x-3">
-              {/* Profile */}
-              <button
-                onClick={() => navigate('/staff/profile')}
-                className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                title="Profile"
-              >
-                <FaUser className="w-5 h-5" />
-              </button>
-
               {/* Settings */}
               <button
                 onClick={() => navigate('/staff/settings')}
@@ -115,12 +146,13 @@ const StaffTopBar = ({ onToggleSidebar, sidebarCollapsed = false }) => {
           
           <div className="flex items-center space-x-3">
             <DateTimeDisplay />
+            {currentUserId && <StaffNotificationBell userId={currentUserId} />}
             <button
-              onClick={() => navigate('/staff/profile')}
-              className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-              title="Profile"
+              onClick={() => navigate('/staff/settings')}
+              className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+              title="Settings"
             >
-              <FaUser className="w-5 h-5" />
+              <FaCog className="w-5 h-5" />
             </button>
             <button
               onClick={() => setShowModal(true)}

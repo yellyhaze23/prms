@@ -2,8 +2,16 @@
 require_once __DIR__ . '/../../cors.php';
 require_once __DIR__ . '/../../config.php';
 
-// Use standard session (same as admin for consistency)
+// Configure session cookie parameters (same as authenticate.php)
 if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => false,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
     session_start();
 }
 
