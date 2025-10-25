@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { FaTimes, FaBell, FaCheckCircle, FaExclamationCircle, FaInfoCircle, FaTrashAlt } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 
 const StaffNotificationDrawer = ({ isOpen, onClose, userId }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -53,15 +55,10 @@ const StaffNotificationDrawer = ({ isOpen, onClose, userId }) => {
         }
       );
       
-      if (response.ok) {
-        setNotifications(prev => 
-          prev.map(notif => 
-            notif.id === notificationId 
-              ? { ...notif, is_read: 1 }
-              : notif
-          )
-        );
-        setUnreadCount(prev => Math.max(0, prev - 1));
+      const data = await response.json();
+      if (data.success) {
+        // Refresh notifications from server
+        await fetchAllNotifications();
       }
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -80,16 +77,15 @@ const StaffNotificationDrawer = ({ isOpen, onClose, userId }) => {
           },
           credentials: 'include',
           body: JSON.stringify({
-            mark_all: true
+            mark_all_read: true
           })
         }
       );
       
-      if (response.ok) {
-        setNotifications(prev => 
-          prev.map(notif => ({ ...notif, is_read: 1 }))
-        );
-        setUnreadCount(0);
+      const data = await response.json();
+      if (data.success) {
+        // Refresh notifications from server
+        await fetchAllNotifications();
       }
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
@@ -99,10 +95,19 @@ const StaffNotificationDrawer = ({ isOpen, onClose, userId }) => {
   // Handle action button click
   const handleActionClick = (notification) => {
     if (notification.action_url) {
+      // Mark as read before navigating
+      if (!notification.is_read) {
+        markAsRead(notification.id);
+      }
+      
       // Navigate to the action URL within staff portal
       if (notification.action_url.startsWith('/')) {
-        window.location.href = '/staff' + notification.action_url;
+        // Close drawer before navigation
+        handleClose();
+        // Use React Router for internal navigation (add /staff prefix)
+        navigate('/staff' + notification.action_url);
       } else {
+        // External URL - open in new tab
         window.open(notification.action_url, '_blank');
       }
     }

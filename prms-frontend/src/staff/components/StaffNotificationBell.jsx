@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaBell, FaTimes, FaCheckCircle, FaExclamationCircle, FaInfoCircle, FaTrashAlt } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import StaffNotificationDrawer from './StaffNotificationDrawer';
 
 const StaffNotificationBell = ({ userId }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -54,16 +56,10 @@ const StaffNotificationBell = ({ userId }) => {
         }
       );
       
-      if (response.ok) {
-        // Update local state
-        setNotifications(prev => 
-          prev.map(notif => 
-            notif.id === notificationId 
-              ? { ...notif, is_read: 1 }
-              : notif
-          )
-        );
-        setUnreadCount(prev => Math.max(0, prev - 1));
+      const data = await response.json();
+      if (data.success) {
+        // Refresh notifications from server
+        await fetchNotifications();
       }
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -82,16 +78,15 @@ const StaffNotificationBell = ({ userId }) => {
           },
           credentials: 'include',
           body: JSON.stringify({
-            mark_all: true
+            mark_all_read: true
           })
         }
       );
       
-      if (response.ok) {
-        setNotifications(prev => 
-          prev.map(notif => ({ ...notif, is_read: 1 }))
-        );
-        setUnreadCount(0);
+      const data = await response.json();
+      if (data.success) {
+        // Refresh notifications from server
+        await fetchNotifications();
       }
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
@@ -120,10 +115,19 @@ const StaffNotificationBell = ({ userId }) => {
   const handleActionClick = (notification, event) => {
     event.stopPropagation();
     if (notification.action_url) {
+      // Mark as read before navigating
+      if (!notification.is_read) {
+        markAsRead(notification.id);
+      }
+      
       // Navigate to the action URL within staff portal
       if (notification.action_url.startsWith('/')) {
-        window.location.href = '/staff' + notification.action_url;
+        // Close dropdown before navigation
+        setIsOpen(false);
+        // Use React Router for internal navigation (add /staff prefix)
+        navigate('/staff' + notification.action_url);
       } else {
+        // External URL - open in new tab
         window.open(notification.action_url, '_blank');
       }
     }

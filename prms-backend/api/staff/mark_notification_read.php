@@ -16,7 +16,8 @@ try {
     $input = json_decode(file_get_contents('php://input'), true);
     
     $notificationId = $input['notification_id'] ?? null;
-    $markAll = $input['mark_all'] ?? false;
+    // Accept both mark_all and mark_all_read for compatibility
+    $markAll = $input['mark_all'] ?? $input['mark_all_read'] ?? false;
 
     if ($markAll) {
         // Mark all notifications as read for this staff user
