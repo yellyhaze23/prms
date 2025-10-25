@@ -17,15 +17,15 @@ $staffId = intval($user['id']);
 
 $days = $_GET['days'] ?? null;
 
-// Build WHERE clause for date
+// Build WHERE clause for date - exclude future dates
 $dateWhere = "p.added_by = $staffId";
 if ($days && $days !== 'all') {
-    $mrDateWhere = "DATE(mr.created_at) >= DATE_SUB(NOW(), INTERVAL $days DAY)";
+    $mrDateWhere = "DATE(mr.created_at) >= DATE_SUB(NOW(), INTERVAL $days DAY) AND DATE(mr.created_at) <= CURDATE()";
     // Patients table doesn't have created_at, use first medical record as proxy
-    $pDateWhere = "EXISTS (SELECT 1 FROM medical_records mr2 WHERE mr2.patient_id = p.id AND DATE(mr2.created_at) >= DATE_SUB(NOW(), INTERVAL $days DAY))";
+    $pDateWhere = "EXISTS (SELECT 1 FROM medical_records mr2 WHERE mr2.patient_id = p.id AND DATE(mr2.created_at) >= DATE_SUB(NOW(), INTERVAL $days DAY) AND DATE(mr2.created_at) <= CURDATE())";
 } else {
-    $mrDateWhere = "1=1";
-    $pDateWhere = "1=1";
+    $mrDateWhere = "DATE(mr.created_at) <= CURDATE()";
+    $pDateWhere = "EXISTS (SELECT 1 FROM medical_records mr2 WHERE mr2.patient_id = p.id AND DATE(mr2.created_at) <= CURDATE())";
 }
 
 // Get activity summary

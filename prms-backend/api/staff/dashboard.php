@@ -161,7 +161,7 @@ try {
         }
     }
 
-    // Get recent activities
+    // Get recent activities - Filter out future dates
     $activitiesQuery = "SELECT 
                           'New Patient' as activity,
                           p.full_name as patient_name,
@@ -169,6 +169,7 @@ try {
                        FROM patients p 
                        WHERE p.added_by = $staffId 
                        AND p.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                       AND p.created_at <= NOW()
                        UNION ALL
                        SELECT 
                           'Medical Record' as activity,
@@ -178,6 +179,7 @@ try {
                        INNER JOIN medical_records mr ON p.id = mr.patient_id 
                        WHERE p.added_by = $staffId 
                        AND mr.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                       AND mr.created_at <= NOW()
                        ORDER BY timestamp DESC 
                        LIMIT 10";
     $activitiesResult = $conn->query($activitiesQuery);

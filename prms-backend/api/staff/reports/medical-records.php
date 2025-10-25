@@ -18,8 +18,8 @@ $staffId = intval($user['id']);
 $days = $_GET['days'] ?? null;
 $disease = $_GET['disease'] ?? null;
 
-// Build WHERE clause
-$where = ["p.added_by = $staffId"];
+// Build WHERE clause - exclude future dates
+$where = ["p.added_by = $staffId", "DATE(mr.created_at) <= CURDATE()"];
 if ($days && $days !== 'all') {
     $where[] = "DATE(mr.created_at) >= DATE_SUB(NOW(), INTERVAL $days DAY)";
 }
