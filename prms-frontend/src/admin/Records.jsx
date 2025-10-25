@@ -205,7 +205,8 @@ function Records() {
     if (selectedPatient && selectedPatient.id === updatedPatient.id) {
       setSelectedPatient(updatedPatient);
     }
-    showToast("Patient updated successfully", "success");
+    // Toast is already shown by the MedicalRecords component
+    // showToast("Patient updated successfully", "success");
   };
 
   const toggleDropdown = (patientId, e) => {
