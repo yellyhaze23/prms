@@ -6,6 +6,17 @@ ini_set('display_errors', 0);
 // Use proper CORS handling
 require 'cors.php';
 require 'config.php';
+
+// Check database connection
+if (!$conn || mysqli_connect_errno()) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Database connection failed: ' . mysqli_connect_error()
+    ]);
+    exit;
+}
+
 require 'audit_logger.php';
 
 // Set connection collation to avoid collation conflicts
@@ -78,6 +89,7 @@ try {
     ];
 
     $updateFields = [];
+    $updateValues = [];  // Initialize to prevent undefined variable error
     $hasMedicalChanges = false;
     
     foreach ($medicalFields as $field) {
@@ -131,21 +143,47 @@ try {
             
             // INSERT a new medical record for new consultation
             $insertFields = ['patient_id'];
-            $insertValues = [$patient_id];
+            $insertPlaceholders = ['?'];
+            $insertBindValues = [$patient_id];
+            $insertBindTypes = 'i';  // patient_id is integer
             
-            foreach ($updateFields as $field) {
-                if (strpos($field, ' = ') !== false) {
-                    $fieldName = trim(explode(' = ', $field)[0]);
-                    $fieldValue = trim(explode(' = ', $field)[1]);
-                    $insertFields[] = $fieldName;
-                    $insertValues[] = $fieldValue;
+            // Build proper prepared statement with correct data types
+            foreach ($medicalFields as $field) {
+                if (isset($data[$field])) {
+                    $insertFields[] = $field;
+                    $insertPlaceholders[] = '?';
+                    
+                    if (in_array($field, ['height', 'weight'])) {
+                        $insertBindValues[] = floatval($data[$field]);
+                        $insertBindTypes .= 'd';  // double for height/weight
+                    } else if (in_array($field, ['date_of_birth', 'date_of_consultation', 'date_of_consultation_medical']) && empty($data[$field])) {
+                        $insertBindValues[] = null;
+                        $insertBindTypes .= 's';  // null as string type
+                    } else {
+                        $insertBindValues[] = $data[$field];
+                        $insertBindTypes .= 's';  // string for text fields
+                    }
                 }
             }
             
-            $medicalSql = "INSERT INTO medical_records (" . implode(', ', $insertFields) . ") VALUES (" . implode(', ', $insertValues) . ")";
+            // Add timestamps
+            $insertFields[] = 'created_at';
+            $insertFields[] = 'updated_at';
+            $insertPlaceholders[] = 'NOW()';
+            $insertPlaceholders[] = 'NOW()';
+            
+            $medicalSql = "INSERT INTO medical_records (" . implode(', ', $insertFields) . ") VALUES (" . implode(', ', $insertPlaceholders) . ")";
 
-            if (!mysqli_query($conn, $medicalSql)) {
-                throw new Exception('Failed to create new consultation record: ' . mysqli_error($conn));
+            // Use prepared statement properly
+            $stmt = $conn->prepare($medicalSql);
+            if ($stmt) {
+                $stmt->bind_param($insertBindTypes, ...$insertBindValues);
+                if (!$stmt->execute()) {
+                    throw new Exception('Failed to create new consultation record: ' . $stmt->error);
+                }
+                $stmt->close();
+            } else {
+                throw new Exception('Failed to prepare statement: ' . $conn->error);
             }
         } else {
             error_log("No medical changes detected - skipping new consultation entry");
