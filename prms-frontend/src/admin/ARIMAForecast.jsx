@@ -18,7 +18,7 @@ import {
   FaArrowRight
 } from 'react-icons/fa';
 import RecentForecasts from '../components/RecentForecasts';
-import ForecastChart from '../components/ForecastChart';
+import SimpleForecastChart from '../components/SimpleForecastChart';
 import ModernToast from '../components/ModernToast';
 import CountUp from '../components/CountUp';
 import notificationService from '../utils/notificationService';
@@ -38,7 +38,6 @@ const ARIMAForecast = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState('');
   const [forecastData, setForecastData] = useState(null);
-  const [historicalData, setHistoricalData] = useState(null);
   const [error, setError] = useState('');
   const [showCharts, setShowCharts] = useState(false);
   const [activeTab, setActiveTab] = useState('generate');
@@ -76,20 +75,6 @@ const ARIMAForecast = () => {
 
   // Get selected option
   const selectedOption = dropdownOptions.find(option => option.value === selectedDisease) || dropdownOptions[0];
-
-  // Fetch historical data for chart visualization
-  const fetchHistoricalData = async (disease, months = 12) => {
-    try {
-      const response = await fetch(`http://localhost/prms/prms-backend/get_historical_disease_data.php?disease=${encodeURIComponent(disease || '')}&months=${months}`);
-      const data = await response.json();
-      
-      if (data.success) {
-        setHistoricalData(data.historical_data);
-      }
-    } catch (error) {
-      console.error('Error fetching historical data:', error);
-    }
-  };
 
   // Function to get color scheme for each disease
   const getDiseaseColor = (diseaseName) => {
@@ -381,9 +366,6 @@ const ARIMAForecast = () => {
           setBarangayForecastData(null); // Clear barangay forecast
         }
         setShowCharts(true);
-        
-        // Fetch historical data for chart visualization
-        await fetchHistoricalData(selectedDisease, 12);
         
         const forecastType = forecastMode === 'barangay' ? 'Barangay-level' : 'Overall';
         setToast({
@@ -847,25 +829,9 @@ const ARIMAForecast = () => {
                   </div>
                 </div>
 
-                {/* Interactive Forecast Chart */}
-                {forecastData && (
-                  <div className="mt-6">
-                    <React.Suspense fallback={
-                      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-                        <div className="text-center text-gray-500">
-                          <FaChartLine className="text-4xl mx-auto mb-4 text-gray-300 animate-pulse" />
-                          <p>Loading chart...</p>
-                        </div>
-                      </div>
-                    }>
-                      <ForecastChart
-                        forecastData={forecastData.forecast_results}
-                        historicalData={historicalData}
-                        diseaseName={selectedDisease}
-                        forecastPeriod={forecastPeriod}
-                      />
-                    </React.Suspense>
-                  </div>
+                {/* Clean Bar Chart Visualization */}
+                {forecastData && forecastData.forecast_results && (
+                  <SimpleForecastChart forecastResults={forecastData.forecast_results} />
                 )}
               </div>
             ) : barangayForecastData ? (

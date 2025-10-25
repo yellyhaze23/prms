@@ -43,16 +43,10 @@ const NotificationBell = ({ userId = 1 }) => {
         })
       });
       
-      if (response.ok) {
-        // Update local state
-        setNotifications(prev => 
-          prev.map(notif => 
-            notif.id === notificationId 
-              ? { ...notif, is_read: 1 }
-              : notif
-          )
-        );
-        setUnreadCount(prev => Math.max(0, prev - 1));
+      const data = await response.json();
+      if (data.success) {
+        // Refresh notifications to get updated state from server
+        await fetchNotifications();
       }
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -69,15 +63,14 @@ const NotificationBell = ({ userId = 1 }) => {
         },
         body: JSON.stringify({
           user_id: userId,
-          mark_all: true
+          mark_all_read: true
         })
       });
       
-      if (response.ok) {
-        setNotifications(prev => 
-          prev.map(notif => ({ ...notif, is_read: 1 }))
-        );
-        setUnreadCount(0);
+      const data = await response.json();
+      if (data.success) {
+        // Refresh notifications to get updated state from server
+        await fetchNotifications();
       }
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
