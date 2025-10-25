@@ -1,12 +1,22 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import Toolbar from "../../components/Toolbar";
+import { motion } from "framer-motion";
+import api from "../../lib/api/axios";
 import PatientList from "../../components/PatientList";
-import AddPatient from "../../components/AddPatient";
+import StaffAddPatient from "../components/StaffAddPatient";
 import ConfirmationModal from "../../components/ConfirmationModal";
-import Toast from "../../components/Toast";
+import ModernToast from "../../components/ModernToast";
 import Pagination from "../../components/Pagination";
+import SearchInput from "../../components/SearchInput";
+import SortControl from "../../components/SortControl";
 import { FaUserFriends } from "react-icons/fa";
+// Animation variants
+import { 
+  pageVariants, 
+  containerVariants, 
+  cardVariants, 
+  buttonVariants,
+  hoverScale 
+} from '../../utils/animations';
 
 function StaffPatients() {
   const [patients, setPatients] = useState([]);
@@ -39,8 +49,8 @@ function StaffPatients() {
       q: searchTerm
     });
 
-    axios
-      .get(`http://localhost/prms/prms-backend/api/staff/patients.php?${params}`)
+    api
+      .get(`/patients.php?${params}`)
       .then((res) => {
         if (res.data.success) {
           setPatients(res.data.data || []);
@@ -88,14 +98,14 @@ function StaffPatients() {
   };
 
   const handleAddPatient = (newPatient) => {
-    setPatients([...patients, newPatient]);
+    // Refresh the list to get complete data
+    fetchPatients();
     showToast("Patient added successfully", "success");
   };
 
   const handleUpdatePatient = (updatedPatient) => {
-    setPatients((prev) =>
-      prev.map((p) => (p.id === updatedPatient.id ? updatedPatient : p))
-    );
+    // Refresh the list to get complete updated data
+    fetchPatients();
     showToast("Patient updated successfully", "success");
   };
 
@@ -105,40 +115,100 @@ function StaffPatients() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-lg shadow-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">My Patients</h1>
-            <p className="text-blue-100 mt-1">Manage your assigned patients</p>
-          </div>
-          <FaUserFriends className="h-8 w-8 text-white" />
+    <motion.div 
+      className="space-y-6"
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
+      {/* Modern Header - Enhanced like Admin Portal */}
+      <motion.div 
+        className="mb-5"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <motion.div variants={cardVariants}>
+            <h1 className="text-3xl font-bold text-blue-600">My Patients</h1>
+            <p className="text-gray-700 mt-2">Manage your assigned patients</p>
+          </motion.div>
+          
+          {/* Controls on the right */}
+          <motion.div 
+            className="flex items-center space-x-4"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {/* Modern Search Input */}
+            <motion.div variants={cardVariants} className="flex items-center space-x-2">
+              <SearchInput
+                placeholder="Search patients by name, address, or ID..."
+                value={searchTerm}
+                onChange={handleSearch}
+                className="w-80"
+              />
+            </motion.div>
+
+            {/* Sort Controls */}
+            <motion.div variants={cardVariants} className="flex items-center space-x-2">
+              <SortControl
+                value={sortBy}
+                order={sortOrder}
+                onChange={(val) => handleSort(val)}
+                onToggleOrder={toggleSortOrder}
+                options={[
+                  { value: 'id', label: 'Sort by: ID' },
+                  { value: 'full_name', label: 'Sort by: Name' },
+                  { value: 'created_at', label: 'Sort by: Date' },
+                ]}
+              />
+            </motion.div>
+
+            {/* Add Patient Button */}
+            <motion.div variants={cardVariants} className="flex items-center space-x-2">
+              <motion.button
+                onClick={() => {
+                  setEditPatient(null);
+                  setShowAddModal(true);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                whileHover={buttonVariants.hover}
+                whileTap={buttonVariants.tap}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Add Patient</span>
+              </motion.button>
+            </motion.div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
-        {/* Toolbar */}
-        <Toolbar
-          onSearch={handleSearch}
-          onSort={handleSort}
-          sortOrder={sortOrder}
-          onToggleSortOrder={toggleSortOrder}
-          onAdd={() => {
-            setEditPatient(null);
-            setShowAddModal(true);
-          }}
-        />
-
-        {/* Patient List */}
+      {/* Patient List */}
+      <motion.div
+        variants={cardVariants}
+        initial="hidden"
+        animate="visible"
+      >
         <PatientList
           patients={patients}
           loading={loading}
           onEdit={handleEditPatient}
           onDelete={null} // No delete functionality for staff
         />
+      </motion.div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <motion.div
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+        >
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -148,10 +218,11 @@ function StaffPatients() {
             showPageSizeSelector={true}
             pageSizeOptions={[10, 25, 50, 100]}
           />
-        )}
+        </motion.div>
+      )}
       
       {showAddModal && (
-        <AddPatient
+        <StaffAddPatient
           patient={editPatient}
           onClose={() => setShowAddModal(false)}
           onConfirm={editPatient ? handleUpdatePatient : handleAddPatient}
@@ -167,13 +238,16 @@ function StaffPatients() {
       )}
 
       {toast && (
-        <Toast
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : 'Error'}
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
+          duration={3000}
         />
       )}
-    </div>
+    </motion.div>
   );
 }
 

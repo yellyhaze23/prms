@@ -104,8 +104,7 @@ const PatientDetailsModal = ({ isVisible, onClose, patient }) => {
 
   const modalContent = (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
-      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}
+      className="fixed top-0 left-0 right-0 bottom-0 w-screen h-screen bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();

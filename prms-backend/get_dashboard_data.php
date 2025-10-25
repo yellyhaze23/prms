@@ -67,7 +67,7 @@ try {
     $stmt->execute();
     $diseaseStats = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 3. Recent Activities (last 10)
+    // 3. Recent Activities (last 10) - Filter out future dates
     $recentActivities = [];
     $stmt = $conn->prepare("
         SELECT 
@@ -82,7 +82,9 @@ try {
             SELECT MAX(mr2.id) 
             FROM medical_records mr2 
             WHERE mr2.patient_id = p.id
+            AND COALESCE(mr2.updated_at, mr2.created_at) <= NOW()
         )
+        AND COALESCE(mr.updated_at, p.created_at) <= NOW()
         ORDER BY COALESCE(mr.updated_at, p.created_at) DESC
         LIMIT 10
     ");

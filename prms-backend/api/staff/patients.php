@@ -1,6 +1,7 @@
 <?php
 // Start session BEFORE any headers
 if (session_status() === PHP_SESSION_NONE) {
+    session_name('STAFFSESSID');
     session_start();
 }
 
@@ -59,7 +60,38 @@ if (!in_array($sortBy, $allowedSortFields)) {
     $sortBy = 'id';
 }
 
-$sql = "SELECT id, full_name, age, sex, date_of_birth, address, created_at FROM patients $where ORDER BY $sortBy $sortOrder LIMIT $pageSize OFFSET $offset";
+$sql = "SELECT 
+    p.id, 
+    p.full_name, 
+    p.age, 
+    p.sex, 
+    p.date_of_birth, 
+    p.address, 
+    p.created_at,
+    (SELECT mr.surname FROM medical_records mr WHERE mr.patient_id = p.id ORDER BY mr.updated_at DESC LIMIT 1) as surname,
+    (SELECT mr.first_name FROM medical_records mr WHERE mr.patient_id = p.id ORDER BY mr.updated_at DESC LIMIT 1) as first_name,
+    (SELECT mr.middle_name FROM medical_records mr WHERE mr.patient_id = p.id ORDER BY mr.updated_at DESC LIMIT 1) as middle_name,
+    (SELECT mr.suffix FROM medical_records mr WHERE mr.patient_id = p.id ORDER BY mr.updated_at DESC LIMIT 1) as suffix,
+    (SELECT mr.philhealth_id FROM medical_records mr WHERE mr.patient_id = p.id ORDER BY mr.updated_at DESC LIMIT 1) as philhealth_id,
+    (SELECT mr.priority FROM medical_records mr WHERE mr.patient_id = p.id ORDER BY mr.updated_at DESC LIMIT 1) as priority,
+    (SELECT mr2.diagnosis 
+     FROM medical_records mr2 
+     WHERE mr2.patient_id = p.id 
+     AND mr2.diagnosis IS NOT NULL 
+     AND mr2.diagnosis != '' 
+     AND mr2.diagnosis != 'Healthy'
+     ORDER BY mr2.updated_at DESC 
+     LIMIT 1) as diagnosis,
+    (SELECT mr3.updated_at 
+     FROM medical_records mr3 
+     WHERE mr3.patient_id = p.id 
+     ORDER BY mr3.updated_at DESC 
+     LIMIT 1) as last_visit_date
+FROM patients p 
+$where 
+ORDER BY p.$sortBy $sortOrder 
+LIMIT $pageSize OFFSET $offset";
+
 $res = $conn->query($sql);
 $list = [];
 if ($res) {

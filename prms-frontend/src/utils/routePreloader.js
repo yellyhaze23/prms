@@ -11,31 +11,31 @@ export const preloadRoute = (routePath) => {
   switch (routePath) {
     case '/':
     case '/dashboard':
-      componentPromise = import('../pages/Dashboard');
+      componentPromise = import('../admin/Dashboard');
       break;
     case '/patient':
-      componentPromise = import('../pages/Patient');
+      componentPromise = import('../admin/Patient');
       break;
     case '/records':
-      componentPromise = import('../pages/Records');
+      componentPromise = import('../admin/Records');
       break;
     case '/diseases':
-      componentPromise = import('../pages/Diseases');
+      componentPromise = import('../admin/Diseases');
       break;
     case '/tracker':
-      componentPromise = import('../pages/Tracker');
+      componentPromise = import('../admin/Tracker');
       break;
     case '/arima-forecast':
-      componentPromise = import('../pages/ARIMAForecast');
+      componentPromise = import('../admin/ARIMAForecast');
       break;
     case '/reports':
-      componentPromise = import('../pages/Reports');
+      componentPromise = import('../admin/Reports');
       break;
     case '/audit-logs':
-      componentPromise = import('../pages/AuditLogs');
+      componentPromise = import('../admin/AuditLogs');
       break;
     case '/settings':
-      componentPromise = import('../pages/Settings');
+      componentPromise = import('../admin/Settings');
       break;
     case '/staff/dashboard':
       componentPromise = import('../staff/pages/Dashboard');

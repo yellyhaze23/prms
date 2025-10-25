@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaCalendarAlt, FaChartLine, FaEye, FaTrash, FaDownload, FaSpinner, FaTimes } from 'react-icons/fa';
+import { FaCalendarAlt, FaChartLine, FaEye, FaTrash, FaDownload, FaSpinner, FaTimes, FaMapMarkerAlt } from 'react-icons/fa';
 import DeleteModal from './DeleteModal';
 import Toast from './Toast';
 
@@ -209,13 +209,25 @@ const RecentForecasts = ({ refreshTrigger }) => {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   {/* Disease Name with Colored Pill */}
-                  <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${getDiseaseColor(forecast.disease)}`}>
                       {forecast.disease}
                     </span>
                     <span className="bg-teal-100 text-teal-700 px-3 py-1 rounded-full text-sm font-medium">
                       {forecast.forecast_period} months
                     </span>
+                    {/* Forecast Type Badge */}
+                    {forecast.forecast_type === 'barangay' ? (
+                      <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                        <FaMapMarkerAlt className="w-3 h-3" />
+                        Barangay-Level
+                      </span>
+                    ) : (
+                      <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                        <FaChartLine className="w-3 h-3" />
+                        Overall
+                      </span>
+                    )}
                   </div>
                   
                   {/* Generated Time */}
@@ -263,17 +275,36 @@ const RecentForecasts = ({ refreshTrigger }) => {
                     : forecast.forecast_results.slice(0, 6)
                   ).map((result, resultIndex) => {
                     const colors = getDiseaseColor(result.disease_name);
+                    const isBarangayForecast = forecast.forecast_type === 'barangay';
+                    
                     return (
                       <div key={resultIndex} className={`${colors} border border-gray-200 rounded-lg p-3 text-sm font-medium hover:shadow-md transition-all`}>
                         <div className="font-semibold capitalize mb-1">
                           {result.disease_name}
                         </div>
+                        {/* Show barangay name for barangay-level forecasts */}
+                        {isBarangayForecast && result.barangay_name && (
+                          <div className="text-xs opacity-75 mb-1 flex items-center gap-1">
+                            <FaMapMarkerAlt className="w-3 h-3" />
+                            {result.barangay_name}
+                          </div>
+                        )}
                         <div className="text-xs opacity-75 mb-1">
                           {result.forecast_month}
                         </div>
                         <div className="font-bold">
                           {Math.round(result.forecast_cases)} predicted cases
                         </div>
+                        {/* Show trend for barangay forecasts */}
+                        {isBarangayForecast && result.trend && (
+                          <div className={`text-xs mt-1 font-medium ${
+                            result.trend === 'increasing' ? 'text-red-600' :
+                            result.trend === 'decreasing' ? 'text-green-600' :
+                            'text-gray-600'
+                          }`}>
+                            {result.trend === 'increasing' ? '↑' : result.trend === 'decreasing' ? '↓' : '→'} {result.trend}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

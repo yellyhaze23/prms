@@ -113,7 +113,7 @@ class NotificationService {
                 'type' => 'info',
                 'title' => 'System Milestone',
                 'message' => "System now has {$totalPatients} patients registered",
-                'action_url' => '/dashboard',
+                'action_url' => '/',
                 'action_text' => 'View Dashboard'
             ];
         }
@@ -185,23 +185,33 @@ class NotificationService {
     
     // Auto-generate notifications for all users (with proper limits and outbreak alerts)
     public function autoGenerateNotifications() {
-        // Get all users
-        $stmt = $this->conn->prepare("SELECT id FROM users");
+        // Get all users (admin and staff)
+        $stmt = $this->conn->prepare("SELECT id, role FROM users WHERE role IN ('admin', 'staff')");
         $stmt->execute();
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
+        error_log("NotificationService: Found " . count($users) . " users to notify");
+        
         foreach ($users as $user) {
-            // Check if user already has too many notifications (limit to 10)
+            error_log("NotificationService: Processing user ID " . $user['id'] . " with role " . $user['role']);
+            
+            // Check if user already has too many notifications (limit to 20 for staff, 10 for admin)
+            $maxNotifications = ($user['role'] === 'staff') ? 20 : 10;
             $countStmt = $this->conn->prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = :user_id");
             $countStmt->bindParam(':user_id', $user['id'], PDO::PARAM_INT);
             $countStmt->execute();
             $currentCount = $countStmt->fetch(PDO::FETCH_ASSOC)['count'];
             
-            if ($currentCount >= 10) {
+            error_log("NotificationService: User " . $user['id'] . " has " . $currentCount . " notifications (max: $maxNotifications)");
+            
+            if ($currentCount >= $maxNotifications) {
+                error_log("NotificationService: Skipping user " . $user['id'] . " - too many notifications");
                 continue; // Skip this user, they already have enough notifications
             }
             
             $notifications = $this->generateSystemNotifications($user['id']);
+            
+            error_log("NotificationService: Generated " . count($notifications) . " potential notifications for user " . $user['id']);
             
             // Limit to maximum 3 new notifications per user per day
             $newNotifications = 0;
@@ -209,6 +219,7 @@ class NotificationService {
             
             foreach ($notifications as $notification) {
                 if ($newNotifications >= $maxNew) {
+                    error_log("NotificationService: Reached max new notifications for user " . $user['id']);
                     break; // Stop adding more notifications
                 }
                 
@@ -228,7 +239,7 @@ class NotificationService {
                 $exists = $checkStmt->fetch(PDO::FETCH_ASSOC)['notification_exists'];
                 
                 if ($exists == 0) {
-                    $this->createNotification(
+                    $notificationId = $this->createNotification(
                         $user['id'],
                         $notification['type'],
                         $notification['title'],
@@ -236,9 +247,16 @@ class NotificationService {
                         $notification['action_url'],
                         $notification['action_text']
                     );
-                    $newNotifications++;
+                    if ($notificationId) {
+                        error_log("NotificationService: Created notification ID $notificationId for user " . $user['id'] . ": " . $notification['title']);
+                        $newNotifications++;
+                    }
+                } else {
+                    error_log("NotificationService: Duplicate notification skipped for user " . $user['id'] . ": " . $notification['title']);
                 }
             }
+            
+            error_log("NotificationService: Added $newNotifications new notifications for user " . $user['id']);
         }
     }
     

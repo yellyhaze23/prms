@@ -5,7 +5,7 @@ import DiseaseCard from './DiseaseCard';
 import CaseTrendsChart from './CaseTrendsChart';
 import Toast from './Toast';
 import CountUp from './CountUp';
-import '../pages/Dashboard.css';
+import '../admin/Dashboard.css';
 
 const DiseaseAnalytics = () => {
   const [diseases, setDiseases] = useState([]);

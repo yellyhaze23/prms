@@ -34,6 +34,26 @@ export const markAsRefreshed = (key) => {
 };
 
 // Clear cache when user logs out
-export const clearCache = () => {
+export const clearCache = async () => {
   cache.clear();
+  
+  // Call backend logout to destroy PHP session
+  try {
+    await fetch('http://localhost/prms/prms-backend/logout.php', {
+      method: 'POST',
+      credentials: 'include', // Important: send cookies
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch (error) {
+    console.error('Error calling backend logout:', error);
+    // Continue with frontend cleanup even if backend call fails
+  }
+  
+  // Clear all auth tokens from localStorage
+  localStorage.removeItem('staff_token');
+  localStorage.removeItem('staff_role');
+  localStorage.removeItem('admin_token');
+  localStorage.removeItem('admin_role');
 };

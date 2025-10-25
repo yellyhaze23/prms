@@ -26,6 +26,7 @@ import {
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import ModernAlert from '../components/ModernAlert';
 import CountUp from '../components/CountUp';
+import ModernToast from '../components/ModernToast';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -63,6 +64,7 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(false); // Start with false for instant display
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
   const [selectedTimeframe, setSelectedTimeframe] = useState('weekly');
   const [lastUpdated, setLastUpdated] = useState(null);
   const [syncing, setSyncing] = useState(false);
@@ -181,9 +183,18 @@ const Dashboard = () => {
       const data = await response.json();
       if (data.success) {
         setCurrentUser(data.user);
+      } else {
+        setToast({
+          type: 'error',
+          message: 'Failed to load user profile'
+        });
       }
     } catch (err) {
       console.error("Error fetching current user:", err);
+      setToast({
+        type: 'error',
+        message: 'Failed to load user profile'
+      });
     }
   };
 
@@ -225,10 +236,20 @@ const Dashboard = () => {
           setAlertCountdown(10);
         }
       } else {
-        setError(data.error || "Failed to fetch dashboard data");
+        const errorMsg = data.error || "Failed to fetch dashboard data";
+        setError(errorMsg);
+        setToast({
+          type: 'error',
+          message: errorMsg
+        });
       }
     } catch (err) {
-      setError("Server error. Please check your connection.");
+      const errorMsg = "Server error. Please check your connection.";
+      setError(errorMsg);
+      setToast({
+        type: 'error',
+        message: errorMsg
+      });
       console.error("Error fetching dashboard data:", err);
     } finally {
       setLoading(false);
@@ -247,6 +268,7 @@ const Dashboard = () => {
       }
     } catch (err) {
       console.error("Background refresh failed:", err);
+      // Silent fail for background refresh - no toast needed
     }
   };
 
@@ -258,9 +280,17 @@ const Dashboard = () => {
         setDiseaseTrends(response.data.trends);
       } else {
         console.error('Failed to fetch disease trends:', response.data.message);
+        setToast({
+          type: 'warning',
+          message: 'Failed to load disease trends'
+        });
       }
     } catch (error) {
       console.error('Error fetching disease trends:', error);
+      setToast({
+        type: 'warning',
+        message: 'Failed to load disease trends'
+      });
     }
   };
 
@@ -619,6 +649,8 @@ const Dashboard = () => {
                   title={alert.type === 'danger' ? 'Outbreak Alert' : alert.type === 'warning' ? 'System Warning' : 'System Info'}
                   message={alert.message}
                   onClose={() => setAlerts(prev => prev.filter((_, i) => i !== index))}
+                  autoHide={true}
+                  duration={5000}
                   action={alert.count && (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 text-gray-800">
                       {alert.count} cases
@@ -836,13 +868,265 @@ const Dashboard = () => {
           </motion.div>
         </motion.div>
 
-        {/* Disease Statistics and Quick Actions */}
+        {/* Disease by Barangay and Growth Rate Trend */}
         <motion.div 
           className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
         >
+          {/* Disease by Barangay Chart */}
+          <motion.div 
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            variants={chartVariants}
+            whileHover={{ 
+              scale: 1.01,
+              transition: { duration: 0.2 }
+            }}
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <FaMapMarkerAlt className="mr-2 text-purple-600" />
+              Top Barangays (Most Cases)
+            </h3>
+            <div className="h-64">
+              {top_locations && top_locations.length > 0 ? (
+                <Bar 
+                  data={{
+                    labels: top_locations.slice(0, 5).map(loc => loc.address.split(',')[0] || loc.address),
+                    datasets: [{
+                      label: 'Disease Cases',
+                      data: top_locations.slice(0, 5).map(loc => loc.patient_count),
+                      backgroundColor: '#8B5CF6',
+                      borderColor: '#7C3AED',
+                      borderWidth: 1,
+                      borderRadius: 6
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                      legend: {
+                        display: false
+                      },
+                      tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        callbacks: {
+                          label: (context) => `${context.parsed.x} patients`
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        beginAtZero: true,
+                        ticks: {
+                          precision: 0
+                        }
+                      }
+                    }
+                  }}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-500">
+                  No barangay data available
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Disease Growth Rate Trend */}
+          <motion.div 
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            variants={chartVariants}
+            whileHover={{ 
+              scale: 1.01,
+              transition: { duration: 0.2 }
+            }}
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <FaChartLine className="mr-2 text-red-600" />
+              Disease Growth Rate Trend
+            </h3>
+            <div className="h-64">
+              {trends_data && trends_data.length > 1 ? (
+                <Line 
+                  data={{
+                    labels: trends_data.map((item, index) => {
+                      if (selectedTimeframe === 'weekly') {
+                        return new Date(item.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                      }
+                      return item.date;
+                    }),
+                    datasets: [{
+                      label: 'Growth Rate (%)',
+                      data: trends_data.map((item, index) => {
+                        if (index === 0) return 0;
+                        const current = parseInt(item.cases);
+                        const previous = parseInt(trends_data[index - 1].cases);
+                        if (previous === 0) return 0;
+                        return (((current - previous) / previous) * 100).toFixed(1);
+                      }),
+                      borderColor: '#EF4444',
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      tension: 0.4,
+                      fill: true,
+                      pointRadius: 4,
+                      pointHoverRadius: 6,
+                      pointBackgroundColor: '#EF4444',
+                      pointBorderColor: '#fff',
+                      pointBorderWidth: 2,
+                      borderWidth: 3
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        display: false
+                      },
+                      tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        callbacks: {
+                          label: (context) => {
+                            const value = parseFloat(context.parsed.y);
+                            const sign = value >= 0 ? '+' : '';
+                            return `Growth: ${sign}${value}%`;
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      y: {
+                        ticks: {
+                          callback: function(value) {
+                            return value + '%';
+                          }
+                        },
+                        grid: {
+                          color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                      },
+                      x: {
+                        grid: {
+                          display: false
+                        },
+                        ticks: {
+                          maxRotation: 45,
+                          minRotation: 45,
+                          font: {
+                            size: 10
+                          }
+                        }
+                      }
+                    }
+                  }}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-500">
+                  Insufficient data for growth rate calculation
+                </div>
+              )}
+            </div>
+            {/* Growth Rate Legend */}
+            <div className="mt-4 flex items-center justify-center space-x-6 text-xs">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="text-gray-600">Positive: Cases Increasing</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <span className="text-gray-600">Negative: Cases Decreasing</span>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Monthly Disease Comparison and Top Diseases */}
+        <motion.div 
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {/* Monthly Disease Comparison */}
+          <motion.div 
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            variants={chartVariants}
+            whileHover={{ 
+              scale: 1.01,
+              transition: { duration: 0.2 }
+            }}
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <FaChartBar className="mr-2 text-orange-600" />
+              Disease Comparison (This Month)
+            </h3>
+            <div className="h-64">
+              {disease_stats && disease_stats.length > 0 ? (
+                <Bar 
+                  data={{
+                    labels: disease_stats.slice(0, 5).map(d => d.disease),
+                    datasets: [{
+                      label: 'Cases',
+                      data: disease_stats.slice(0, 5).map(d => d.case_count),
+                      backgroundColor: [
+                        '#3B82F6',
+                        '#EF4444',
+                        '#10B981',
+                        '#F59E0B',
+                        '#8B5CF6'
+                      ],
+                      borderColor: [
+                        '#1E40AF',
+                        '#DC2626',
+                        '#059669',
+                        '#D97706',
+                        '#7C3AED'
+                      ],
+                      borderWidth: 1,
+                      borderRadius: 6
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        display: false
+                      },
+                      tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        callbacks: {
+                          label: (context) => `${context.parsed.y} cases`
+                        }
+                      }
+                    },
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        ticks: {
+                          precision: 0
+                        }
+                      }
+                    }
+                  }}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-500">
+                  No disease data available
+                </div>
+              )}
+            </div>
+          </motion.div>
+
           {/* Top Diseases */}
           <motion.div 
             className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
@@ -903,105 +1187,6 @@ const Dashboard = () => {
             </div>
           </motion.div>
 
-          {/* Quick Actions */}
-          <motion.div 
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
-            variants={chartVariants}
-            whileHover={{ 
-              scale: 1.01,
-              transition: { duration: 0.2 }
-            }}
-          >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <FaCog className="mr-2 text-blue-600" />
-              Quick Actions
-            </h3>
-            <motion.div 
-              className="grid grid-cols-2 lg:grid-cols-3 gap-4"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              <motion.a 
-                href="/patient" 
-                className="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200 group"
-                variants={cardVariants}
-                whileHover={{ 
-                  scale: 1.05,
-                  transition: { duration: 0.2 }
-                }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FaUser className="h-6 w-6 text-blue-600 mr-3 group-hover:scale-110 transition-transform" />
-                <span className="text-blue-800 font-medium">Patient</span>
-              </motion.a>
-              <motion.a 
-                href="/records" 
-                className="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors duration-200 group"
-                variants={cardVariants}
-                whileHover={{ 
-                  scale: 1.05,
-                  transition: { duration: 0.2 }
-                }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FaFileAlt className="h-6 w-6 text-green-600 mr-3 group-hover:scale-110 transition-transform" />
-                <span className="text-green-800 font-medium">Records</span>
-              </motion.a>
-              <motion.a 
-                href="/diseases" 
-                className="flex items-center p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors duration-200 group"
-                variants={cardVariants}
-                whileHover={{ 
-                  scale: 1.05,
-                  transition: { duration: 0.2 }
-                }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FaStethoscope className="h-6 w-6 text-red-600 mr-3 group-hover:scale-110 transition-transform" />
-                <span className="text-red-800 font-medium">Diseases</span>
-              </motion.a>
-              <motion.a 
-                href="/tracker" 
-                className="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors duration-200 group"
-                variants={cardVariants}
-                whileHover={{ 
-                  scale: 1.05,
-                  transition: { duration: 0.2 }
-                }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FaMapMarkerAlt className="h-6 w-6 text-purple-600 mr-3 group-hover:scale-110 transition-transform" />
-                <span className="text-purple-800 font-medium">Tracker</span>
-              </motion.a>
-              <motion.a 
-                href="/arima-forecast" 
-                className="flex items-center p-4 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors duration-200 group"
-                variants={cardVariants}
-                whileHover={{ 
-                  scale: 1.05,
-                  transition: { duration: 0.2 }
-                }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FaChartLine className="h-6 w-6 text-indigo-600 mr-3 group-hover:scale-110 transition-transform" />
-                <span className="text-indigo-800 font-medium">Forecast</span>
-              </motion.a>
-              <motion.a 
-                href="/reports" 
-                className="flex items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors duration-200 group"
-                variants={cardVariants}
-                whileHover={{ 
-                  scale: 1.05,
-                  transition: { duration: 0.2 }
-                }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FaChartBar className="h-6 w-6 text-orange-600 mr-3 group-hover:scale-110 transition-transform" />
-                <span className="text-orange-800 font-medium">Reports</span>
-              </motion.a>
-            </motion.div>
-          </motion.div>
         </motion.div>
 
         {/* Recent Activities */}
@@ -1062,7 +1247,7 @@ const Dashboard = () => {
 
         {/* Recent Consultations */}
         <motion.div 
-          className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"
+          className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -1116,56 +1301,21 @@ const Dashboard = () => {
               )}
             </div>
           </motion.div>
-
-          {/* Top Locations */}
-          <motion.div 
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
-            variants={chartVariants}
-            whileHover={{ 
-              scale: 1.01,
-              transition: { duration: 0.2 }
-            }}
-          >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <FaMapMarkerAlt className="mr-2 text-green-600" />
-              Top Locations
-            </h3>
-            <div className="space-y-3">
-              {top_locations.length > 0 ? (
-                top_locations.map((location, index) => (
-                  <motion.div 
-                    key={index} 
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    whileHover={{ 
-                      scale: 1.02,
-                      transition: { duration: 0.2 }
-                    }}
-                  >
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                        <span className="text-sm font-semibold text-green-600">{index + 1}</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900 truncate">{location.address}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-semibold text-gray-900">{location.patient_count}</p>
-                      <p className="text-xs text-gray-500">patients</p>
-                    </div>
-                  </motion.div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-center py-4">No location data available</p>
-              )}
-            </div>
-          </motion.div>
         </motion.div>
 
       </div>
+
+      {/* Modern Toast Notification */}
+      {toast && (
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : toast.type === 'error' ? 'Error' : 'Notice'}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={4000}
+        />
+      )}
     </div>
   );
 };

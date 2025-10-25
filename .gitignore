@@ -18,6 +18,10 @@ build/
 .env.test.local
 .env.production.local
 
+# Keep .env.example for reference
+!.env.example
+!prms-frontend/.env.example
+
 # IDE and Editor files
 .vscode/
 .idea/
@@ -83,6 +87,7 @@ debug_*.php
 # Configuration files with sensitive data
 config.local.php
 database.local.php
+prms-backend/config.php
 
 # React/Vite specific
 .vite/

@@ -5,6 +5,7 @@ import Pagination from '../components/Pagination';
 import AuditLogDetailsModal from '../components/AuditLogDetailsModal';
 import FilterControl from '../components/FilterControl';
 import axios from 'axios';
+import ModernToast from '../components/ModernToast';
 // Animation variants
 import { 
   pageVariants, 
@@ -18,6 +19,7 @@ import {
 const AuditLogs = () => {
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
   const [filters, setFilters] = useState({
     user_type: '',
     action: '',
@@ -66,10 +68,18 @@ const AuditLogs = () => {
         setTotalRecords(response.data.pagination.totalRecords);
       } else {
         setAuditLogs([]);
+        setToast({
+          type: 'warning',
+          message: 'No audit logs found'
+        });
       }
     } catch (error) {
       console.error('Error fetching audit logs:', error);
       setAuditLogs([]);
+      setToast({
+        type: 'error',
+        message: 'Failed to load audit logs. Please try again.'
+      });
     } finally {
       setLoading(false);
     }
@@ -332,6 +342,18 @@ const AuditLogs = () => {
         onClose={handleCloseModal}
         logData={selectedLog}
       />
+
+      {/* Modern Toast Notification */}
+      {toast && (
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : toast.type === 'error' ? 'Error' : 'Notice'}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={4000}
+        />
+      )}
     </motion.div>
   );
 };

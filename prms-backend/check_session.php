@@ -2,15 +2,27 @@
 require 'cors.php';
 require 'config.php';
 
-header('Content-Type: application/json');
-
-// Start session if not already started
+// Configure session cookie parameters (same as authenticate.php)
 if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => false,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
     session_start();
 }
 
 // Check if session exists and is valid
-if (isset($_SESSION['user_id']) && isset($_SESSION['last_activity'])) {
+if (isset($_SESSION['user_id'])) {
+    // If last_activity is not set, set it now (fresh login)
+    if (!isset($_SESSION['last_activity'])) {
+        $_SESSION['last_activity'] = time();
+        error_log("check_session.php: Set last_activity for user " . $_SESSION['user_id']);
+    }
+    
     // Get timeout settings from database
     $settingsSql = "SELECT session_timeout_minutes, session_warning_minutes FROM settings WHERE id = 1";
     $settingsResult = $conn->query($settingsSql);
@@ -30,6 +42,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['last_activity'])) {
     
     if ($timeSinceActivity > $timeout) {
         // Session expired
+        error_log("check_session.php: Session expired for user " . $_SESSION['user_id'] . " after " . round($timeSinceActivity, 2) . " minutes");
         session_destroy();
         echo json_encode([
             'success' => false, 
@@ -49,6 +62,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['last_activity'])) {
     }
 } else {
     // No valid session
+    error_log("check_session.php: No user_id in session - expired: true");
     echo json_encode([
         'success' => false, 
         'expired' => true,

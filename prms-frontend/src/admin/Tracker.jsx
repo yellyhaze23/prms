@@ -9,6 +9,7 @@ import SearchInput from '../components/SearchInput';
 import FilterControl from '../components/FilterControl';
 import SortControl from '../components/SortControl';
 import CountUp from '../components/CountUp';
+import ModernToast from '../components/ModernToast';
 // Animation variants
 import { 
   pageVariants, 
@@ -37,34 +38,34 @@ function LegendControl() {
     legend.onAdd = function () {
       const div = L.DomUtil.create("div", "info legend");
       div.innerHTML = `
-        <h4 style="margin: 0 0 10px 0; font-weight: bold;">Disease Hotspots</h4>
-        <div style="font-size: 12px; line-height: 1.4;">
-          <div style="margin: 2px 0;">
-            <span style="display: inline-block; width: 12px; height: 12px; background: rgba(255,0,0,0.8); border-radius: 50%; margin-right: 5px;"></span>
-            Very High Risk (80%+)
+        <h4 style="margin: 0 0 12px 0; font-weight: bold; font-size: 14px; text-align: left;">Disease Hotspots</h4>
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; align-items: flex-start;">
+          <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+            <span style="display: inline-block; width: 12px; height: 12px; background: rgba(255,0,0,0.8); border-radius: 50%; flex-shrink: 0;"></span>
+            <span style="white-space: nowrap; text-align: left;">Very High Risk (80%+)</span>
           </div>
-          <div style="margin: 2px 0;">
-            <span style="display: inline-block; width: 12px; height: 12px; background: rgba(255,100,0,0.8); border-radius: 50%; margin-right: 5px;"></span>
-            High Risk (60-79%)
+          <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+            <span style="display: inline-block; width: 12px; height: 12px; background: rgba(255,100,0,0.8); border-radius: 50%; flex-shrink: 0;"></span>
+            <span style="white-space: nowrap; text-align: left;">High Risk (60-79%)</span>
           </div>
-          <div style="margin: 2px 0;">
-            <span style="display: inline-block; width: 12px; height: 12px; background: rgba(255,165,0,0.8); border-radius: 50%; margin-right: 5px;"></span>
-            Medium-High (40-59%)
+          <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+            <span style="display: inline-block; width: 12px; height: 12px; background: rgba(255,165,0,0.8); border-radius: 50%; flex-shrink: 0;"></span>
+            <span style="white-space: nowrap; text-align: left;">Medium-High (40-59%)</span>
           </div>
-          <div style="margin: 2px 0;">
-            <span style="display: inline-block; width: 12px; height: 12px; background: rgba(255,255,0,0.8); border-radius: 50%; margin-right: 5px;"></span>
-            Medium (20-39%)
+          <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+            <span style="display: inline-block; width: 12px; height: 12px; background: rgba(255,255,0,0.8); border-radius: 50%; flex-shrink: 0;"></span>
+            <span style="white-space: nowrap; text-align: left;">Medium (20-39%)</span>
           </div>
-          <div style="margin: 2px 0;">
-            <span style="display: inline-block; width: 12px; height: 12px; background: rgba(0,255,0,0.8); border-radius: 50%; margin-right: 5px;"></span>
-            Low (10-19%)
+          <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+            <span style="display: inline-block; width: 12px; height: 12px; background: rgba(0,255,0,0.8); border-radius: 50%; flex-shrink: 0;"></span>
+            <span style="white-space: nowrap; text-align: left;">Low (10-19%)</span>
           </div>
-          <div style="margin: 2px 0;">
-            <span style="display: inline-block; width: 12px; height: 12px; background: rgba(0,0,255,0.8); border-radius: 50%; margin-right: 5px;"></span>
-            Very Low (<10%)
+          <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+            <span style="display: inline-block; width: 12px; height: 12px; background: rgba(0,0,255,0.8); border-radius: 50%; flex-shrink: 0;"></span>
+            <span style="white-space: nowrap; text-align: left;">Very Low (&lt;10%)</span>
           </div>
         </div>
-        <div style="margin-top: 8px; font-size: 10px; color: #666;">
+        <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #ddd; font-size: 10px; color: #666; text-align: left;">
           Size = Patient Count | Color = Disease Rate
         </div>
       `;
@@ -84,6 +85,7 @@ function Tracker() {
   const [summary, setSummary] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [riskFilter, setRiskFilter] = useState("all");
   const [sortBy, setSortBy] = useState("patients");
@@ -119,11 +121,21 @@ function Tracker() {
           setFilteredData(data.data);
           setSummary(data.summary);
         } else {
-          setError(data.error || 'Failed to load barangay data');
+          const errorMsg = data.error || 'Failed to load barangay data';
+          setError(errorMsg);
+          setToast({
+            type: 'error',
+            message: errorMsg
+          });
         }
       } catch (err) {
         console.error('Error loading barangay heatmap:', err);
-        setError('Failed to load barangay data');
+        const errorMsg = 'Failed to load barangay data';
+        setError(errorMsg);
+        setToast({
+          type: 'error',
+          message: errorMsg
+        });
       } finally {
         setLoading(false);
       }
@@ -470,8 +482,11 @@ function Tracker() {
                             height: ${size}px; 
                             background: radial-gradient(circle, ${color} 0%, ${color.replace('0.8', '0.3')} 70%, transparent 100%);
                             border-radius: 50%;
-                            animation: pulse 2s infinite;
-                            box-shadow: 0 0 20px ${color.replace('0.8', '0.5')};
+                            animation: pulse 2s ease-in-out infinite;
+                            box-shadow: 0 0 20px ${color.replace('0.8', '0.8')}, 0 0 35px ${color.replace('0.8', '0.5')}, inset 0 0 15px ${color};
+                            cursor: pointer;
+                            border: none;
+                            outline: none;
                           "></div>
                         `,
                         className: "barangay-hotspot-wrapper",
@@ -531,6 +546,18 @@ function Tracker() {
           </div>
         </div>
       </div>
+
+      {/* Modern Toast Notification */}
+      {toast && (
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : 'Error'}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={4000}
+        />
+      )}
     </motion.div>
   );
 }

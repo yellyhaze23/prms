@@ -14,6 +14,7 @@ try {
         $forecasts[] = [
             'id' => $row['id'],
             'disease' => $row['disease'],
+            'forecast_type' => $row['forecast_type'] ?? 'overall',
             'forecast_period' => (int)$row['forecast_period'],
             'population' => (int)$row['population'],
             'forecast_results' => json_decode($row['forecast_results'], true),

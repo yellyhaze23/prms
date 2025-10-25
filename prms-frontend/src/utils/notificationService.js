@@ -2,7 +2,7 @@ import axios from 'axios';
 
 class NotificationService {
   constructor() {
-    this.baseURL = 'http://localhost/prms/prms-backend';
+    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost/prms/prms-backend';
   }
 
   // Create a new notification
@@ -83,7 +83,7 @@ class NotificationService {
       type: 'success',
       title: 'New Patient Added',
       message: `Patient ${patientName} has been successfully registered.`,
-      actionUrl: '/patients',
+      actionUrl: '/patient',
       actionText: 'View Patients'
     });
   }
@@ -94,7 +94,7 @@ class NotificationService {
       type: 'info',
       title: 'Patient Updated',
       message: `Patient ${patientName}'s information has been updated.`,
-      actionUrl: '/patients',
+      actionUrl: '/patient',
       actionText: 'View Patients'
     });
   }
@@ -105,7 +105,7 @@ class NotificationService {
       type: 'warning',
       title: 'Patient Deleted',
       message: `Patient ${patientName} has been removed from the system.`,
-      actionUrl: '/patients',
+      actionUrl: '/patient',
       actionText: 'View Patients'
     });
   }
@@ -127,7 +127,7 @@ class NotificationService {
       type: 'success',
       title: 'Forecast Generated',
       message: `ARIMA forecast for ${diseaseName} has been completed successfully.`,
-      actionUrl: '/forecast',
+      actionUrl: '/arima-forecast',
       actionText: 'View Forecast'
     });
   }
@@ -149,7 +149,7 @@ class NotificationService {
       type: 'warning',
       title: 'System Maintenance',
       message: `Scheduled maintenance will begin at ${startTime}. Please save your work.`,
-      actionUrl: '/dashboard',
+      actionUrl: '/',
       actionText: 'View Dashboard'
     });
   }

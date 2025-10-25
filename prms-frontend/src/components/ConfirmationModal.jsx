@@ -30,7 +30,7 @@ function ConfirmationModal({
     >
       <div className="bg-white w-full max-w-md rounded-xl shadow-2xl ring-1 ring-slate-900/10 transform transition-all duration-300 scale-100 animate-in fade-in-0 zoom-in-95">
         <div className="px-6 pt-6 flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600 animate-pulse">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600">
             <FaExclamationTriangle className="h-5 w-5" />
           </div>
           <div className="flex-1">

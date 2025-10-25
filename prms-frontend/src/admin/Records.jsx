@@ -4,15 +4,16 @@ import axios from 'axios';
 import Toolbar from '../components/Toolbar';
 import Return from '../components/Return';
 import AddPatient from '../components/AddPatient';
-import Toast from '../components/Toast';
+import ModernToast from '../components/ModernToast';
 import MedicalRecords from '../components/MedicalRecords';
 import ConfirmationModal from '../components/ConfirmationModal';
 import Pagination from '../components/Pagination';
 import SearchInput from '../components/SearchInput';
 import SortControl from '../components/SortControl';
 import FilterControl from '../components/FilterControl';
-import { FaIdCard, FaMapMarkerAlt, FaCalendarAlt, FaEdit, FaTrash, FaStethoscope, FaFilter, FaEllipsisV } from 'react-icons/fa';
+import { FaIdCard, FaMapMarkerAlt, FaCalendarAlt, FaEdit, FaTrash, FaStethoscope, FaFilter, FaEllipsisV, FaDownload } from 'react-icons/fa';
 import { formatPatientID } from '../utils/patientUtils';
+import { downloadMedicalRecord } from '../utils/documentGenerator';
 // Animation variants
 import { 
   pageVariants, 
@@ -225,6 +226,32 @@ function Records() {
         break;
       default:
         break;
+    }
+  };
+
+  const handleDownloadRecord = async (patient, e) => {
+    e.stopPropagation();
+    setActiveDropdown(null);
+    
+    try {
+      // Show loading toast
+      showToast('Preparing download...', 'info');
+      
+      // Fetch the complete medical record data
+      const response = await axios.get(`http://localhost/prms/prms-backend/get_medical_records.php?patient_id=${patient.id}`);
+      const medicalRecord = response.data;
+      
+      // Download the record
+      const success = await downloadMedicalRecord(medicalRecord);
+      
+      if (success) {
+        showToast(`Medical record for ${patient.full_name} downloaded successfully!`, 'success');
+      } else {
+        showToast('Error generating download file', 'error');
+      }
+    } catch (error) {
+      console.error('Error downloading medical record:', error);
+      showToast('Error downloading medical record', 'error');
     }
   };
 
@@ -467,6 +494,20 @@ function Records() {
                                       </div>
                                     </button>
                                     
+                                    {/* Download Medical Record */}
+                                    <button
+                                      className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-150 group/download"
+                                      onClick={(e) => handleDownloadRecord(patient, e)}
+                                    >
+                                      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 group-hover/download:bg-blue-200 transition-colors duration-150 mr-3">
+                                        <FaDownload className="h-3.5 w-3.5 text-blue-600" />
+                                      </div>
+                                      <div className="flex flex-col items-start">
+                                        <span className="font-medium">Download Record</span>
+                                        <span className="text-xs text-gray-500">Export as DOCX file</span>
+                                      </div>
+                                    </button>
+                                    
                                     {/* Delete Patient */}
                                     <button
                                       className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all duration-150 group/delete"
@@ -540,10 +581,13 @@ function Records() {
       )}
 
       {toast && (
-        <Toast
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : toast.type === 'error' ? 'Error' : 'Notice'}
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
+          duration={4000}
         />
       )}
     </motion.div>

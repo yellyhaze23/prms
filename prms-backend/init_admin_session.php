@@ -2,26 +2,43 @@
 require 'cors.php';
 require 'config.php';
 
-header('Content-Type: application/json');
-
-// Start session if not already started
+// Configure session cookie parameters (same as authenticate.php)
 if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => false,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
     session_start();
 }
 
-// Initialize admin session if not already set
-if (!isset($_SESSION['user_id'])) {
+// Check if session exists AND is admin role
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     // Get the first admin user from database
     $sql = "SELECT id, username, role FROM users WHERE role = 'admin' ORDER BY id LIMIT 1";
     $result = $conn->query($sql);
     
     if ($result && $result->num_rows > 0) {
         $user = $result->fetch_assoc();
+        
+        // Preserve last_activity if exists (prevents session timeout conflicts)
+        $lastActivity = $_SESSION['last_activity'] ?? time();
+        
+        // Overwrite session with admin data (don't clear entire session)
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['role'] = $user['role'];
         $_SESSION['name'] = $user['username'];
-        $_SESSION['last_activity'] = time();
+        $_SESSION['last_activity'] = $lastActivity;
+        
+        // Regenerate session ID for security (only on first initialization)
+        if (!isset($_SESSION['session_initialized'])) {
+            session_regenerate_id(true);
+            $_SESSION['session_initialized'] = true;
+        }
         
         echo json_encode([
             'success' => true,
@@ -39,7 +56,7 @@ if (!isset($_SESSION['user_id'])) {
         ]);
     }
 } else {
-    // Session already exists, just update activity
+    // Session already exists AND is admin role, just update activity
     $_SESSION['last_activity'] = time();
     echo json_encode([
         'success' => true,

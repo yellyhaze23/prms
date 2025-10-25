@@ -44,6 +44,7 @@ import {
   FaFileExport
 } from 'react-icons/fa';
 import './Reports.css';
+import ModernToast from '../components/ModernToast';
 
 // Register Chart.js components
 ChartJS.register(
@@ -64,6 +65,7 @@ function Reports() {
   const [forecastData, setForecastData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
   const [selectedDisease, setSelectedDisease] = useState('All');
   const [dateRange, setDateRange] = useState('30');
   const [viewMode, setViewMode] = useState('overview'); // overview, detailed, trends, forecast
@@ -105,7 +107,12 @@ function Reports() {
       }
     } catch (err) {
       console.error('Error fetching data:', err);
-      setError('Failed to load report data. Please try again.');
+      const errorMsg = 'Failed to load report data. Please try again.';
+      setError(errorMsg);
+      setToast({
+        type: 'error',
+        message: errorMsg
+      });
     } finally {
       setLoading(false);
     }
@@ -122,6 +129,10 @@ function Reports() {
       }
     } catch (err) {
       console.error('Error fetching diseases:', err);
+      setToast({
+        type: 'error',
+        message: 'Failed to load diseases list'
+      });
     }
   };
 
@@ -136,6 +147,10 @@ function Reports() {
       }
     } catch (err) {
       console.error('Error fetching forecast data:', err);
+      setToast({
+        type: 'error',
+        message: 'Failed to load forecast data'
+      });
     }
   };
 
@@ -491,13 +506,19 @@ function Reports() {
         document.body.removeChild(link);
         
         // Show success message
-        alert(`Export successful! ${data.total_records} records exported.`);
+        setToast({
+          type: 'success',
+          message: `Export successful! ${data.total_records} records exported.`
+        });
       } else {
         throw new Error(data.error || 'Failed to export data');
       }
     } catch (err) {
       console.error('Export error:', err);
-      alert('Export failed. Please try again.');
+      setToast({
+        type: 'error',
+        message: 'Export failed. Please try again.'
+      });
     } finally {
       setLoading(false);
     }
@@ -910,6 +931,18 @@ function Reports() {
           </div>
         )}
       </div>
+
+      {/* Modern Toast Notification */}
+      {toast && (
+        <ModernToast
+          isVisible={true}
+          title={toast.type === 'success' ? 'Success!' : 'Error'}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={4000}
+        />
+      )}
     </motion.div>
   );
 }

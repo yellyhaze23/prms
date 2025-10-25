@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { FaTimes, FaBell, FaCheck, FaCheckCircle, FaExclamationCircle, FaInfoCircle, FaTrashAlt } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 
 const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -42,15 +44,10 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
         })
       });
       
-      if (response.ok) {
-        setNotifications(prev => 
-          prev.map(notif => 
-            notif.id === notificationId 
-              ? { ...notif, is_read: 1 }
-              : notif
-          )
-        );
-        setUnreadCount(prev => Math.max(0, prev - 1));
+      const data = await response.json();
+      if (data.success) {
+        // Refresh notifications to get updated state from server
+        await fetchAllNotifications();
       }
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -67,15 +64,14 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
         },
         body: JSON.stringify({
           user_id: userId,
-          mark_all: true
+          mark_all_read: true
         })
       });
       
-      if (response.ok) {
-        setNotifications(prev => 
-          prev.map(notif => ({ ...notif, is_read: 1 }))
-        );
-        setUnreadCount(0);
+      const data = await response.json();
+      if (data.success) {
+        // Refresh notifications to get updated state from server
+        await fetchAllNotifications();
       }
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
@@ -85,10 +81,19 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
   // Handle action button click
   const handleActionClick = (notification) => {
     if (notification.action_url) {
+      // Mark as read before navigating
+      if (!notification.is_read) {
+        markAsRead(notification.id);
+      }
+      
       // Navigate to the action URL
       if (notification.action_url.startsWith('/')) {
-        window.location.href = notification.action_url;
+        // Close drawer before navigation
+        handleClose();
+        // Use React Router for internal navigation
+        navigate(notification.action_url);
       } else {
+        // External URL - open in new tab
         window.open(notification.action_url, '_blank');
       }
     }
@@ -180,6 +185,16 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
               transform: translateX(20px);
             }
           }
+          
+          /* Hide scrollbar but keep functionality */
+          .scrollbar-hide {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+          }
+          
+          .scrollbar-hide::-webkit-scrollbar {
+            display: none;  /* Chrome, Safari and Opera */
+          }
         `}
       </style>
       
@@ -241,7 +256,7 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
         </div>
 
         {/* Notifications List */}
-        <div className="flex-1 overflow-y-auto max-h-[calc(100vh-200px)]">
+        <div className="flex-1 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-hide">
           {loading ? (
             <div className="p-6 text-center text-gray-500">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>

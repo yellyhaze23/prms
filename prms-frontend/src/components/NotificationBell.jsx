@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaBell, FaTimes, FaCheck, FaCheckCircle, FaExclamationCircle, FaInfoCircle, FaTrashAlt } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import NotificationDrawer from './NotificationDrawer';
 
 const NotificationBell = ({ userId = 1 }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -43,16 +45,10 @@ const NotificationBell = ({ userId = 1 }) => {
         })
       });
       
-      if (response.ok) {
-        // Update local state
-        setNotifications(prev => 
-          prev.map(notif => 
-            notif.id === notificationId 
-              ? { ...notif, is_read: 1 }
-              : notif
-          )
-        );
-        setUnreadCount(prev => Math.max(0, prev - 1));
+      const data = await response.json();
+      if (data.success) {
+        // Refresh notifications to get updated state from server
+        await fetchNotifications();
       }
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -69,15 +65,14 @@ const NotificationBell = ({ userId = 1 }) => {
         },
         body: JSON.stringify({
           user_id: userId,
-          mark_all: true
+          mark_all_read: true
         })
       });
       
-      if (response.ok) {
-        setNotifications(prev => 
-          prev.map(notif => ({ ...notif, is_read: 1 }))
-        );
-        setUnreadCount(0);
+      const data = await response.json();
+      if (data.success) {
+        // Refresh notifications to get updated state from server
+        await fetchNotifications();
       }
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
@@ -103,10 +98,19 @@ const NotificationBell = ({ userId = 1 }) => {
   const handleActionClick = (notification, event) => {
     event.stopPropagation(); // Prevent notification click
     if (notification.action_url) {
+      // Mark as read before navigating
+      if (!notification.is_read) {
+        markAsRead(notification.id);
+      }
+      
       // Navigate to the action URL
       if (notification.action_url.startsWith('/')) {
-        window.location.href = notification.action_url;
+        // Close dropdown before navigation
+        setIsOpen(false);
+        // Use React Router for internal navigation
+        navigate(notification.action_url);
       } else {
+        // External URL - open in new tab
         window.open(notification.action_url, '_blank');
       }
     }
