@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { FaTimes, FaBell, FaCheck, FaCheckCircle, FaExclamationCircle, FaInfoCircle, FaTrashAlt } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 
 const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -79,10 +81,19 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
   // Handle action button click
   const handleActionClick = (notification) => {
     if (notification.action_url) {
+      // Mark as read before navigating
+      if (!notification.is_read) {
+        markAsRead(notification.id);
+      }
+      
       // Navigate to the action URL
       if (notification.action_url.startsWith('/')) {
-        window.location.href = notification.action_url;
+        // Close drawer before navigation
+        handleClose();
+        // Use React Router for internal navigation
+        navigate(notification.action_url);
       } else {
+        // External URL - open in new tab
         window.open(notification.action_url, '_blank');
       }
     }

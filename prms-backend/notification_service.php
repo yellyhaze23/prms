@@ -113,7 +113,7 @@ class NotificationService {
                 'type' => 'info',
                 'title' => 'System Milestone',
                 'message' => "System now has {$totalPatients} patients registered",
-                'action_url' => '/dashboard',
+                'action_url' => '/',
                 'action_text' => 'View Dashboard'
             ];
         }

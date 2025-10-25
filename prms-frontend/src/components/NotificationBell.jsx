@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaBell, FaTimes, FaCheck, FaCheckCircle, FaExclamationCircle, FaInfoCircle, FaTrashAlt } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import NotificationDrawer from './NotificationDrawer';
 
 const NotificationBell = ({ userId = 1 }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -96,10 +98,19 @@ const NotificationBell = ({ userId = 1 }) => {
   const handleActionClick = (notification, event) => {
     event.stopPropagation(); // Prevent notification click
     if (notification.action_url) {
+      // Mark as read before navigating
+      if (!notification.is_read) {
+        markAsRead(notification.id);
+      }
+      
       // Navigate to the action URL
       if (notification.action_url.startsWith('/')) {
-        window.location.href = notification.action_url;
+        // Close dropdown before navigation
+        setIsOpen(false);
+        // Use React Router for internal navigation
+        navigate(notification.action_url);
       } else {
+        // External URL - open in new tab
         window.open(notification.action_url, '_blank');
       }
     }
