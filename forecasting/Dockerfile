@@ -28,6 +28,6 @@ RUN mkdir -p /app/cache && chmod 777 /app/cache
 # Set Python to run in unbuffered mode
 ENV PYTHONUNBUFFERED=1
 
-# Default command (can be overridden in docker-compose)
-CMD ["python", "forecast_arima.py"]
+# Keep container running as a service (PHP will call the scripts on-demand)
+CMD ["tail", "-f", "/dev/null"]
 

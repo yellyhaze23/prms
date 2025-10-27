@@ -71,7 +71,7 @@ function Login({ onLogin }) {
 
     try {
       const res = await axios.post(
-        "http://localhost/prms/prms-backend/authenticate.php", 
+        "http://localhost/prms-backend/authenticate.php", 
         { username, password },
         { timeout: 10000 }
       );

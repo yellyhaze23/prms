@@ -76,3 +76,4 @@ const LogoutAnimationModal = ({ isVisible, stage = 'loading' }) => {
 };
 
 export default LogoutAnimationModal;
+

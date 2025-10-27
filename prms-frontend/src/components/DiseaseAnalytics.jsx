@@ -19,7 +19,7 @@ const DiseaseAnalytics = () => {
 
   const fetchDiseaseAnalytics = async () => {
     try {
-      const response = await axios.get('http://localhost/prms/prms-backend/get_disease_analytics.php');
+      const response = await axios.get('http://localhost/prms-backend/get_disease_analytics.php');
       
       if (response.data.success) {
         setDiseases(response.data.diseases);
@@ -139,3 +139,4 @@ const DiseaseAnalytics = () => {
 };
 
 export default DiseaseAnalytics;
+

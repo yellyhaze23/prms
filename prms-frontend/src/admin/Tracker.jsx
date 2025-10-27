@@ -113,7 +113,7 @@ function Tracker() {
     const fetchBarangayHeatmap = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost/prms/prms-backend/get_barangay_heatmap.php');
+        const response = await fetch('http://localhost/prms-backend/get_barangay_heatmap.php');
         const data = await response.json();
         
         if (data.success) {

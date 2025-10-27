@@ -45,7 +45,7 @@ function Sidebar({ collapsed = false }) {
       }
       
       try {
-        const response = await fetch('http://localhost/prms/prms-backend/get_admin_profile.php', {
+        const response = await fetch('http://localhost/prms-backend/get_admin_profile.php', {
           method: 'GET',
           credentials: 'include'
         });
@@ -237,3 +237,4 @@ function Sidebar({ collapsed = false }) {
 }
 
 export default Sidebar;
+

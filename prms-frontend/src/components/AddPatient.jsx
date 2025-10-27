@@ -58,7 +58,7 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
       } else {
         // For admin patients or patients with individual name fields, use existing logic
         // Try to fetch medical records data for additional fields
-        axios.get(`http://localhost/prms/prms-backend/get_medical_records.php?patient_id=${patient.id}`)
+        axios.get(`http://localhost/prms-backend/get_medical_records.php?patient_id=${patient.id}`)
           .then((res) => {
             console.log("Medical records response:", res.data);
             // Merge patient basic info with medical records data
@@ -152,11 +152,11 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
     
     const url = patient
       ? (isStaffContext 
-          ? "http://localhost/prms/prms-backend/api/staff/patients/update.php"
-          : "http://localhost/prms/prms-backend/update_patient_comprehensive.php")
+          ? "http://localhost/prms-backend/api/staff/patients/update.php"
+          : "http://localhost/prms-backend/update_patient_comprehensive.php")
       : (isStaffContext
-          ? "http://localhost/prms/prms-backend/api/staff/patients/add.php"
-          : "http://localhost/prms/prms-backend/add_patient.php");
+          ? "http://localhost/prms-backend/api/staff/patients/add.php"
+          : "http://localhost/prms-backend/add_patient.php");
 
     // Prepare body based on context
     let body;
@@ -497,3 +497,4 @@ function AddPatient({ onClose, onConfirm, patient = null }) {
 }
 
 export default AddPatient;
+

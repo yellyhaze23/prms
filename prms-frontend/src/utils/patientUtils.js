@@ -24,3 +24,4 @@ export const generateNextPatientID = (patients) => {
   
   return formatPatientID(nextId);
 };
+

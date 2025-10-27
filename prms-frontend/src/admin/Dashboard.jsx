@@ -179,7 +179,7 @@ const Dashboard = () => {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await fetch('http://localhost/prms/prms-backend/get_current_user.php');
+      const response = await fetch('http://localhost/prms-backend/get_current_user.php');
       const data = await response.json();
       if (data.success) {
         setCurrentUser(data.user);
@@ -223,7 +223,7 @@ const Dashboard = () => {
     try {
       // Use preloaded data if available
       const data = await preloadData(cacheKey, () => 
-        fetch(`http://localhost/prms/prms-backend/get_dashboard_data.php?timeframe=${timeframe}`).then(r => r.json())
+        fetch(`http://localhost/prms-backend/get_dashboard_data.php?timeframe=${timeframe}`).then(r => r.json())
       );
       
       if (data.success) {
@@ -259,7 +259,7 @@ const Dashboard = () => {
 
   const refreshInBackground = async (timeframe) => {
     try {
-      const response = await axios.get(`http://localhost/prms/prms-backend/get_dashboard_data.php?timeframe=${timeframe}`);
+      const response = await axios.get(`http://localhost/prms-backend/get_dashboard_data.php?timeframe=${timeframe}`);
       if (response.data.success) {
         setDashboardData(response.data);
         setCachedData(`dashboard_${timeframe}`, response.data);
@@ -274,7 +274,7 @@ const Dashboard = () => {
 
   const fetchDiseaseTrends = async () => {
     try {
-      const response = await axios.get('http://localhost/prms/prms-backend/get_disease_trends.php?period=7');
+      const response = await axios.get('http://localhost/prms-backend/get_disease_trends.php?period=7');
       
       if (response.data.success) {
         setDiseaseTrends(response.data.trends);

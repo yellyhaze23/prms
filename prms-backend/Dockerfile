@@ -1,7 +1,7 @@
 # PHP Backend Dockerfile for PRMS
 FROM php:8.2-fpm
 
-# Install system dependencies
+# Install system dependencies including Python
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -11,7 +11,19 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libzip-dev \
-    && docker-php-ext-install pdo_mysql mysqli mbstring exif pcntl bcmath gd zip opcache
+    python3 \
+    python3-pip \
+    python3-venv \
+    gcc \
+    g++ \
+    gfortran \
+    libopenblas-dev \
+    liblapack-dev \
+    && docker-php-ext-install pdo_mysql mysqli mbstring exif pcntl bcmath gd zip opcache \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create symlink for python command
+RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # Configure PHP settings
 RUN echo "upload_max_filesize = 10M" > /usr/local/etc/php/conf.d/uploads.ini \
@@ -30,6 +42,10 @@ RUN echo "opcache.enable=1" > /usr/local/etc/php/conf.d/opcache.ini \
 
 # Set working directory
 WORKDIR /var/www/html
+
+# Install Python dependencies for forecasting
+COPY requirements.txt /tmp/requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt && rm /tmp/requirements.txt
 
 # Copy application files
 COPY . /var/www/html/

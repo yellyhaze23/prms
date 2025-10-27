@@ -238,3 +238,4 @@ export const downloadMedicalRecord = async (record) => {
     return false;
   }
 };
+

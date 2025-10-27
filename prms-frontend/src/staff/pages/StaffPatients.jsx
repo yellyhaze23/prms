@@ -252,3 +252,4 @@ function StaffPatients() {
 }
 
 export default StaffPatients;
+

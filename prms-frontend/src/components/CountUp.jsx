@@ -71,3 +71,4 @@ const CountUp = ({
 };
 
 export default CountUp;
+

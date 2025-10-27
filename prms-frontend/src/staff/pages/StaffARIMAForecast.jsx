@@ -36,7 +36,7 @@ const StaffARIMAForecast = () => {
   const fetchRecentForecasts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost/prms/prms-backend/get_recent_forecasts.php');
+      const response = await fetch('http://localhost/prms-backend/get_recent_forecasts.php');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -539,4 +539,5 @@ const StaffARIMAForecast = () => {
 };
 
 export default StaffARIMAForecast;
+
 

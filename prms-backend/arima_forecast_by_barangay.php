@@ -6,7 +6,7 @@
 
 // Enable error reporting for debugging
 error_reporting(E_ALL);
-ini_set('display_errors', 0); // Don't display to browser
+ini_set('display_errors', 1); // TEMPORARILY display to browser for debugging
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/logs/barangay_forecast_errors.log');
 
@@ -156,8 +156,11 @@ try {
     $original_dir = getcwd();
     chdir($forecasting_dir);
     
+    // Set matplotlib config directory to avoid permission errors
+    putenv('MPLCONFIGDIR=/tmp/matplotlib_cache');
+    
     // Run the Python script with JSON data
-    $command = "python forecast_arima_by_barangay.py \"$json_file\" $forecast_period 2>&1";
+    $command = "MPLCONFIGDIR=/tmp/matplotlib_cache python forecast_arima_by_barangay.py \"$json_file\" $forecast_period 2>&1";
     error_log("Executing command: " . $command);
     
     $output = shell_exec($command);

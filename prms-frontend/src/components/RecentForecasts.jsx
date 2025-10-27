@@ -24,7 +24,7 @@ const RecentForecasts = ({ refreshTrigger }) => {
 
   const fetchRecentForecasts = async () => {
     try {
-      const response = await fetch('http://localhost/prms/prms-backend/get_recent_forecasts.php');
+      const response = await fetch('http://localhost/prms-backend/get_recent_forecasts.php');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -113,7 +113,7 @@ const RecentForecasts = ({ refreshTrigger }) => {
       console.log('Attempting to delete forecast ID:', forecastId);
       
       // Call delete API endpoint
-      const response = await fetch(`http://localhost/prms/prms-backend/delete_forecast.php`, {
+      const response = await fetch(`http://localhost/prms-backend/delete_forecast.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

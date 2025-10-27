@@ -15,3 +15,4 @@ export default function Header({ title = 'Staff Portal', subtitle }) {
     </header>
   );
 }
+

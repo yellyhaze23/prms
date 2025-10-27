@@ -12,6 +12,13 @@ RUN npm ci --silent
 # Copy source files
 COPY . .
 
+# Set base path and API URLs for Docker deployment
+ARG VITE_API_BASE_URL
+ARG VITE_STAFF_API_BASE_URL
+ENV VITE_BASE_PATH=/
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_STAFF_API_BASE_URL=$VITE_STAFF_API_BASE_URL
+
 # Build for production
 RUN npm run build
 

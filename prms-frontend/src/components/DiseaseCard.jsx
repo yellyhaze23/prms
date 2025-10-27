@@ -59,3 +59,4 @@ const DiseaseCard = ({ disease, totalCases, activeCases, riskLevel }) => {
 };
 
 export default DiseaseCard;
+

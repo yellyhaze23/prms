@@ -33,8 +33,10 @@ services:
     restart: unless-stopped
     volumes:
       - ./prms-backend:/var/www/html
+      - ./forecasting:/var/www/forecasting
       - backend_uploads:/var/www/html/uploads
       - backend_logs:/var/www/html/logs
+      - forecast_cache:/var/www/forecasting/cache
     environment:
       - DB_HOST=db
       - DB_NAME=${DB_NAME:-prms_db}
@@ -57,7 +59,7 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./prms-frontend/dist:/usr/share/nginx/html
+      - frontend_dist:/usr/share/nginx/html
       - ./prms-backend:/var/www/html/backend
       - backend_uploads:/var/www/html/backend/uploads
     depends_on:
@@ -72,8 +74,8 @@ services:
       context: ./prms-frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost/prms-backend}
-        - VITE_STAFF_API_BASE_URL=${VITE_STAFF_API_BASE_URL:-http://localhost/prms-backend/api/staff}
+        - VITE_API_BASE_URL=http://localhost/prms-backend
+        - VITE_STAFF_API_BASE_URL=http://localhost/prms-backend/api/staff
     container_name: prms-frontend
     restart: unless-stopped
     volumes:
@@ -81,7 +83,7 @@ services:
     networks:
       - prms-network
 
-  # Python Forecasting Service
+  # Python Forecasting Service (on-demand via PHP backend)
   forecasting:
     build:
       context: ./forecasting
@@ -101,12 +103,7 @@ services:
         condition: service_healthy
     networks:
       - prms-network
-    # Run forecasting as a scheduled job (cron-like)
-    command: >
-      sh -c "while true; do
-        python forecast_arima.py;
-        sleep 604800;
-      done"
+    # Container stays running, PHP backend calls Python scripts on-demand
 
 volumes:
   mysql_data:

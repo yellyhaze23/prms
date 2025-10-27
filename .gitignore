@@ -87,7 +87,7 @@ debug_*.php
 # Configuration files with sensitive data
 config.local.php
 database.local.php
-prms-backend/config.php
+# prms-backend/config.php
 
 # React/Vite specific
 .vite/
