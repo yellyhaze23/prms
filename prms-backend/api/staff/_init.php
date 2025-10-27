@@ -4,7 +4,8 @@ require_once __DIR__ . '/../../config.php';
 
 // Configure session cookie parameters (same as authenticate.php)
 if (session_status() === PHP_SESSION_NONE) {
-    session_save_path('/var/lib/php/sessions');
+    // Use /tmp for sessions (always available in containers)
+    session_save_path('/tmp');
     session_set_cookie_params([
         'lifetime' => 86400,  // 24 hours
         'path' => '/',
