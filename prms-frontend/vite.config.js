@@ -8,4 +8,8 @@ export default defineConfig({
   css: {
     postcss: './postcss.config.js',
   },
+  // Base path configuration
+  // Local development (Laragon): /prms/prms-frontend/dist/
+  // VPS production: / (served from document root)
+  base: process.env.VITE_BASE_PATH || '/prms/prms-frontend/dist/',
 })

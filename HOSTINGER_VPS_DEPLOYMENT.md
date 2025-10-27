@@ -13,17 +13,19 @@ This guide will walk you through deploying the Patient Record Management System 
 ### What You'll Need
 - [ ] Hostinger VPS account (purchased)
 - [ ] Domain name (optional but recommended)
-- [ ] Your local PRMS project at `C:\laragon\www\prms`
-- [ ] 1-2 hours of time
-- [ ] Basic knowledge of copy/paste commands
+- [ ] Your PRMS project pushed to GitHub repository
+- [ ] GitHub account with repository access
+- [ ] 2-3 hours of time
+- [ ] Basic knowledge of terminal/command-line commands
 
 ---
 
 ## Table of Contents
 
+0. [Before You Start - Prepare Your Repository](#0-before-you-start---prepare-your-repository)
 1. [Access Your Server](#1-access-your-server)
 2. [Install Required Software](#2-install-required-software)
-3. [Upload Your Project Files](#3-upload-your-project-files)
+3. [Upload Your Project Files Using Git](#3-upload-your-project-files-using-git)
 4. [Setup MySQL Database](#4-setup-mysql-database)
 5. [Configure Backend](#5-configure-backend)
 6. [Build and Deploy Frontend](#6-build-and-deploy-frontend)
@@ -34,6 +36,101 @@ This guide will walk you through deploying the Patient Record Management System 
 11. [Security Hardening](#11-security-hardening)
 12. [Final Testing](#12-final-testing)
 13. [Troubleshooting](#13-troubleshooting)
+14. [Post-Deployment Checklist](#14-post-deployment-checklist)
+15. [Automated Database Backups](#15-automated-database-backups)
+16. [Performance Optimization](#16-performance-optimization)
+17. [Domain Setup (If You Have a Domain)](#17-domain-setup-if-you-have-a-domain)
+18. [Regular Maintenance](#18-regular-maintenance)
+19. [Estimated Costs](#19-estimated-costs)
+20. [Updating Your Deployment from Git](#20-updating-your-deployment-from-git)
+21. [Troubleshooting Resources](#21-troubleshooting-resources)
+22. [Additional Resources](#22-additional-resources)
+
+---
+
+## 0. Before You Start - Prepare Your Repository
+
+**⚠️ IMPORTANT:** Before deploying to VPS, make sure your code is on GitHub!
+
+### Step 0.1: Push Your Code to GitHub
+
+**📍 WHERE:** On your local Windows computer
+
+**⌨️ OPEN POWERSHELL IN YOUR PROJECT DIRECTORY:**
+```powershell
+cd C:\laragon\www\prms
+```
+
+**⌨️ CHECK GIT STATUS:**
+```bash
+git status
+```
+
+**⌨️ ADD ALL CHANGES:**
+```bash
+git add .
+```
+
+**⌨️ COMMIT YOUR CHANGES:**
+```bash
+git commit -m "Ready for VPS deployment with fixes"
+```
+
+**⌨️ PUSH TO GITHUB:**
+```bash
+git push origin development
+```
+
+**OR if using main branch:**
+```bash
+git push origin main
+```
+
+**✅ VERIFY ON GITHUB:**
+1. Go to your GitHub repository in browser
+2. Check that all files are there
+3. Verify the latest commit shows your message
+
+---
+
+### Step 0.2: Important Files to Verify
+
+**Make sure these are in your repository:**
+- ✅ `prms_db.sql` - Database schema (with VARCHAR fix)
+- ✅ `prms-backend/` - All PHP backend files
+- ✅ `prms-frontend/` - All React frontend files
+- ✅ `forecasting/` - Python forecasting scripts
+- ✅ `ENV_SETUP_GUIDE.md` - Environment configuration guide
+- ✅ `DEPLOYMENT_FIX_GUIDE.md` - Deployment troubleshooting
+- ✅ `.gitignore` - To exclude sensitive files
+
+**Files that should NOT be in GitHub:**
+- ❌ `prms-backend/config.php` - Database credentials (in .gitignore)
+- ❌ `prms-frontend/.env` - Environment file (in .gitignore)
+- ❌ `prms-frontend/node_modules/` - Dependencies (in .gitignore)
+- ❌ `prms-frontend/dist/` - Build files (in .gitignore)
+
+**⌨️ CHECK .gitignore EXISTS:**
+```powershell
+Get-Content .gitignore
+```
+
+If it doesn't exist or is incomplete, create one with proper exclusions.
+
+---
+
+### Step 0.3: Test Locally First (Highly Recommended!)
+
+**📚 SEE:** `LOCAL_TESTING_CHECKLIST.md` for complete testing guide
+
+**Quick local test:**
+1. Re-import `prms_db.sql` to your local MySQL
+2. Verify `.env` exists in `prms-frontend/` with localhost URLs
+3. Rebuild frontend: `cd prms-frontend && npm run build`
+4. Test login at `http://localhost/prms/prms-frontend/dist/`
+5. Verify no "truncated user-type" errors
+
+**✅ IF LOCAL TESTING PASSES:** You're ready to deploy to VPS!
 
 ---
 
@@ -300,57 +397,112 @@ pip3 --version
 
 ---
 
-## 3. Upload Your Project Files
+## 3. Upload Your Project Files Using Git
 
-Now you'll transfer your PRMS project from your local computer to the VPS.
+Now you'll clone your PRMS project from GitHub to the VPS.
 
-### Step 3.1: Create Project Directory on VPS
+### Step 3.1: Setup Git and GitHub Access
 
 **📍 WHERE:** In your VPS terminal
 
-**⌨️ CREATE DIRECTORY:**
+**⌨️ CONFIGURE GIT WITH YOUR NAME AND EMAIL:**
 ```bash
-sudo mkdir -p /var/www/prms
+git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"
 ```
+
+**⚠️ IMPORTANT:** Replace with your actual name and email
+
+---
+
+### Step 3.2: Generate SSH Key for GitHub (Recommended)
+
+**⌨️ GENERATE SSH KEY:**
+```bash
+ssh-keygen -t ed25519 -C "your.email@example.com"
+```
+
+**📝 WHEN ASKED:**
+- **"Enter file in which to save the key":** Press Enter (use default)
+- **"Enter passphrase":** Press Enter (no passphrase for automation)
+- **"Enter same passphrase again":** Press Enter
+
+**⌨️ DISPLAY YOUR PUBLIC KEY:**
+```bash
+cat ~/.ssh/id_ed25519.pub
+```
+
+**➡️ ACTION:** Copy the entire output (starts with `ssh-ed25519`)
+
+**📍 NOW GO TO GITHUB:**
+1. Open your browser and go to GitHub.com
+2. Click your profile picture → **Settings**
+3. Click **SSH and GPG keys** (left sidebar)
+4. Click **New SSH key** button
+5. **Title:** "Hostinger VPS" or "PRMS Production Server"
+6. **Key:** Paste the public key you copied
+7. Click **Add SSH key**
+
+**✅ TEST THE CONNECTION:**
+```bash
+ssh -T git@github.com
+```
+
+**📝 EXPECTED OUTPUT:** "Hi username! You've successfully authenticated..."
+
+---
+
+### Step 3.3: Alternative - Using HTTPS with Personal Access Token
+
+**If you prefer HTTPS instead of SSH:**
+
+**📍 CREATE PERSONAL ACCESS TOKEN:**
+1. Go to GitHub.com → Settings → Developer settings
+2. Click **Personal access tokens** → **Tokens (classic)**
+3. Click **Generate new token (classic)**
+4. **Note:** "PRMS VPS Deployment"
+5. **Expiration:** 90 days (or your preference)
+6. **Scopes:** Check `repo` (full control of private repositories)
+7. Click **Generate token**
+8. **⚠️ COPY THE TOKEN** - you won't see it again!
+
+---
+
+### Step 3.4: Clone Your Repository
+
+**📍 WHERE:** In your VPS terminal
+
+**⌨️ GO TO WEB DIRECTORY:**
+```bash
+cd /var/www
+```
+
+**⌨️ CLONE YOUR REPOSITORY:**
+
+**If using SSH (recommended):**
+```bash
+git clone git@github.com:your-username/prms.git
+```
+
+**If using HTTPS with token:**
+```bash
+git clone https://github.com/your-username/prms.git
+```
+
+**📝 IF ASKED FOR PASSWORD (HTTPS):**
+- Username: Your GitHub username
+- Password: Paste your Personal Access Token (NOT your GitHub password)
+
+⏳ *This takes 2-5 minutes depending on repository size*
+
+**✅ SUCCESS:** You see "Cloning into 'prms'..." and it completes
 
 **⌨️ GIVE YOURSELF OWNERSHIP:**
 ```bash
 sudo chown -R prmsuser:prmsuser /var/www/prms
 ```
 
-**⌨️ GO TO THE DIRECTORY:**
-```bash
-cd /var/www/prms
-```
-
----
-
-### Step 3.2: Upload Files from Your Computer
-
-**📍 WHERE:** On your local Windows computer
-
-**➡️ ACTION:** Open a NEW PowerShell window (keep your SSH connection open in the other window)
-
-**⌨️ NAVIGATE TO YOUR PROJECT:**
-```powershell
-cd C:\laragon\www\prms
-```
-
-**⌨️ UPLOAD FILES TO VPS:** (Replace `your-vps-ip` with your actual IP)
-```powershell
-scp -r * prmsuser@your-vps-ip:/var/www/prms/
-```
-
-**📝 NOTE:**
-- You'll be asked for your prmsuser password
-- This will take 5-10 minutes depending on your internet speed
-- You'll see many files being copied
-
-**✅ SUCCESS:** The upload completes without errors
-
-**⌨️ VERIFY FILES WERE UPLOADED:**
-
-Switch back to your VPS terminal and type:
+**⌨️ VERIFY FILES WERE CLONED:**
 ```bash
 ls -la /var/www/prms
 ```
@@ -360,7 +512,39 @@ ls -la /var/www/prms
 - `prms-frontend/`
 - `forecasting/`
 - `prms_db.sql`
+- `.git/` directory
 - Other project files
+
+---
+
+### Step 3.5: Switch to Correct Branch (if needed)
+
+**⌨️ GO TO PROJECT DIRECTORY:**
+```bash
+cd /var/www/prms
+```
+
+**⌨️ CHECK CURRENT BRANCH:**
+```bash
+git branch
+```
+
+**⌨️ IF YOU NEED TO SWITCH TO A DIFFERENT BRANCH:**
+```bash
+git checkout development
+```
+
+**OR for main branch:**
+```bash
+git checkout main
+```
+
+**⌨️ PULL LATEST CHANGES:**
+```bash
+git pull origin development
+```
+
+**✅ SUCCESS:** You're on the correct branch with latest code
 
 ---
 
@@ -518,7 +702,51 @@ $dbpass   = 'YourSecurePassword123!';       // Database password
 
 ---
 
-### Step 5.3: Set Proper File Permissions
+### Step 5.3: Configure CORS Settings
+
+**📍 WHERE:** In your VPS terminal
+
+**⌨️ OPEN CORS CONFIGURATION:**
+```bash
+nano /var/www/prms/prms-backend/cors.php
+```
+
+**🔍 FIND THE `$productionOrigins` ARRAY** (around line 21)
+
+**✏️ UPDATE WITH YOUR VPS IP OR DOMAIN:**
+
+**If using VPS IP only:**
+```php
+$productionOrigins = [
+    'http://YOUR_VPS_IP',          // Replace with your actual IP
+    // 'https://yourdomain.com',    // Uncomment when you have domain + SSL
+];
+```
+
+**Example:**
+```php
+$productionOrigins = [
+    'http://72.61.148.144',
+];
+```
+
+**If using domain:**
+```php
+$productionOrigins = [
+    'http://yourdomain.com',
+    'https://yourdomain.com',      // After SSL is installed
+    'https://www.yourdomain.com',
+];
+```
+
+**⌨️ SAVE AND EXIT:**
+1. Press `Ctrl + O`
+2. Press `Enter`
+3. Press `Ctrl + X`
+
+---
+
+### Step 5.4: Set Proper File Permissions
 
 **📍 WHERE:** In your VPS terminal
 
@@ -540,14 +768,16 @@ sudo find /var/www/prms -type f -exec chmod 644 {} \;
 ```
 ⏳ *Takes 10-20 seconds*
 
-**⌨️ SET WRITE PERMISSIONS FOR UPLOAD/LOG DIRECTORIES:**
+**⌨️ CREATE AND SET WRITE PERMISSIONS FOR DIRECTORIES:**
+```bash
+sudo mkdir -p /var/www/prms/prms-backend/uploads
+sudo mkdir -p /var/www/prms/prms-backend/logs
+sudo mkdir -p /var/www/prms/forecasting/cache
+```
+
 ```bash
 sudo chmod -R 775 /var/www/prms/prms-backend/uploads
-```
-```bash
 sudo chmod -R 775 /var/www/prms/prms-backend/logs
-```
-```bash
 sudo chmod -R 775 /var/www/prms/forecasting/cache
 ```
 
@@ -570,39 +800,54 @@ Now you'll build the React frontend for production.
 cd /var/www/prms/prms-frontend
 ```
 
-**⌨️ CHECK IF .env.example EXISTS:**
-```bash
-ls -la .env.example
-```
+**📚 REFERENCE:** See `ENV_SETUP_GUIDE.md` in the frontend folder for detailed configuration options.
 
-**IF THE FILE EXISTS:**
-```bash
-cp .env.example .env
-```
+---
 
-**IF THE FILE DOESN'T EXIST, CREATE IT:**
+**⌨️ CREATE .env FILE:**
 ```bash
 nano .env
 ```
 
-**✏️ TYPE THIS IN THE FILE:** (Replace `yourdomain.com` with your actual domain, or use your VPS IP if you don't have a domain yet)
+**✏️ TYPE THIS IN THE FILE:** (Replace with your actual values)
 
-**If you have a domain:**
+**If you DON'T have a domain yet (use VPS IP):**
+```env
+VITE_API_BASE_URL=http://YOUR_VPS_IP/prms-backend
+VITE_STAFF_API_BASE_URL=http://YOUR_VPS_IP/prms-backend/api/staff
+```
+
+**📝 EXAMPLE** (Replace `72.61.148.144` with YOUR actual VPS IP):
+```env
+VITE_API_BASE_URL=http://72.61.148.144/prms-backend
+VITE_STAFF_API_BASE_URL=http://72.61.148.144/prms-backend/api/staff
+```
+
+**If you HAVE a domain (no SSL yet):**
+```env
+VITE_API_BASE_URL=http://yourdomain.com/prms-backend
+VITE_STAFF_API_BASE_URL=http://yourdomain.com/prms-backend/api/staff
+```
+
+**If you have a domain WITH SSL certificate:**
 ```env
 VITE_API_BASE_URL=https://yourdomain.com/prms-backend
 VITE_STAFF_API_BASE_URL=https://yourdomain.com/prms-backend/api/staff
 ```
 
-**If you DON'T have a domain yet (use IP):**
-```env
-VITE_API_BASE_URL=http://your-vps-ip/prms-backend
-VITE_STAFF_API_BASE_URL=http://your-vps-ip/prms-backend/api/staff
-```
+**⚠️ CRITICAL:** Use the EXACT URL format - no trailing slashes, correct http/https protocol!
 
 **⌨️ SAVE AND EXIT:**
 1. Press `Ctrl + O`
 2. Press `Enter`
 3. Press `Ctrl + X`
+
+**⌨️ VERIFY YOUR .env FILE:**
+```bash
+cat .env
+```
+
+**✅ MAKE SURE:** The URLs are correct and match your VPS IP or domain
 
 ---
 
@@ -1920,7 +2165,239 @@ find /var/www/prms/prms-backend/logs -name "*.log" -mtime +30 -delete
 
 ---
 
-## 20. Additional Resources
+## 20. Updating Your Deployment from Git
+
+When you make changes to your code and push to GitHub, here's how to update your VPS.
+
+### Step 20.1: Pull Latest Changes
+
+**📍 WHERE:** In your VPS terminal
+
+**⌨️ GO TO PROJECT DIRECTORY:**
+```bash
+cd /var/www/prms
+```
+
+**⌨️ CHECK CURRENT STATUS:**
+```bash
+git status
+```
+
+**⌨️ PULL LATEST CHANGES:**
+```bash
+git pull origin development
+```
+
+**OR if using main branch:**
+```bash
+git pull origin main
+```
+
+**📝 IF YOU SEE CONFLICTS:** You'll need to resolve them manually or stash local changes:
+```bash
+git stash
+git pull origin development
+```
+
+---
+
+### Step 20.2: Update Backend Only (PHP Changes)
+
+**If you only changed PHP backend files:**
+
+**⌨️ RESTART PHP-FPM:**
+```bash
+sudo systemctl restart php8.2-fpm
+```
+
+**⌨️ RESTART APACHE:**
+```bash
+sudo systemctl restart apache2
+```
+
+**✅ DONE!** Backend changes are live.
+
+---
+
+### Step 20.3: Update Frontend (React Changes)
+
+**If you changed React frontend files:**
+
+**⌨️ GO TO FRONTEND DIRECTORY:**
+```bash
+cd /var/www/prms/prms-frontend
+```
+
+**⌨️ VERIFY .env FILE EXISTS:**
+```bash
+cat .env
+```
+
+**⚠️ IF .env DOESN'T EXIST:** Create it with your VPS IP (see Step 6.1)
+
+**⌨️ INSTALL NEW DEPENDENCIES (if package.json changed):**
+```bash
+npm install
+```
+
+**⌨️ REBUILD FRONTEND:**
+```bash
+npm run build
+```
+
+⏳ *Takes 2-3 minutes*
+
+**⌨️ RESTART APACHE:**
+```bash
+sudo systemctl restart apache2
+```
+
+**✅ DONE!** Frontend changes are live. Clear browser cache and refresh.
+
+---
+
+### Step 20.4: Update Database Schema
+
+**If you changed the database schema (prms_db.sql):**
+
+**⚠️ WARNING:** This will affect your data! Create a backup first!
+
+**⌨️ BACKUP CURRENT DATABASE:**
+```bash
+mysqldump -u prms_user -p prms_db > /var/backups/prms/backup_before_update_$(date +%Y%m%d_%H%M%S).sql
+```
+
+**⌨️ OPTION 1 - Run specific ALTER TABLE commands** (Recommended)
+```bash
+mysql -u prms_user -p prms_db
+```
+
+Then run your ALTER TABLE statements manually.
+
+**⌨️ OPTION 2 - Re-import entire database** (⚠️ Destructive)
+```bash
+mysql -u prms_user -p prms_db < prms_db.sql
+```
+
+**✅ VERIFY:** Test your application to ensure data wasn't lost.
+
+---
+
+### Step 20.5: Update Python Dependencies
+
+**If you changed Python requirements:**
+
+**⌨️ GO TO FORECASTING DIRECTORY:**
+```bash
+cd /var/www/prms/forecasting
+```
+
+**⌨️ ACTIVATE VIRTUAL ENVIRONMENT:**
+```bash
+source venv/bin/activate
+```
+
+**⌨️ UPDATE PACKAGES:**
+```bash
+pip install -r requirements.txt --upgrade
+```
+
+**⌨️ DEACTIVATE:**
+```bash
+deactivate
+```
+
+---
+
+### Step 20.6: Full Update Script (All Changes)
+
+**For convenience, here's a complete update script:**
+
+```bash
+#!/bin/bash
+# Go to project directory
+cd /var/www/prms
+
+# Pull latest code
+echo "Pulling latest code from Git..."
+git pull origin development
+
+# Update backend config if needed
+echo "Checking backend configuration..."
+cd prms-backend
+if [ ! -f "config.php" ]; then
+    echo "Warning: config.php not found!"
+fi
+
+# Update frontend
+echo "Rebuilding frontend..."
+cd /var/www/prms/prms-frontend
+if [ ! -f ".env" ]; then
+    echo "Warning: .env not found! Create it before building."
+    exit 1
+fi
+npm install
+npm run build
+
+# Set permissions
+echo "Setting permissions..."
+sudo chown -R www-data:www-data /var/www/prms
+sudo find /var/www/prms -type d -exec chmod 755 {} \;
+sudo find /var/www/prms -type f -exec chmod 644 {} \;
+sudo chmod -R 775 /var/www/prms/prms-backend/uploads
+sudo chmod -R 775 /var/www/prms/prms-backend/logs
+
+# Restart services
+echo "Restarting services..."
+sudo systemctl restart php8.2-fpm
+sudo systemctl restart apache2
+
+echo "Update complete! Test your application."
+```
+
+**⌨️ TO USE THIS SCRIPT:**
+
+1. Save it as `/home/prmsuser/update-prms.sh`
+2. Make it executable: `chmod +x /home/prmsuser/update-prms.sh`
+3. Run it: `./update-prms.sh`
+
+---
+
+## 21. Troubleshooting Resources
+
+### Documentation Files in Your Repository
+
+Your project includes these helpful documentation files:
+
+1. **`ENV_SETUP_GUIDE.md`** (in `prms-frontend/`)
+   - Complete guide for configuring `.env` files
+   - Examples for different deployment scenarios
+
+2. **`DEPLOYMENT_FIX_GUIDE.md`** (in project root)
+   - Solutions for common deployment errors
+   - "Truncated user-type" error fix
+   - Frontend calling localhost fix
+   - CORS configuration issues
+
+3. **`DEPLOYMENT_FIXES_SUMMARY.md`** (in project root)
+   - Overview of all fixes applied
+   - What changed vs original deployment
+
+4. **`LOCAL_TESTING_CHECKLIST.md`** (in project root)
+   - Step-by-step guide for testing fixes locally
+   - Before deploying to VPS
+
+**📍 HOW TO READ THESE ON VPS:**
+```bash
+cd /var/www/prms
+cat DEPLOYMENT_FIX_GUIDE.md
+# or
+nano DEPLOYMENT_FIX_GUIDE.md
+```
+
+---
+
+## 22. Additional Resources
 
 ### Documentation
 - **Hostinger VPS Tutorials:** https://www.hostinger.ph/tutorials/vps
@@ -1928,11 +2405,47 @@ find /var/www/prms/prms-backend/logs -name "*.log" -mtime +30 -delete
 - **Apache Docs:** https://httpd.apache.org/docs/
 - **PHP Manual:** https://www.php.net/docs.php
 - **MySQL Docs:** https://dev.mysql.com/doc/
+- **Git Documentation:** https://git-scm.com/doc
+- **GitHub SSH Setup:** https://docs.github.com/en/authentication/connecting-to-github-with-ssh
 
 ### Community Support
 - **Stack Overflow:** https://stackoverflow.com/
 - **PHP Community:** https://www.php.net/support.php
 - **React Community:** https://react.dev/community
+- **GitHub Community:** https://github.community/
+
+### Quick Command Reference
+
+**Git Commands:**
+```bash
+git status                          # Check current status
+git pull origin development         # Pull latest changes
+git log --oneline -5                # View recent commits
+git branch                          # List branches
+git checkout branch-name            # Switch branch
+```
+
+**Service Management:**
+```bash
+sudo systemctl restart apache2      # Restart Apache
+sudo systemctl restart php8.2-fpm   # Restart PHP-FPM
+sudo systemctl restart mysql        # Restart MySQL
+sudo systemctl status SERVICE_NAME  # Check service status
+```
+
+**View Logs:**
+```bash
+sudo tail -f /var/log/apache2/prms_error.log     # Apache errors
+sudo tail -f /var/log/apache2/prms_access.log    # Apache access
+tail -f /var/www/prms/prms-backend/logs/*.log    # Application logs
+```
+
+**Database Commands:**
+```bash
+mysql -u prms_user -p prms_db                    # Login to database
+mysqldump -u prms_user -p prms_db > backup.sql   # Backup database
+mysql -u prms_user -p prms_db < backup.sql       # Restore database
+```
 
 ---
 
@@ -1943,23 +2456,72 @@ You've successfully deployed your PRMS application to a production server!
 ### What You've Accomplished:
 ✅ Set up a secure VPS server  
 ✅ Installed and configured LAMP stack (Linux, Apache, MySQL, PHP)  
+✅ Configured Git and cloned repository from GitHub  
 ✅ Deployed your React frontend and PHP backend  
 ✅ Set up Python forecasting with automation  
 ✅ Secured your server with SSL, firewall, and Fail2Ban  
 ✅ Configured automated backups and maintenance  
+✅ Created update workflow using Git pull
 
 ### Next Steps:
-1. Share your website URL with users
-2. Monitor error logs regularly
-3. Keep your system updated
-4. Test your backups monthly
-5. Add more features to your PRMS!
+1. **Test everything thoroughly** - Go through all features
+2. **Monitor logs regularly** - Check for errors daily
+   ```bash
+   sudo tail -f /var/log/apache2/prms_error.log
+   ```
+3. **Create admin user** - Change default passwords
+4. **Share URL with users** - Give them login credentials
+5. **Setup monitoring** - Consider Uptime Robot or similar
+6. **Document your setup** - Note any custom configurations
+7. **Test backups** - Verify database backups work
+8. **Keep system updated** - Run `apt update && apt upgrade` monthly
+
+### Updating After Code Changes:
+When you make changes and push to GitHub:
+```bash
+cd /var/www/prms
+git pull origin development
+cd prms-frontend
+npm run build
+sudo systemctl restart apache2
+```
+
+See [Section 20](#20-updating-your-deployment-from-git) for complete update procedures.
+
+---
+
+### Important Documentation Files:
+- **`DEPLOYMENT_FIX_GUIDE.md`** - Solutions for common errors
+- **`ENV_SETUP_GUIDE.md`** - Environment configuration
+- **`LOCAL_TESTING_CHECKLIST.md`** - Pre-deployment testing
+- **`DEPLOYMENT_FIXES_SUMMARY.md`** - Overview of fixes applied
 
 ---
 
 **📧 Questions or Issues?**  
-Contact your system administrator or development team.
+1. Check the [Troubleshooting](#13-troubleshooting) section
+2. Review `DEPLOYMENT_FIX_GUIDE.md` in your repository
+3. Check error logs for specific error messages
+4. Contact your system administrator or development team
 
-**📅 Last Updated:** October 2025  
-**📝 Version:** 2.0 - Complete Step-by-Step Guide
+**🔄 Future Deployments:**  
+Use this guide again for:
+- Deploying to additional servers
+- Setting up staging environment
+- Helping team members deploy
+- Reference for troubleshooting
+
+---
+
+**📅 Last Updated:** October 27, 2025  
+**📝 Version:** 3.0 - Complete Git-Based Deployment Guide  
+**✨ New in v3.0:**
+- Git clone workflow instead of SCP file upload
+- GitHub SSH key setup
+- Update procedures from Git
+- CORS configuration steps
+- Frontend environment setup
+- References to fix documentation
+- Pre-deployment testing checklist
+- Automated update scripts
 
