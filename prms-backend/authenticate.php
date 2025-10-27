@@ -33,8 +33,9 @@ if ($result->num_rows === 1) {
         
         // Configure session cookie parameters before starting session
         if (session_status() === PHP_SESSION_NONE) {
+            session_save_path('/var/lib/php/sessions');
             session_set_cookie_params([
-                'lifetime' => 0,
+                'lifetime' => 86400,  // 24 hours
                 'path' => '/',
                 'domain' => '',
                 'secure' => false,

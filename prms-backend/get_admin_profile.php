@@ -9,8 +9,9 @@ require 'config.php';
 
 // Configure session cookie for cross-origin requests
 if (session_status() === PHP_SESSION_NONE) {
+    session_save_path('/var/lib/php/sessions');
     session_set_cookie_params([
-        'lifetime' => 0,
+        'lifetime' => 86400,  // 24 hours
         'path' => '/',
         'domain' => '',
         'secure' => false,

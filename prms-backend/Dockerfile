@@ -62,6 +62,11 @@ RUN mkdir -p /var/www/html/uploads \
 RUN chown -R www-data:www-data /var/www/html \
     && chown -R www-data:www-data /var/lib/php/sessions
 
+# Configure PHP session settings
+RUN echo "session.save_path = \"/var/lib/php/sessions\"" >> /usr/local/etc/php/conf.d/session.ini \
+    && echo "session.gc_probability = 1" >> /usr/local/etc/php/conf.d/session.ini \
+    && echo "session.gc_divisor = 100" >> /usr/local/etc/php/conf.d/session.ini
+
 EXPOSE 9000
 
 CMD ["php-fpm"]
