@@ -19,21 +19,24 @@ function setCorsHeaders() {
         // ============================================
         
         $productionOrigins = [
-            // 🔴 UNCOMMENT AND UPDATE THESE WHEN DEPLOYING:
+            // UNCOMMENT AND UPDATE THESE WHEN DEPLOYING:
             // 'https://yourdomain.com',
             // 'https://www.yourdomain.com',
             // 'http://yourdomain.com',           // HTTP (before SSL)
             // 'http://www.yourdomain.com',       // HTTP (before SSL)
-               'http://72.61.148.144',          // Your VPS IP (if no domain)
+            'http://72.61.148.144',             // Your VPS IP (if no domain)
+            'https://72.61.148.144',            // HTTPS VPS IP
         ];
         
         // ============================================
         // DEVELOPMENT ORIGINS - Keep these for local testing
         // ============================================
         $developmentOrigins = [
+            'http://localhost',              // For Docker deployment
             'http://localhost:5173',
             'http://localhost:5174',
             'http://localhost:3000',
+            'http://127.0.0.1',              // For Docker deployment
             'http://127.0.0.1:5173',
             'http://127.0.0.1:5174',
             'http://127.0.0.1:3000',
