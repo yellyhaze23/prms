@@ -50,14 +50,17 @@ RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt
 # Copy application files
 COPY . /var/www/html/
 
-# Create necessary directories
+# Create necessary directories including PHP sessions
 RUN mkdir -p /var/www/html/uploads \
     && mkdir -p /var/www/html/logs \
+    && mkdir -p /var/lib/php/sessions \
     && chmod -R 775 /var/www/html/uploads \
-    && chmod -R 775 /var/www/html/logs
+    && chmod -R 775 /var/www/html/logs \
+    && chmod -R 770 /var/lib/php/sessions
 
 # Set permissions
-RUN chown -R www-data:www-data /var/www/html
+RUN chown -R www-data:www-data /var/www/html \
+    && chown -R www-data:www-data /var/lib/php/sessions
 
 EXPOSE 9000
 
