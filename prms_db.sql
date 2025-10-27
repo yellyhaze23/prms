@@ -30,7 +30,7 @@ SET time_zone = "+00:00";
 CREATE TABLE `activity_logs` (
   `id` int NOT NULL,
   `user_id` int DEFAULT NULL,
-  `user_type` enum('admin','staff') NOT NULL,
+  `user_type` varchar(20) NOT NULL,
   `username` varchar(100) DEFAULT NULL,
   `activity_type` varchar(100) NOT NULL,
   `description` text,
@@ -219,7 +219,7 @@ INSERT INTO `activity_logs` (`id`, `user_id`, `user_type`, `username`, `activity
 CREATE TABLE `audit_logs` (
   `id` int NOT NULL,
   `user_id` int DEFAULT NULL,
-  `user_type` enum('admin','staff') NOT NULL,
+  `user_type` varchar(20) NOT NULL,
   `username` varchar(100) DEFAULT NULL,
   `action` varchar(100) NOT NULL,
   `entity_type` varchar(50) DEFAULT NULL,
@@ -2714,7 +2714,7 @@ INSERT INTO `forecasts` (`id`, `disease`, `forecast_type`, `forecast_period`, `p
 CREATE TABLE `login_sessions` (
   `id` int NOT NULL,
   `user_id` int DEFAULT NULL,
-  `user_type` enum('admin','staff') NOT NULL,
+  `user_type` varchar(20) NOT NULL,
   `username` varchar(100) DEFAULT NULL,
   `session_id` varchar(255) DEFAULT NULL,
   `ip_address` varchar(45) DEFAULT NULL,
