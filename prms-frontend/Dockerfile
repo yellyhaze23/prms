@@ -7,7 +7,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --silent
+# Using npm install instead of npm ci for better compatibility on low-memory VPS
+RUN npm install --production=false
 
 # Copy source files
 COPY . .
