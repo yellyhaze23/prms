@@ -50,29 +50,21 @@ RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt
 # Copy application files
 COPY . /var/www/html/
 
-# Create necessary directories including PHP sessions
+# Create necessary directories
 RUN mkdir -p /var/www/html/uploads \
     && mkdir -p /var/www/html/logs \
-    && mkdir -p /var/lib/php/sessions \
     && chmod -R 775 /var/www/html/uploads \
-    && chmod -R 775 /var/www/html/logs \
-    && chmod -R 770 /var/lib/php/sessions
+    && chmod -R 775 /var/www/html/logs
 
 # Set permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chown -R www-data:www-data /var/lib/php/sessions
+RUN chown -R www-data:www-data /var/www/html
 
-# Configure PHP session settings
-RUN echo "session.save_path = \"/var/lib/php/sessions\"" >> /usr/local/etc/php/conf.d/session.ini \
+# Configure PHP session settings to use /tmp
+RUN echo "session.save_path = \"/tmp\"" >> /usr/local/etc/php/conf.d/session.ini \
     && echo "session.gc_probability = 1" >> /usr/local/etc/php/conf.d/session.ini \
     && echo "session.gc_divisor = 100" >> /usr/local/etc/php/conf.d/session.ini
 
-# Copy and set up entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
 EXPOSE 9000
 
-ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["php-fpm"]
 
