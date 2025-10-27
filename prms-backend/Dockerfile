@@ -67,7 +67,12 @@ RUN echo "session.save_path = \"/var/lib/php/sessions\"" >> /usr/local/etc/php/c
     && echo "session.gc_probability = 1" >> /usr/local/etc/php/conf.d/session.ini \
     && echo "session.gc_divisor = 100" >> /usr/local/etc/php/conf.d/session.ini
 
+# Copy and set up entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 EXPOSE 9000
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["php-fpm"]
 
