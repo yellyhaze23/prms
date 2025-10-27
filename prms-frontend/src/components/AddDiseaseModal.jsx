@@ -77,8 +77,8 @@ function AddDiseaseModal({ onClose, onConfirm, disease = null }) {
     setIsSubmitting(true);
     try {
       const url = disease
-        ? "http://localhost/prms/prms-backend/update_disease.php"
-        : "http://localhost/prms/prms-backend/add_disease.php";
+        ? "http://localhost/prms-backend/update_disease.php"
+        : "http://localhost/prms-backend/add_disease.php";
 
       const body = disease
         ? { id: disease.id, ...formData }
@@ -306,3 +306,4 @@ function AddDiseaseModal({ onClose, onConfirm, disease = null }) {
 }
 
 export default AddDiseaseModal;
+

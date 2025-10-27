@@ -24,3 +24,4 @@ export const useInstantSearch = (data, searchFields = []) => {
     clearSearch: () => setSearchTerm('')
   };
 };
+

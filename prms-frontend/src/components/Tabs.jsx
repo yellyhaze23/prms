@@ -57,3 +57,4 @@ const Tabs = ({ patient, onEdit, onDelete, onPatientUpdate }) => {
 };
 
 export default Tabs;
+

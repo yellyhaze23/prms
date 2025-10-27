@@ -16,11 +16,17 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
+$raw_input = file_get_contents('php://input');
+$input = json_decode($raw_input, true);
 
 if (!$input) {
+    error_log("Overall forecast - JSON decode failed. Raw input: " . substr($raw_input, 0, 200));
+    error_log("JSON error: " . json_last_error_msg());
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Invalid JSON input']);
+    echo json_encode([
+        'success' => false, 
+        'error' => 'Invalid JSON input'
+    ]);
     exit;
 }
 
@@ -97,8 +103,11 @@ try {
     $original_dir = getcwd();
     chdir($forecasting_dir);
     
+    // Set matplotlib config directory to avoid permission errors
+    putenv('MPLCONFIGDIR=/tmp/matplotlib_cache');
+    
     // Run the Python script with JSON data
-    $command = "python forecast_arima.py \"$json_file\" $forecast_period 2>&1";
+    $command = "MPLCONFIGDIR=/tmp/matplotlib_cache python forecast_arima.py \"$json_file\" $forecast_period 2>&1";
     $output = shell_exec($command);
     
     // Change back to original directory

@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: prms-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-prms_root_2024}
+      MYSQL_DATABASE: ${DB_NAME:-prms_db}
+      MYSQL_USER: ${DB_USER:-prms_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-prms_pass_2024}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./prms_db.sql:/docker-entrypoint-initdb.d/prms_db.sql
+    ports:
+      - "3306:3306"
+    networks:
+      - prms-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-prms_root_2024}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PHP Backend
+  backend:
+    build:
+      context: ./prms-backend
+      dockerfile: Dockerfile
+    container_name: prms-backend
+    restart: unless-stopped
+    volumes:
+      - ./prms-backend:/var/www/html
+      - ./forecasting:/var/www/forecasting
+      - backend_uploads:/var/www/html/uploads
+      - backend_logs:/var/www/html/logs
+      - forecast_cache:/var/www/forecasting/cache
+    environment:
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME:-prms_db}
+      - DB_USER=${DB_USER:-prms_user}
+      - DB_PASSWORD=${DB_PASSWORD:-prms_pass_2024}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - prms-network
+
+  # Nginx Web Server (serves frontend and proxies to backend)
+  webserver:
+    image: nginx:alpine
+    container_name: prms-webserver
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - frontend_dist:/usr/share/nginx/html
+      - ./prms-backend:/var/www/html/backend
+      - backend_uploads:/var/www/html/backend/uploads
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - prms-network
+
+  # React Frontend (build stage)
+  frontend:
+    build:
+      context: ./prms-frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost/prms-backend
+        - VITE_STAFF_API_BASE_URL=http://localhost/prms-backend/api/staff
+    container_name: prms-frontend
+    restart: unless-stopped
+    volumes:
+      - frontend_dist:/usr/share/nginx/html
+    networks:
+      - prms-network
+
+  # Python Forecasting Service (on-demand via PHP backend)
+  forecasting:
+    build:
+      context: ./forecasting
+      dockerfile: Dockerfile
+    container_name: prms-forecasting
+    restart: unless-stopped
+    volumes:
+      - ./forecasting:/app
+      - forecast_cache:/app/cache
+    environment:
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME:-prms_db}
+      - DB_USER=${DB_USER:-prms_user}
+      - DB_PASSWORD=${DB_PASSWORD:-prms_pass_2024}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - prms-network
+    # Container stays running, PHP backend calls Python scripts on-demand
+
+volumes:
+  mysql_data:
+    driver: local
+  backend_uploads:
+    driver: local
+  backend_logs:
+    driver: local
+  forecast_cache:
+    driver: local
+  frontend_dist:
+    driver: local
+
+networks:
+  prms-network:
+    driver: bridge
+

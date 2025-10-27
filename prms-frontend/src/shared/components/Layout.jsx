@@ -16,3 +16,4 @@ export default function Layout({ title = 'Tracely', subtitle = 'Track disease ea
     </div>
   );
 }
+

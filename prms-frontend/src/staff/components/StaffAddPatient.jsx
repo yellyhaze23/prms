@@ -106,8 +106,8 @@ function StaffAddPatient({ onClose, onConfirm, patient = null }) {
       const full_name = `${formData.first_name} ${formData.middle_name} ${formData.surname} ${formData.suffix}`.trim();
       
       const url = patient 
-        ? `http://localhost/prms/prms-backend/api/staff/patients/update.php`
-        : `http://localhost/prms/prms-backend/api/staff/patients/add.php`;
+        ? `http://localhost/prms-backend/api/staff/patients/update.php`
+        : `http://localhost/prms-backend/api/staff/patients/add.php`;
 
       const payload = {
         full_name: full_name,
@@ -423,3 +423,4 @@ function StaffAddPatient({ onClose, onConfirm, patient = null }) {
 }
 
 export default StaffAddPatient;
+

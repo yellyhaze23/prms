@@ -28,7 +28,7 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
     if (patient?.id) {
       setLoading(true); // Reset loading state
       // Fetch current medical record (latest)
-      axios.get(`http://localhost/prms/prms-backend/get_medical_records.php?patient_id=${patient.id}`)
+      axios.get(`http://localhost/prms-backend/get_medical_records.php?patient_id=${patient.id}`)
         .then((res) => {
           console.log("Medical records response:", res.data);
           // Merge patient basic info with medical records data
@@ -77,7 +77,7 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
         });
 
       // Fetch consultation history (all records)
-      axios.get(`http://localhost/prms/prms-backend/get_all_medical_records.php?patient_id=${patient.id}`)
+      axios.get(`http://localhost/prms-backend/get_all_medical_records.php?patient_id=${patient.id}`)
         .then((res) => {
           console.log("Consultation history response:", res.data);
           // Handle the API response structure properly
@@ -119,7 +119,7 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
 
   const handleViewRecord = async (recordId) => {
     try {
-      const response = await axios.get(`http://localhost/prms/prms-backend/get_medical_record_by_id.php?record_id=${recordId}&patient_id=${patient.id}`);
+      const response = await axios.get(`http://localhost/prms-backend/get_medical_record_by_id.php?record_id=${recordId}&patient_id=${patient.id}`);
       setSelectedRecord(response.data);
       setShowHistoryModal(true);
     } catch (error) {
@@ -171,7 +171,7 @@ function MedicalRecords({ patient, onEdit, onDelete, onPatientUpdate }) {
           console.log('Sending medical records data:', formData);
 
         // Use comprehensive update API that handles both patient and medical records
-        const response = await axios.post('http://localhost/prms/prms-backend/update_patient_comprehensive.php', formData);
+        const response = await axios.post('http://localhost/prms-backend/update_patient_comprehensive.php', formData);
 
         console.log('Response from server:', response.data);
 

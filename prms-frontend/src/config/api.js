@@ -4,8 +4,9 @@
  */
 
 // Get base URL from environment variables or fallback to localhost
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost/prms/prms-backend';
-export const STAFF_API_BASE_URL = import.meta.env.VITE_STAFF_API_BASE_URL || 'http://localhost/prms/prms-backend/api/staff';
+// Docker/Production default, can be overridden with VITE_API_BASE_URL env var
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost/prms-backend';
+export const STAFF_API_BASE_URL = import.meta.env.VITE_STAFF_API_BASE_URL || 'http://localhost/prms-backend/api/staff';
 
 // Helper function to build API endpoint URLs
 export const getApiUrl = (endpoint) => {
@@ -26,4 +27,5 @@ export default {
   getApiUrl,
   getStaffApiUrl
 };
+
 

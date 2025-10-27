@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Staff API instance (namespaced auth and cookies)
 export const staffApi = axios.create({
-  baseURL: (import.meta?.env?.VITE_STAFF_API_BASE_URL || 'http://localhost/prms/prms-backend/api/staff'),
+  baseURL: (import.meta?.env?.VITE_STAFF_API_BASE_URL || 'http://localhost/prms-backend/api/staff'),
   withCredentials: true,
 });
 
@@ -34,3 +34,4 @@ staffApi.interceptors.response.use(
 );
 
 export default staffApi;
+

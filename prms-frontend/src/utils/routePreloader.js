@@ -79,3 +79,4 @@ export const preloadAllRoutes = () => {
     preloadRoute(route);
   });
 };
+

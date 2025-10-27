@@ -39,7 +39,7 @@ export const clearCache = async () => {
   
   // Call backend logout to destroy PHP session
   try {
-    await fetch('http://localhost/prms/prms-backend/logout.php', {
+    await fetch('http://localhost/prms-backend/logout.php', {
       method: 'POST',
       credentials: 'include', // Important: send cookies
       headers: {
@@ -57,3 +57,4 @@ export const clearCache = async () => {
   localStorage.removeItem('admin_token');
   localStorage.removeItem('admin_role');
 };
+

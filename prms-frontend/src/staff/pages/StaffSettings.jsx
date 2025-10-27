@@ -174,7 +174,7 @@ export default function StaffSettings() {
   const fetchSessionSettings = async () => {
     setSessionLoading(true);
     try {
-      const response = await fetch('http://localhost/prms/prms-backend/get_settings.php', {
+      const response = await fetch('http://localhost/prms-backend/get_settings.php', {
         credentials: 'include'
       });
       const data = await response.json();
@@ -982,3 +982,4 @@ export default function StaffSettings() {
     </motion.div>
   );
 }
+

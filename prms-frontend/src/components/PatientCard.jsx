@@ -9,7 +9,7 @@ function PatientCard({ patients, onSelect }) {
       ) : (
         patients.map((patient, index) => {
           const imageSrc = patient.image_path
-            ? `http://localhost/prms/prms-backend/uploads/${patient.image_path}`
+            ? `http://localhost/prms-backend/uploads/${patient.image_path}`
             : "/lspu-logo.png";
 
           return (
@@ -36,3 +36,4 @@ function PatientCard({ patients, onSelect }) {
 }
 
 export default PatientCard;
+

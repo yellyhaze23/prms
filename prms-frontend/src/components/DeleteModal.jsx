@@ -82,3 +82,4 @@ const DeleteModal = ({ isVisible, onClose, onConfirm, forecastId }) => {
 };
 
 export default DeleteModal;
+

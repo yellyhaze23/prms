@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# Node modules
+node_modules
+npm-debug.log
+
+# Environment files (will be created separately)
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist
+build
+
+# Logs
+*.log
+logs
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Backup files
+*.bak
+*.tmp
+
+# Cache
+cache
+__pycache__
+*.pyc
+
+# Database
+*.sql
+!prms_db.sql
+

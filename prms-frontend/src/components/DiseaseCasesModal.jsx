@@ -121,7 +121,7 @@ const DiseaseCasesModal = ({ disease, onClose }) => {
   const fetchDiseaseCases = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost/prms/prms-backend/get_disease_cases.php?disease=${encodeURIComponent(disease)}`);
+      const response = await axios.get(`http://localhost/prms-backend/get_disease_cases.php?disease=${encodeURIComponent(disease)}`);
       
       if (response.data.success) {
         setCases(response.data.cases);
@@ -364,3 +364,4 @@ const DiseaseCasesModal = ({ disease, onClose }) => {
 };
 
 export default DiseaseCasesModal;
+

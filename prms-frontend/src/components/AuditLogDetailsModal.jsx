@@ -297,3 +297,4 @@ const AuditLogDetailsModal = ({ isOpen, onClose, logData }) => {
 };
 
 export default AuditLogDetailsModal;
+

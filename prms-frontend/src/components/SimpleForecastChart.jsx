@@ -216,3 +216,4 @@ const SimpleForecastChart = ({ forecastResults }) => {
 
 export default SimpleForecastChart;
 
+

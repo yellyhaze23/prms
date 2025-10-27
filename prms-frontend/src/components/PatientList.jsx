@@ -229,3 +229,4 @@ function PatientList({ patients, onSelect, onEdit, onDelete, loading, error }) {
 }
 
 export default PatientList;
+

@@ -80,3 +80,4 @@ function SettingsToolbar({ onSearch, onSort, sortOrder, onToggleSortOrder, onAdd
 }
 
 export default SettingsToolbar;
+

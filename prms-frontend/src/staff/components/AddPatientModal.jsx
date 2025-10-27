@@ -24,7 +24,7 @@ export default function AddPatientModal({ onClose, onSaved }) {
     setError(null);
 
     try {
-      const res = await fetch('http://localhost/prms/prms-backend/api/staff/patients/add.php', {
+      const res = await fetch('http://localhost/prms-backend/api/staff/patients/add.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -99,3 +99,4 @@ export default function AddPatientModal({ onClose, onSaved }) {
     </div>
   );
 }
+

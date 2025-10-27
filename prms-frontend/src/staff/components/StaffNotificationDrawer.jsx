@@ -19,7 +19,7 @@ const StaffNotificationDrawer = ({ isOpen, onClose, userId }) => {
     try {
       setLoading(true);
       const response = await fetch(
-        `http://localhost/prms/prms-backend/api/staff/get_notifications.php?limit=50`,
+        `http://localhost/prms-backend/api/staff/get_notifications.php?limit=50`,
         {
           method: 'GET',
           credentials: 'include'
@@ -42,7 +42,7 @@ const StaffNotificationDrawer = ({ isOpen, onClose, userId }) => {
   const markAsRead = async (notificationId) => {
     try {
       const response = await fetch(
-        'http://localhost/prms/prms-backend/api/staff/mark_notification_read.php',
+        'http://localhost/prms-backend/api/staff/mark_notification_read.php',
         {
           method: 'POST',
           headers: {
@@ -69,7 +69,7 @@ const StaffNotificationDrawer = ({ isOpen, onClose, userId }) => {
   const markAllAsRead = async () => {
     try {
       const response = await fetch(
-        'http://localhost/prms/prms-backend/api/staff/mark_notification_read.php',
+        'http://localhost/prms-backend/api/staff/mark_notification_read.php',
         {
           method: 'POST',
           headers: {
@@ -368,4 +368,5 @@ const StaffNotificationDrawer = ({ isOpen, onClose, userId }) => {
 };
 
 export default StaffNotificationDrawer;
+
 

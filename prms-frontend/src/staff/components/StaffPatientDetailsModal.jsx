@@ -171,3 +171,4 @@ function StaffPatientDetailsModal({ patient, isOpen, onClose }) {
 }
 
 export default StaffPatientDetailsModal;
+

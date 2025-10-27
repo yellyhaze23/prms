@@ -121,3 +121,4 @@ function Toolbar({ onSearch, onSort, onAdd, sortOrder, onToggleSortOrder, disabl
 }
 
 export default Toolbar;
+

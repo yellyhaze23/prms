@@ -56,7 +56,7 @@ function Patient() {
         search: searchTerm
       });
 
-      const response = await axios.get(`http://localhost/prms/prms-backend/get_patients.php?${params}`);
+      const response = await axios.get(`http://localhost/prms-backend/get_patients.php?${params}`);
       
       if (response.data.success) {
         setPatients(response.data.data);
@@ -145,7 +145,7 @@ function Patient() {
       message: "Are you sure you want to delete this patient?",
       onConfirm: async () => {
         try {
-          await axios.post("http://localhost/prms/prms-backend/delete_patient.php", {
+          await axios.post("http://localhost/prms-backend/delete_patient.php", {
             id,
           });
           setPatients((prev) => prev.filter((p) => p.id !== id));
@@ -313,3 +313,4 @@ function Patient() {
 }
 
 export default Patient;
+

@@ -52,3 +52,4 @@ const SessionWarningModal = ({ timeRemaining, onExtend, onLogout }) => {
 };
 
 export default SessionWarningModal;
+

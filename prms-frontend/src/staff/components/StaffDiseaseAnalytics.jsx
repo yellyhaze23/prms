@@ -192,3 +192,4 @@ const StaffDiseaseAnalytics = () => {
 
 export default StaffDiseaseAnalytics;
 
+

@@ -17,7 +17,7 @@ const NotificationBell = ({ userId = 1 }) => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost/prms/prms-backend/get_notifications.php?user_id=${userId}&limit=10`);
+      const response = await fetch(`http://localhost/prms-backend/get_notifications.php?user_id=${userId}&limit=10`);
       const data = await response.json();
       
       if (data.success) {
@@ -34,7 +34,7 @@ const NotificationBell = ({ userId = 1 }) => {
   // Mark notification as read
   const markAsRead = async (notificationId) => {
     try {
-      const response = await fetch('http://localhost/prms/prms-backend/mark_notification_read.php', {
+      const response = await fetch('http://localhost/prms-backend/mark_notification_read.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ const NotificationBell = ({ userId = 1 }) => {
   // Mark all as read
   const markAllAsRead = async () => {
     try {
-      const response = await fetch('http://localhost/prms/prms-backend/mark_notification_read.php', {
+      const response = await fetch('http://localhost/prms-backend/mark_notification_read.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -278,3 +278,4 @@ const NotificationBell = ({ userId = 1 }) => {
 };
 
 export default NotificationBell;
+

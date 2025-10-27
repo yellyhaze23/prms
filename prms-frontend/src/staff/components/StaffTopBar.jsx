@@ -17,7 +17,7 @@ const StaffTopBar = ({ onToggleSidebar, sidebarCollapsed = false }) => {
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const response = await fetch('http://localhost/prms/prms-backend/api/staff/me.php', {
+        const response = await fetch('http://localhost/prms-backend/api/staff/me.php', {
           method: 'GET',
           credentials: 'include'
         });
@@ -49,7 +49,7 @@ const StaffTopBar = ({ onToggleSidebar, sidebarCollapsed = false }) => {
       
       // Call backend logout endpoint
       try {
-        await fetch('http://localhost/prms/prms-backend/logout.php', {
+        await fetch('http://localhost/prms-backend/logout.php', {
           method: 'POST',
           credentials: 'include'
         });
@@ -187,4 +187,5 @@ const StaffTopBar = ({ onToggleSidebar, sidebarCollapsed = false }) => {
 };
 
 export default StaffTopBar;
+
 
