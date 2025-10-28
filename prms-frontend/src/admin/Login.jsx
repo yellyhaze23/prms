@@ -71,7 +71,7 @@ function Login({ onLogin }) {
 
     try {
       const res = await axios.post(
-        "http://localhost/prms-backend/authenticate.php", 
+        `${import.meta.env.VITE_API_BASE_URL}/authenticate.php`, 
         { username, password },
         { timeout: 10000 }
       );

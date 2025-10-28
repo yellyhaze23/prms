@@ -70,7 +70,7 @@ function DiseaseTracker() {
   const fetchDiseaseData = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost/prms-backend/get_disease_data.php?disease=${activeDisease}`);
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_disease_data.php?disease=${activeDisease}`);
       setDiseaseData(response.data);
     } catch (error) {
       console.error("Error fetching disease data:", error);

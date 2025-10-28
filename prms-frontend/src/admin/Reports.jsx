@@ -96,7 +96,7 @@ function Reports() {
       params.append('days', dateRange);
       params.append('view_mode', viewMode);
 
-      const response = await fetch(`http://localhost/prms-backend/get_reports_data.php?${params.toString()}`);
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/get_reports_data.php?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch report data');
       const data = await response.json();
       
@@ -120,7 +120,7 @@ function Reports() {
 
   const fetchDiseases = async () => {
     try {
-      const response = await fetch('http://localhost/prms-backend/get_diseases.php');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/get_diseases.php`);
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -138,7 +138,7 @@ function Reports() {
 
   const fetchForecastData = async () => {
     try {
-      const response = await fetch('http://localhost/prms-backend/get_recent_forecasts.php');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/get_recent_forecasts.php`);
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -480,7 +480,7 @@ function Reports() {
       }
       params.append('days', dateRange);
       
-      const response = await fetch(`http://localhost/prms-backend/get_rhu_export_data.php?${params.toString()}`);
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/get_rhu_export_data.php?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch export data');
       
       const data = await response.json();

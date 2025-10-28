@@ -45,7 +45,7 @@ function Sidebar({ collapsed = false }) {
       }
       
       try {
-        const response = await fetch('http://localhost/prms-backend/get_admin_profile.php', {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/get_admin_profile.php`, {
           method: 'GET',
           credentials: 'include'
         });

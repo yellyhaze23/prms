@@ -91,7 +91,7 @@ function Records() {
         disease: selectedDisease
       });
 
-      const response = await axios.get(`http://localhost/prms-backend/get_patients.php?${params}`);
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_patients.php?${params}`);
       
       console.log('API Response:', response.data);
       
@@ -116,7 +116,7 @@ function Records() {
 
   const fetchDiseases = async () => {
     try {
-      const response = await axios.get("http://localhost/prms-backend/get_diseases.php");
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_diseases.php`);
       setDiseases(response.data);
     } catch (err) {
       console.error("Error fetching diseases:", err);
@@ -174,7 +174,7 @@ function Records() {
     setConfirmModal({
       message: "Are you sure you want to delete this patient? This action cannot be undone.",
       onConfirm: () => {
-        axios.delete(`http://localhost/prms-backend/delete_patient.php`, {
+        axios.delete(`${import.meta.env.VITE_API_BASE_URL}/delete_patient.php`, {
           data: { id: patientId }
         })
         .then(() => {
@@ -239,7 +239,7 @@ function Records() {
       showToast('Preparing download...', 'info');
       
       // Fetch the complete medical record data
-      const response = await axios.get(`http://localhost/prms-backend/get_medical_records.php?patient_id=${patient.id}`);
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_medical_records.php?patient_id=${patient.id}`);
       const medicalRecord = response.data;
       
       // Download the record

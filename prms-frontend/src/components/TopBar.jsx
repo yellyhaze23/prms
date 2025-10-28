@@ -29,7 +29,7 @@ const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", onToggleSid
       
       // Call backend logout endpoint
       try {
-        await fetch('http://localhost/prms-backend/logout.php', {
+        await fetch(`${import.meta.env.VITE_API_BASE_URL}/logout.php`, {
           method: 'POST',
           credentials: 'include'
         });

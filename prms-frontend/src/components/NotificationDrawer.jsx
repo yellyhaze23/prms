@@ -16,7 +16,7 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
   const fetchAllNotifications = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost/prms-backend/get_notifications.php?user_id=${userId}&limit=50`);
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/get_notifications.php?user_id=${userId}&limit=50`);
       const data = await response.json();
       
       if (data.success) {
@@ -33,7 +33,7 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
   // Mark notification as read
   const markAsRead = async (notificationId) => {
     try {
-      const response = await fetch('http://localhost/prms-backend/mark_notification_read.php', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/mark_notification_read.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,7 +57,7 @@ const NotificationDrawer = ({ isOpen, onClose, userId = 1 }) => {
   // Mark all notifications as read
   const markAllAsRead = async () => {
     try {
-      const response = await fetch('http://localhost/prms-backend/mark_notification_read.php', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/mark_notification_read.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -38,7 +38,7 @@ const NotificationCenter = ({ userId = 1 }) => {
         params.append('unread_only', 'true');
       }
 
-      const response = await axios.get(`http://localhost/prms-backend/get_notifications.php?${params}`);
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_notifications.php?${params}`);
       
       if (response.data.success) {
         setNotifications(response.data.notifications);
@@ -60,7 +60,7 @@ const NotificationCenter = ({ userId = 1 }) => {
   // Mark notification as read
   const markAsRead = async (notificationId) => {
     try {
-      const response = await axios.post('http://localhost/prms-backend/mark_notification_read.php', {
+      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/mark_notification_read.php`, {
         notification_id: notificationId,
         user_id: userId
       });
@@ -82,7 +82,7 @@ const NotificationCenter = ({ userId = 1 }) => {
   // Mark all as read
   const markAllAsRead = async () => {
     try {
-      const response = await axios.post('http://localhost/prms-backend/mark_notification_read.php', {
+      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/mark_notification_read.php`, {
         mark_all_read: true,
         user_id: userId
       });

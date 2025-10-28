@@ -87,7 +87,7 @@ export default function StaffDashboard() {
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem('staff_token');
-      const response = await fetch('http://localhost/prms-backend/api/staff/me.php', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/me.php`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

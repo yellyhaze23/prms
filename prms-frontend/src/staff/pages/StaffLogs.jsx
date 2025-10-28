@@ -72,7 +72,7 @@ export default function StaffLogs() {
         ...filters
       });
 
-      const response = await api.get(`/logs.php?${params}`);
+      const response = await api.get( `/logs.php?${params}`);
 
       if (response.data.success) {
         setAuditLogs(response.data.data);

@@ -20,7 +20,7 @@ export default function Sidebar({ nav = [], brandTitle = 'Tracely', brandSubtitl
       }
       
       try {
-        const response = await fetch('http://localhost/prms-backend/api/staff/me.php', {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/me.php`, {
           method: 'GET',
           credentials: 'include'
         });
