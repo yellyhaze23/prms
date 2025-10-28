@@ -7,6 +7,7 @@ header('Content-Type: application/json');
 
 // Configure session cookie parameters (same as authenticate.php)
 if (session_status() === PHP_SESSION_NONE) {
+    session_save_path('/tmp');
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => '/',

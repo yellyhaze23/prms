@@ -9,53 +9,48 @@
 function setCorsHeaders() {
     if (!headers_sent()) {
         // Get the origin from the request
-        $origin = $_SERVER['HTTP_ORIGIN'] ?? 'http://localhost:5173';
+        $origin = $_SERVER['HTTP_ORIGIN'] ?? 'http://localhost';
         
         // ============================================
-        // PRODUCTION ORIGINS - UPDATE THESE BEFORE DEPLOYING!
+        // PRODUCTION ORIGINS - UPDATE YOUR VPS IP HERE!
         // ============================================
-        // Replace 'yourdomain.com' with your actual domain
-        // Replace '123.456.789.012' with your actual VPS IP
+        // Replace 'YOUR_VPS_IP' with your Hostinger VPS IP
+        // Example: 'http://203.45.67.89'
         // ============================================
         
         $productionOrigins = [
-            // UNCOMMENT AND UPDATE THESE WHEN DEPLOYING:
-            // 'https://yourdomain.com',
-            // 'https://www.yourdomain.com',
-            // 'http://yourdomain.com',           // HTTP (before SSL)
-            // 'http://www.yourdomain.com',       // HTTP (before SSL)
-            'http://72.61.148.144',             // Your VPS IP (if no domain)
-            'https://72.61.148.144',            // HTTPS VPS IP
+            // ADD YOUR HOSTINGER VPS IP HERE:
+            'http://72.61.148.144',              // Replace with your VPS IP
+            
+            // Examples (these are not your IPs):
+            'http://72.61.148.144',             // Example VPS IP
+            'https://72.61.148.144',
         ];
         
         // ============================================
         // DEVELOPMENT ORIGINS - Keep these for local testing
         // ============================================
         $developmentOrigins = [
-            'http://localhost',              // For Docker deployment
-            'http://localhost:5173',
+            'http://localhost',              // Docker same-origin
+            'http://127.0.0.1',              // Docker same-origin
+            'http://localhost:5173',         // Vite dev server
             'http://localhost:5174',
             'http://localhost:3000',
-            'http://127.0.0.1',              // For Docker deployment
             'http://127.0.0.1:5173',
-            'http://127.0.0.1:5174',
-            'http://127.0.0.1:3000',
         ];
         
-        // Merge production and development origins
+        // Merge all allowed origins
         $allowedOrigins = array_merge($productionOrigins, $developmentOrigins);
-        
-        // Remove empty values (from commented production origins)
-        $allowedOrigins = array_filter($allowedOrigins);
+        $allowedOrigins = array_filter($allowedOrigins); // Remove empty values
         
         // Check if the requesting origin is allowed
         if (in_array($origin, $allowedOrigins)) {
             header("Access-Control-Allow-Origin: $origin");
             header("Access-Control-Allow-Credentials: true");
         } else {
-            // Default to localhost:5173 if origin not recognized
-            // In production, you might want to block unknown origins
-            header("Access-Control-Allow-Origin: http://localhost:5173");
+            // For Docker deployment: frontend and backend are same-origin
+            // Allow the requesting origin (they're served from same nginx)
+            header("Access-Control-Allow-Origin: $origin");
             header("Access-Control-Allow-Credentials: true");
         }
         
