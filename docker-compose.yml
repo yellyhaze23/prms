@@ -36,6 +36,7 @@ services:
       - backend_uploads:/var/www/html/uploads
       - backend_logs:/var/www/html/logs
       - forecast_cache:/var/www/forecasting/cache
+      - php_sessions:/tmp
     environment:
       - DB_HOST=db
       - DB_NAME=${DB_NAME:-prms_db}
@@ -115,6 +116,8 @@ volumes:
   forecast_cache:
     driver: local
   frontend_dist:
+    driver: local
+  php_sessions:
     driver: local
 
 networks:
