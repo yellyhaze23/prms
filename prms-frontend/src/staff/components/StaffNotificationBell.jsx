@@ -20,7 +20,7 @@ const StaffNotificationBell = ({ userId }) => {
     try {
       setLoading(true);
       const response = await fetch(
-        `http://localhost/prms-backend/api/staff/get_notifications.php?limit=10`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/staff/get_notifications.php?limit=10`,
         {
           method: 'GET',
           credentials: 'include'
@@ -43,7 +43,7 @@ const StaffNotificationBell = ({ userId }) => {
   const markAsRead = async (notificationId) => {
     try {
       const response = await fetch(
-        'http://localhost/prms-backend/api/staff/mark_notification_read.php',
+        `${import.meta.env.VITE_API_BASE_URL}/api/staff/mark_notification_read.php`,
         {
           method: 'POST',
           headers: {
@@ -70,7 +70,7 @@ const StaffNotificationBell = ({ userId }) => {
   const markAllAsRead = async () => {
     try {
       const response = await fetch(
-        'http://localhost/prms-backend/api/staff/mark_notification_read.php',
+        `${import.meta.env.VITE_API_BASE_URL}/api/staff/mark_notification_read.php`,
         {
           method: 'POST',
           headers: {

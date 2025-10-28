@@ -60,7 +60,7 @@ const AuditLogs = () => {
         ...filters
       });
 
-      const response = await axios.get(`http://localhost/prms-backend/get_audit_logs.php?${params}`);
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_audit_logs.php?${params}`);
 
       if (response.data.success) {
         setAuditLogs(response.data.data);

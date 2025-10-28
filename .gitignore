@@ -87,7 +87,7 @@ debug_*.php
 # Configuration files with sensitive data
 config.local.php
 database.local.php
-# prms-backend/config.php
+prms-backend/config.php
 
 # React/Vite specific
 .vite/
@@ -152,3 +152,4 @@ tmp/
 temp/
 forecasting/forecast_result.csv
 forecasting/temp_test_data.json
+prms-backend/config.php

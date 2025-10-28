@@ -39,7 +39,7 @@ export const clearCache = async () => {
   
   // Call backend logout to destroy PHP session
   try {
-    await fetch('http://localhost/prms-backend/logout.php', {
+    await fetch(`${import.meta.env.VITE_API_BASE_URL}/logout.php`, {
       method: 'POST',
       credentials: 'include', // Important: send cookies
       headers: {

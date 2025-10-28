@@ -331,8 +331,8 @@ const ARIMAForecast = () => {
       
       // Choose endpoint based on forecast mode
       const endpoint = forecastMode === 'barangay' 
-        ? 'http://localhost/prms-backend/arima_forecast_by_barangay.php'
-        : 'http://localhost/prms-backend/arima_forecast_disease_summary.php';
+        ? `${import.meta.env.VITE_API_BASE_URL}/arima_forecast_by_barangay.php`
+        : `${import.meta.env.VITE_API_BASE_URL}/arima_forecast_disease_summary.php`;
       
       const response = await fetch(endpoint, {
         method: 'POST',

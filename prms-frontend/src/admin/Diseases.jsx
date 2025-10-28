@@ -60,7 +60,7 @@ function Diseases() {
   const fetchDiseases = async () => {
     try {
       console.log('Fetching diseases from database...');
-      const response = await axios.get("http://localhost/prms-backend/get_diseases.php");
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_diseases.php`);
       console.log('Fetched diseases from API:', response.data);
       setDiseases(response.data);
     } catch (error) {
@@ -104,8 +104,8 @@ function Diseases() {
   const deleteDisease = async (diseaseId) => {
     console.log('Starting delete process for disease ID:', diseaseId);
     try {
-      console.log('Sending DELETE request to:', `http://localhost/prms-backend/delete_disease.php`);
-      const response = await axios.delete(`http://localhost/prms-backend/delete_disease.php`, {
+      console.log('Sending DELETE request to:', `${import.meta.env.VITE_API_BASE_URL}/delete_disease.php`);
+      const response = await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/delete_disease.php`, {
         data: { id: diseaseId }
       });
       console.log('Delete response:', response.data);

@@ -25,7 +25,7 @@ const SessionManager = ({ children }) => {
     
     // Update session activity on the server
     try {
-      await fetch('http://localhost/prms-backend/update_session_activity.php', {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL}/update_session_activity.php`, {
         method: 'POST',
         credentials: 'include'
       });
@@ -37,7 +37,7 @@ const SessionManager = ({ children }) => {
   // Initialize admin session if needed
   const initAdminSession = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost/prms-backend/init_admin_session.php', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/init_admin_session.php`, {
         method: 'POST',
         credentials: 'include'
       });
@@ -51,7 +51,7 @@ const SessionManager = ({ children }) => {
   // Check session status
   const checkSession = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost/prms-backend/check_session.php', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/check_session.php`, {
         method: 'GET',
         credentials: 'include'
       });

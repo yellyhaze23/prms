@@ -174,7 +174,7 @@ export default function StaffSettings() {
   const fetchSessionSettings = async () => {
     setSessionLoading(true);
     try {
-      const response = await fetch('http://localhost/prms-backend/get_settings.php', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/get_settings.php`, {
         credentials: 'include'
       });
       const data = await response.json();

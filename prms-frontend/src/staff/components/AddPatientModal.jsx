@@ -24,7 +24,7 @@ export default function AddPatientModal({ onClose, onSaved }) {
     setError(null);
 
     try {
-      const res = await fetch('http://localhost/prms-backend/api/staff/patients/add.php', {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/patients/add.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

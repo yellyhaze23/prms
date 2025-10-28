@@ -12,7 +12,7 @@ const PatientDetailsModal = ({ isVisible, onClose, patient }) => {
     if (isVisible && patient?.id) {
       setLoading(true);
       // Fetch complete patient data including medical records
-      axios.get(`http://localhost/prms-backend/get_medical_records.php?patient_id=${patient.id}`)
+      axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_medical_records.php?patient_id=${patient.id}`)
         .then((res) => {
           // Merge patient basic info with medical records data
           const mergedData = {

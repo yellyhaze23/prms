@@ -109,7 +109,7 @@ function Settings() {
   const fetchProfile = async () => {
     setProfileLoading(true);
     try {
-      const response = await axios.get('http://localhost/prms-backend/get_admin_profile.php', {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_admin_profile.php`, {
         withCredentials: true
       });
       if (response.data.success && response.data.data) {
@@ -264,14 +264,14 @@ function Settings() {
   };
 
   const fetchUsers = async () => {
-    const res = await axios.get("http://localhost/prms-backend/get_users.php");
+    const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_users.php`);
     if (res.data.success) setUsers(res.data.users);
   };
 
   const fetchUserProfile = async (userId) => {
     setLoadingProfile(true);
     try {
-      const res = await axios.get(`http://localhost/prms-backend/get_user_profile.php?id=${userId}`);
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_user_profile.php?id=${userId}`);
       if (res.data.success) {
         setSelectedUserProfile(res.data.user);
         setProfileModalOpen(true);
@@ -297,7 +297,7 @@ function Settings() {
 
   const fetchSettings = async () => {
     try {
-      const res = await axios.get("http://localhost/prms-backend/get_settings.php");
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_settings.php`);
       if (res.data.success) {
         setSettings(res.data.settings);
       }
@@ -308,7 +308,7 @@ function Settings() {
 
   const updateSettings = async () => {
     try {
-      const res = await axios.post("http://localhost/prms-backend/update_settings.php", settings);
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/update_settings.php`, settings);
       if (res.data.success) {
         showToast('Session settings updated successfully!', 'success');
         fetchSettings(); // Refresh settings
@@ -330,7 +330,7 @@ function Settings() {
         search: activitySearchTerm
       });
 
-      const response = await axios.get(`http://localhost/prms-backend/get_activity_logs.php?${params}`);
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_activity_logs.php?${params}`);
       
       if (response.data.success) {
         setActivityLogs(response.data.data);
@@ -424,7 +424,7 @@ function Settings() {
 
   const handleConfirmedDelete = async () => {
     const id = confirmModal.userId;
-    const res = await axios.post("http://localhost/prms-backend/delete_user.php", { id });
+    const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/delete_user.php`, { id });
     showToast(res.data.message, res.data.success ? "error" : "error");
     setConfirmModal({ show: false, userId: null });
     fetchUsers();
@@ -459,7 +459,7 @@ function Settings() {
     const action = newStatus === 'active' ? 'activate' : 'deactivate';
     
     try {
-      const res = await axios.post("http://localhost/prms-backend/toggle_user_status.php", {
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/toggle_user_status.php`, {
         id: user.id,
         status: newStatus
       });
@@ -490,8 +490,8 @@ function Settings() {
 
   const handleSubmit = async (formData) => {
     const url = editing
-      ? "http://localhost/prms-backend/update_user.php"
-      : "http://localhost/prms-backend/add_user.php";
+      ? `${import.meta.env.VITE_API_BASE_URL}/update_user.php`
+      : `${import.meta.env.VITE_API_BASE_URL}/add_user.php`;
 
     try {
       const res = await axios.post(url, formData);
@@ -1230,7 +1230,7 @@ function Settings() {
                   if (Object.keys(errors).length === 0) {
                     setProfileSaving(true);
                     try {
-                      await axios.put('http://localhost/prms-backend/update_admin_profile.php', profile, {
+                      await axios.put(`${import.meta.env.VITE_API_BASE_URL}/update_admin_profile.php`, profile, {
                         withCredentials: true
                       });
                       setToast({ message: "Profile updated successfully!", type: "success" });
@@ -1443,7 +1443,7 @@ function Settings() {
                 }
                 
                 try {
-                  const res = await axios.post('http://localhost/prms-backend/change_password.php', {
+                  const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/change_password.php`, {
                     username: account.username,
                     old_password: account.old_password,
                     new_password: account.new_password,

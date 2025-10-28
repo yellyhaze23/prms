@@ -27,7 +27,7 @@ export const BackupProvider = ({ children }) => {
   // Fetch backup files
   const fetchBackupFiles = async () => {
     try {
-      const response = await fetch('http://localhost/prms-backend/api/backup_restore.php?action=list');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/backup_restore.php?action=list`);
       const data = await response.json();
       if (data.status === 'success') {
         setBackupFiles(data.data || []);
@@ -40,7 +40,7 @@ export const BackupProvider = ({ children }) => {
   // Get database size
   const getDatabaseSize = async () => {
     try {
-      const response = await fetch('http://localhost/prms-backend/api/backup_restore.php?action=size');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/backup_restore.php?action=size`);
       const data = await response.json();
       if (data.status === 'success') {
         return data.data;
@@ -101,7 +101,7 @@ export const BackupProvider = ({ children }) => {
     setProgressInterval(interval);
 
     try {
-      const response = await fetch('http://localhost/prms-backend/api/backup_restore.php', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/backup_restore.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=backup'
@@ -182,7 +182,7 @@ export const BackupProvider = ({ children }) => {
     }));
 
     try {
-      const response = await fetch('http://localhost/prms-backend/api/backup_restore.php', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/backup_restore.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `action=restore&file=${encodeURIComponent(filename)}`
@@ -224,7 +224,7 @@ export const BackupProvider = ({ children }) => {
 
     try {
       console.log('Making API call to delete backup:', filename);
-      const response = await fetch('http://localhost/prms-backend/api/backup_restore.php', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/backup_restore.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `action=delete&file=${encodeURIComponent(filename)}`
@@ -263,7 +263,7 @@ export const BackupProvider = ({ children }) => {
 
   // Download backup
   const downloadBackup = (filename) => {
-    window.open(`http://localhost/prms-backend/api/backup_restore.php?action=download&file=${encodeURIComponent(filename)}`, '_blank');
+    window.open(`${import.meta.env.VITE_API_BASE_URL}/api/backup_restore.php?action=download&file=${encodeURIComponent(filename)}`, '_blank');
   };
 
   // Cleanup on unmount

@@ -39,7 +39,7 @@ function DiseaseCaseForm({ onClose, onConfirm, patient = null, disease = null })
 
   useEffect(() => {
     // Fetch patients from database
-    axios.get("http://localhost/prms-backend/get_patients.php")
+    axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_patients.php`)
       .then((res) => {
         setPatients(res.data);
         setFilteredPatients(res.data);
@@ -50,7 +50,7 @@ function DiseaseCaseForm({ onClose, onConfirm, patient = null, disease = null })
       });
 
     // Fetch diseases from database
-    axios.get("http://localhost/prms-backend/get_diseases.php")
+    axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_diseases.php`)
       .then((res) => {
         setDiseases(res.data);
       })
@@ -82,7 +82,7 @@ function DiseaseCaseForm({ onClose, onConfirm, patient = null, disease = null })
   // Function to fetch patient's existing medical records
   const fetchPatientMedicalRecords = async (patientId) => {
     try {
-      const response = await axios.get(`http://localhost/prms-backend/get_medical_records.php?patient_id=${patientId}`);
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_medical_records.php?patient_id=${patientId}`);
       if (response.data) {
         // Pre-populate form with existing medical records
         setFormData(prev => ({
@@ -144,7 +144,7 @@ function DiseaseCaseForm({ onClose, onConfirm, patient = null, disease = null })
     }
 
     try {
-      const response = await fetch("http://localhost/prms-backend/add_disease_case.php", {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/add_disease_case.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)

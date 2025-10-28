@@ -77,8 +77,8 @@ function AddDiseaseModal({ onClose, onConfirm, disease = null }) {
     setIsSubmitting(true);
     try {
       const url = disease
-        ? "http://localhost/prms-backend/update_disease.php"
-        : "http://localhost/prms-backend/add_disease.php";
+        ? `${import.meta.env.VITE_API_BASE_URL}/update_disease.php`
+        : `${import.meta.env.VITE_API_BASE_URL}/add_disease.php`;
 
       const body = disease
         ? { id: disease.id, ...formData }

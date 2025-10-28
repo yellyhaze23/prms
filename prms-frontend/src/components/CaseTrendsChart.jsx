@@ -36,7 +36,7 @@ const CaseTrendsChart = () => {
   const fetchTrendsData = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost/prms-backend/get_disease_trends.php?period=${selectedPeriod}`);
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_disease_trends.php?period=${selectedPeriod}`);
       
       if (response.data.success) {
         setTrendsData(response.data);
