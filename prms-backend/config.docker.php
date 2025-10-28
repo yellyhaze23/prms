@@ -33,4 +33,3 @@ try {
         'message' => 'Database error occurred'
     ]));
 }
-?>
