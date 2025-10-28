@@ -179,26 +179,50 @@ docker-compose logs -f webserver
 
 ## 2. Production VPS Deployment
 
+### 🎯 Prerequisites Checklist
+
+Before starting, make sure you have:
+- [ ] VPS with Ubuntu/Debian (recommended: 2GB RAM, 2 CPU cores)
+- [ ] Root SSH access to your VPS
+- [ ] VPS IP address or domain name
+- [ ] Local Docker build successful (tested locally)
+
+---
+
 ### Step 2.1: Connect to Your VPS
 
 **⌨️ SSH TO SERVER:**
 ```bash
-ssh root@your-vps-ip
+ssh root@YOUR_VPS_IP
 ```
 
 **📝 EXAMPLE:**
 ```bash
 ssh root@203.0.113.45
+# Or if using domain:
+ssh root@yourdomain.com
+```
+
+**✅ VERIFY CONNECTION:**
+```bash
+pwd  # Should show /root
+whoami  # Should show root
 ```
 
 ---
 
 ### Step 2.2: Install Docker on VPS
 
+**⌨️ UPDATE SYSTEM:**
+```bash
+apt update && apt upgrade -y
+```
+
 **⌨️ INSTALL DOCKER:**
 ```bash
 curl -fsSL https://get.docker.com -o get-docker.sh
 sh get-docker.sh
+rm get-docker.sh
 ```
 
 **⌨️ INSTALL DOCKER COMPOSE:**
@@ -206,138 +230,408 @@ sh get-docker.sh
 apt install -y docker-compose-plugin
 ```
 
-**✅ VERIFY:**
+**✅ VERIFY INSTALLATION:**
 ```bash
 docker --version
 docker compose version
+```
+
+**Expected output:**
+```
+Docker version 24.x.x or higher
+Docker Compose version v2.x.x
 ```
 
 **⌨️ START DOCKER ON BOOT:**
 ```bash
 systemctl enable docker
 systemctl start docker
+systemctl status docker  # Should show "active (running)"
 ```
 
 ---
 
-### Step 2.3: Clone Your Repository
+### Step 2.3: Upload Your Project to VPS
 
-**⌨️ INSTALL GIT (if not installed):**
+**OPTION A: Using Git (Recommended)**
+
 ```bash
+# Install Git
 apt install -y git
+
+# Navigate to /opt directory
+cd /opt
+
+# Clone your repository
+git clone https://github.com/your-username/prms.git
+
+# Enter project directory
+cd prms
+
+# Verify files
+ls -la
 ```
 
-**⌨️ CLONE REPOSITORY:**
-```bash
+**OPTION B: Using SCP/SFTP**
+
+On your **LOCAL machine** (PowerShell):
+```powershell
+# Compress your project
+cd C:\laragon\www
+Compress-Archive -Path prms -DestinationPath prms.zip
+
+# Upload to VPS
+scp prms.zip root@YOUR_VPS_IP:/opt/
+
+# On VPS, extract
+ssh root@YOUR_VPS_IP
 cd /opt
-git clone https://github.com/your-username/prms.git
+apt install -y unzip
+unzip prms.zip
 cd prms
 ```
 
-**💡 TIP:** Pwede rin sa `/var/www/prms` o kahit saan
+**💡 TIP:** Project can be in `/opt/prms`, `/var/www/prms`, or any directory you prefer.
 
 ---
 
-### Step 2.4: Configure for Production
+### Step 2.4: Configure Environment Files
 
-**⌨️ COPY AND EDIT ENV FILE:**
+**📍 You're now in:** `/opt/prms` (or your chosen directory)
+
+**A. Create Root .env File**
+
 ```bash
-cp env.docker.example .env
-nano .env
-```
+# Check if .env exists
+cat .env
 
-**✏️ UPDATE WITH YOUR DOMAIN/IP:**
-```env
-DB_ROOT_PASSWORD=STRONG_PASSWORD_HERE
+# If doesn't exist or need to create fresh:
+cat > .env << 'EOF'
+# Database Configuration (CHANGE THESE!)
+DB_ROOT_PASSWORD=YOUR_STRONG_ROOT_PASSWORD_HERE
 DB_NAME=prms_db
 DB_USER=prms_user
-DB_PASSWORD=ANOTHER_STRONG_PASSWORD
+DB_PASSWORD=YOUR_STRONG_USER_PASSWORD_HERE
+EOF
 
-# Replace with your domain or VPS IP
-VITE_API_BASE_URL=http://your-domain.com/prms-backend
-VITE_STAFF_API_BASE_URL=http://your-domain.com/prms-backend/api/staff
+# Verify
+cat .env
 ```
 
-**⚠️ IMPORTANT:** Change all passwords to strong ones!
+**⚠️ SECURITY:** Generate strong passwords:
+```bash
+# Generate random password
+openssl rand -base64 32
+```
+
+**B. Create Frontend .env File**
+
+```bash
+# Using your VPS IP
+cat > prms-frontend/.env << 'EOF'
+VITE_API_BASE_URL=/prms-backend
+VITE_STAFF_API_BASE_URL=/prms-backend/api/staff
+EOF
+
+# Verify
+cat prms-frontend/.env
+```
+
+**💡 NOTE:** We use relative paths (`/prms-backend`) instead of full URLs for better portability.
+
+---
+
+### Step 2.5: Configure Backend
+
+**⌨️ COPY DOCKER CONFIG:**
+```bash
+cd /opt/prms
+cp prms-backend/config.docker.php prms-backend/config.php
+
+# Verify
+head -n 15 prms-backend/config.php
+```
+
+This config automatically reads from environment variables - no manual editing needed!
+
+---
+
+### Step 2.6: Update CORS for Production 🔴 CRITICAL
+
+```bash
+# Edit CORS configuration
+nano prms-backend/cors.php
+```
+
+**Find line ~21 and update `$productionOrigins`:**
+
+```php
+$productionOrigins = [
+    // Add your VPS IP or domain
+    'http://YOUR_VPS_IP',           // Replace with actual IP (e.g., http://203.45.67.89)
+    'http://localhost',             // Keep for Docker internal network
+    
+    // If you have a domain, add it too:
+    // 'http://yourdomain.com',
+    // 'https://yourdomain.com',    // When SSL is setup
+];
+```
+
+**Example (VPS IP: 203.45.67.89):**
+```php
+$productionOrigins = [
+    'http://203.45.67.89',
+    'http://localhost',
+];
+```
 
 **⌨️ SAVE:** Press `Ctrl+O`, Enter, then `Ctrl+X`
 
 ---
 
-### Step 2.5: Create Frontend .env
+### Step 2.7: Configure Firewall (Security First!)
 
-**⌨️ CREATE FILE:**
 ```bash
-nano prms-frontend/.env
+# Install UFW if not installed
+apt install -y ufw
+
+# Default policies
+ufw default deny incoming
+ufw default allow outgoing
+
+# Allow SSH (DON'T skip this or you'll lock yourself out!)
+ufw allow 22/tcp
+
+# Allow HTTP/HTTPS
+ufw allow 80/tcp
+ufw allow 443/tcp
+
+# Enable firewall
+ufw --force enable
+
+# Verify rules
+ufw status verbose
 ```
 
-**✏️ PASTE YOUR URLS:**
-```env
-VITE_API_BASE_URL=http://your-domain.com/prms-backend
-VITE_STAFF_API_BASE_URL=http://your-domain.com/prms-backend/api/staff
+**Expected output:**
 ```
-
-**📝 OR with your VPS IP:**
-```env
-VITE_API_BASE_URL=http://203.0.113.45/prms-backend
-VITE_STAFF_API_BASE_URL=http://203.0.113.45/prms-backend/api/staff
+Status: active
+To                         Action      From
+--                         ------      ----
+22/tcp                     ALLOW       Anywhere
+80/tcp                     ALLOW       Anywhere
+443/tcp                    ALLOW       Anywhere
 ```
-
-**⌨️ SAVE AND EXIT**
 
 ---
 
-### Step 2.6: Setup Backend Config
+### Step 2.8: Build and Start Docker Containers
 
-**⌨️ COPY CONFIG:**
+**⌨️ NAVIGATE TO PROJECT:**
 ```bash
-cd prms-backend
-cp config.docker.php config.php
-cd ..
+cd /opt/prms
+pwd  # Should show: /opt/prms
+```
+
+**⌨️ BUILD ALL IMAGES:**
+```bash
+docker compose build --no-cache
+```
+
+**⏳ WAIT:** This takes 5-10 minutes. You'll see:
+- ✓ Building backend (Python + PHP dependencies)
+- ✓ Building frontend (React build)
+- ✓ Building forecasting (Python ML libraries)
+
+**⌨️ START ALL CONTAINERS:**
+```bash
+docker compose up -d
+```
+
+**Expected output:**
+```
+✓ Container prms-db           Started
+✓ Container prms-forecasting  Started
+✓ Container prms-backend      Started
+✓ Container prms-frontend     Started
+✓ Container prms-webserver    Started
 ```
 
 ---
 
-### Step 2.7: Start Production Containers
+### Step 2.9: Verify Deployment
 
-**⌨️ BUILD AND START:**
-```bash
-docker compose up -d --build
-```
+**A. Check Container Status**
 
-**⏳ WAIT:** 5-10 minutes for first build
-
-**✅ VERIFY:**
 ```bash
 docker compose ps
 ```
 
-**📝 ALL CONTAINERS SHOULD BE "Up"**
+**All containers should show "Up" or "Up (healthy)":**
+```
+NAME                STATUS              PORTS
+prms-db             Up (healthy)        
+prms-backend        Up                  
+prms-frontend       Up                  
+prms-forecasting    Up                  
+prms-webserver      Up                  0.0.0.0:80->80/tcp
+```
 
----
+**B. Check Logs (if any issues)**
 
-### Step 2.8: Configure Firewall
-
-**⌨️ ALLOW HTTP/HTTPS:**
 ```bash
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw allow 22/tcp
-ufw enable
+# View all logs
+docker compose logs
+
+# View specific service
+docker compose logs backend
+docker compose logs db
+docker compose logs webserver
+
+# Follow logs in real-time
+docker compose logs -f
 ```
 
 ---
 
-### Step 2.9: Test Your Deployment
+### Step 2.10: Test Your Deployment 🎉
 
 **🌐 OPEN BROWSER:**
 ```
-http://your-domain.com
-# or
-http://your-vps-ip
+http://YOUR_VPS_IP
 ```
 
-**✅ SUCCESS:** PRMS login page appears!
+**Examples:**
+```
+http://203.45.67.89
+http://yourdomain.com
+```
+
+**✅ SUCCESS INDICATORS:**
+- ✓ PRMS login page appears
+- ✓ No CORS errors in browser console (F12)
+- ✓ Page loads completely with styling
+- ✓ Login form is visible
+
+**🔐 DEFAULT LOGIN:**
+Check your database for admin credentials or create a new user.
+
+---
+
+### Step 2.11: Post-Deployment Security 🔒
+
+**A. Remove MySQL Port Exposure (IMPORTANT!)**
+
+```bash
+nano /opt/prms/docker-compose.yml
+```
+
+Find the `db:` service and comment out ports:
+```yaml
+db:
+  # ports:
+  #   - "3306:3306"  # ❌ Remove in production
+```
+
+**Restart containers:**
+```bash
+docker compose down
+docker compose up -d
+```
+
+**B. Verify Database is Not Accessible Externally**
+
+From your **local machine**:
+```bash
+# This should FAIL (connection refused)
+mysql -h YOUR_VPS_IP -u prms_user -p
+```
+
+If it connects, port 3306 is still exposed - go back and fix it!
+
+---
+
+### Step 2.12: Setup Automated Backups
+
+```bash
+# Create backup directory
+mkdir -p /root/prms-backups
+
+# Create backup script
+nano /root/backup-prms.sh
+```
+
+**Paste this script:**
+```bash
+#!/bin/bash
+BACKUP_DIR="/root/prms-backups"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+# Backup database
+docker compose -f /opt/prms/docker-compose.yml exec -T db \
+  mysqldump -u prms_user -pYOUR_DB_PASSWORD prms_db > $BACKUP_DIR/prms_db_$DATE.sql
+
+# Compress
+gzip $BACKUP_DIR/prms_db_$DATE.sql
+
+# Delete backups older than 7 days
+find $BACKUP_DIR -name "*.sql.gz" -mtime +7 -delete
+
+echo "Backup completed: $DATE"
+```
+
+**Make executable:**
+```bash
+chmod +x /root/backup-prms.sh
+```
+
+**Test it:**
+```bash
+/root/backup-prms.sh
+ls -lh /root/prms-backups/
+```
+
+**Schedule daily backups:**
+```bash
+crontab -e
+```
+
+Add this line:
+```cron
+0 2 * * * /root/backup-prms.sh >> /root/prms-backups/backup.log 2>&1
+```
+
+---
+
+### 🎯 Quick VPS Commands Reference
+
+All commands assume you're in `/opt/prms`:
+
+```bash
+# Navigate to project
+cd /opt/prms
+
+# Start containers
+docker compose up -d
+
+# Stop containers
+docker compose down
+
+# Restart containers
+docker compose restart
+
+# View status
+docker compose ps
+
+# View logs
+docker compose logs -f
+
+# Rebuild after code changes
+docker compose up -d --build
+
+# Backup database
+docker compose exec db mysqldump -u prms_user -p prms_db > backup.sql
+```
 
 ---
 
