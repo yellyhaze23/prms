@@ -160,7 +160,9 @@ try {
     putenv('MPLCONFIGDIR=/tmp/matplotlib_cache');
     
     // Run the Python script with JSON data
-    $command = "MPLCONFIGDIR=/tmp/matplotlib_cache python forecast_arima_by_barangay.py \"$json_file\" $forecast_period 2>&1";
+    // Try python3 first (common on Linux/VPS), fallback to python
+    $python_cmd = shell_exec('which python3') ? 'python3' : 'python';
+    $command = "MPLCONFIGDIR=/tmp/matplotlib_cache $python_cmd forecast_arima_by_barangay.py \"$json_file\" $forecast_period 2>&1";
     error_log("Executing command: " . $command);
     
     $output = shell_exec($command);

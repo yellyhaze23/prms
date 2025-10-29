@@ -30,7 +30,7 @@ def preprocess_data(data):
     data["date"] = pd.to_datetime(data["year"].astype(str) + "-" + data["month"].astype(str) + "-01")
     
     # Fill missing values efficiently using vectorized operations
-    data['total_cases'] = data['total_cases'].fillna(method='ffill').fillna(method='bfill').fillna(0)
+    data['total_cases'] = data['total_cases'].ffill().bfill().fillna(0)
     
     # Remove any rows with invalid data
     data = data.dropna()

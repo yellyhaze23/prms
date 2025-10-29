@@ -357,6 +357,16 @@ const ARIMAForecast = () => {
         await new Promise(resolve => setTimeout(resolve, 300));
         setProgress(100);
         
+        // Validate data structure before setting state
+        if (!data.data) {
+          throw new Error('Invalid response: missing data object');
+        }
+        
+        // For overall forecast mode, validate summary structure
+        if (forecastMode !== 'barangay' && (!data.data.summary || !data.data.forecast_results)) {
+          throw new Error('Invalid response: missing summary or forecast_results');
+        }
+        
         // Store data based on forecast mode
         if (forecastMode === 'barangay') {
           setBarangayForecastData(data.data);
@@ -651,7 +661,7 @@ const ARIMAForecast = () => {
             )}
 
             {/* Forecast Results Section */}
-            {forecastData ? (
+            {forecastData && forecastData.summary ? (
               <div className="space-y-6">
                 {/* Summary Cards */}
                 <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
@@ -661,7 +671,7 @@ const ARIMAForecast = () => {
                       <div>
                         <p className="text-sm text-blue-700 font-medium">Diseases</p>
                         <p className="text-2xl font-bold text-blue-900">
-                          <CountUp end={forecastData.summary.total_diseases} duration={2000} />
+                          <CountUp end={forecastData.summary.total_diseases || 0} duration={2000} />
                         </p>
                       </div>
                       <FaUsers className="text-blue-500 text-3xl" />
@@ -670,7 +680,7 @@ const ARIMAForecast = () => {
                       <div>
                         <p className="text-sm text-green-700 font-medium">Forecast Months</p>
                         <p className="text-2xl font-bold text-green-900">
-                          <CountUp end={forecastData.summary.total_forecast_months} duration={2000} />
+                          <CountUp end={forecastData.summary.total_forecast_months || 0} duration={2000} />
                         </p>
                       </div>
                       <FaCalendarAlt className="text-green-500 text-3xl" />
@@ -679,7 +689,7 @@ const ARIMAForecast = () => {
                       <div>
                         <p className="text-sm text-orange-700 font-medium">Records</p>
                         <p className="text-2xl font-bold text-orange-900">
-                          <CountUp end={forecastData.summary.historical_records} duration={2000} />
+                          <CountUp end={forecastData.summary.historical_records || 0} duration={2000} />
                         </p>
                       </div>
                       <FaChartLine className="text-orange-500 text-3xl" />

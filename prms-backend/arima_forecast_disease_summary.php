@@ -3,7 +3,13 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 0); // Don't display to browser
 ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/logs/overall_forecast_errors.log');
+
+// Create logs directory if it doesn't exist
+$logs_dir = __DIR__ . '/logs';
+if (!is_dir($logs_dir)) {
+    mkdir($logs_dir, 0755, true);
+}
+ini_set('error_log', $logs_dir . '/overall_forecast_errors.log');
 
 require 'cors.php';
 require 'config.php';
@@ -107,17 +113,38 @@ try {
     putenv('MPLCONFIGDIR=/tmp/matplotlib_cache');
     
     // Run the Python script with JSON data
-    $command = "MPLCONFIGDIR=/tmp/matplotlib_cache python forecast_arima.py \"$json_file\" $forecast_period 2>&1";
+    // Try python3 first (common on Linux/VPS), fallback to python
+    $python_cmd = shell_exec('which python3') ? 'python3' : 'python';
+    $command = "MPLCONFIGDIR=/tmp/matplotlib_cache $python_cmd forecast_arima.py \"$json_file\" $forecast_period 2>&1";
+    error_log("Executing Python command: " . $command);
     $output = shell_exec($command);
     
     // Change back to original directory
     chdir($original_dir);
     
+    error_log("Python script output (first 500 chars): " . substr($output, 0, 500));
+    
     // Parse the JSON output from Python script
     $forecast_data = json_decode($output, true);
     
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        error_log("JSON decode error: " . json_last_error_msg());
+        error_log("Full Python output: " . $output);
+    }
+    
     if (!$forecast_data || !isset($forecast_data['success'])) {
         throw new Exception('Failed to parse forecast results: ' . $output);
+    }
+    
+    // Check if the forecast was successful
+    if (!$forecast_data['success']) {
+        $error_msg = isset($forecast_data['error']) ? $forecast_data['error'] : 'Unknown error from Python script';
+        throw new Exception('Forecast generation failed: ' . $error_msg);
+    }
+    
+    // Validate that required data exists
+    if (!isset($forecast_data['forecast_results']) || !isset($forecast_data['summary'])) {
+        throw new Exception('Invalid forecast data structure returned from Python script');
     }
     
     // Save forecast to database
@@ -192,6 +219,8 @@ try {
     echo json_encode($response_data);
     
 } catch (Exception $e) {
+    error_log("Overall forecast error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
     http_response_code(500);
     echo json_encode([
         'success' => false,
