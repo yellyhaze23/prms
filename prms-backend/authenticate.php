@@ -33,16 +33,13 @@ if ($result->num_rows === 1) {
         
         // Configure session cookie parameters before starting session
         if (session_status() === PHP_SESSION_NONE) {
-            // Use /tmp for sessions (always available in containers)
-            session_save_path('/tmp');
-            session_set_cookie_params([
-                'lifetime' => 86400,  // 24 hours
-                'path' => '/',
-                'domain' => '',
-                'secure' => false,
-                'httponly' => true,
-                'samesite' => 'Lax'
-            ]);
+            require_once 'session_handler.php';
+            
+            ini_set('session.gc_maxlifetime', 1800);
+            session_set_cookie_params(1800);
+            
+            $handler = new DBSessionHandler($conn);
+            session_set_save_handler($handler, true);
             session_start();
         }
         
