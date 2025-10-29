@@ -351,6 +351,8 @@ const ARIMAForecast = () => {
 
       const data = await response.json();
       
+      console.log('API Response:', data); // DEBUG: Log full response
+      
       if (data.success) {
         setLoadingStep('Finalizing results...');
         setProgress(90);
@@ -359,11 +361,13 @@ const ARIMAForecast = () => {
         
         // Validate data structure before setting state
         if (!data.data) {
+          console.error('Missing data object in response:', data);
           throw new Error('Invalid response: missing data object');
         }
         
         // For overall forecast mode, validate summary structure
         if (forecastMode !== 'barangay' && (!data.data.summary || !data.data.forecast_results)) {
+          console.error('Missing summary or forecast_results:', data.data);
           throw new Error('Invalid response: missing summary or forecast_results');
         }
         
@@ -399,6 +403,7 @@ const ARIMAForecast = () => {
         
         // Training data is now included in forecast response
       } else {
+        console.error('Forecast failed, backend returned:', data);
         setError(data.error || 'Failed to generate forecast');
         setToast({
           isVisible: true,
@@ -408,6 +413,8 @@ const ARIMAForecast = () => {
         });
       }
     } catch (err) {
+      console.error('Forecast error caught:', err);
+      console.error('Error stack:', err.stack);
       setError(`Error: ${err.message}`);
       setToast({
         isVisible: true,
