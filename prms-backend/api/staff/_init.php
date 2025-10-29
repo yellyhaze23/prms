@@ -4,13 +4,18 @@ require_once __DIR__ . '/../../config.php';
 
 // Configure session cookie parameters (same as authenticate.php)
 if (session_status() === PHP_SESSION_NONE) {
-    require_once __DIR__ . '/../../session_handler.php';
-    
     ini_set('session.gc_maxlifetime', 1800);
-    session_set_cookie_params(1800);
     
-    $handler = new DBSessionHandler($conn);
-    session_set_save_handler($handler, true);
+    session_set_cookie_params([
+        'lifetime' => 1800,
+        'path' => '/',
+        'domain' => '',
+        'secure' => false,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    
+    // Use file-based sessions (simpler and more reliable for Docker)
     session_start();
 }
 

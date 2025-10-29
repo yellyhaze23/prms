@@ -33,14 +33,23 @@ if ($result->num_rows === 1) {
         
         // Configure session cookie parameters before starting session
         if (session_status() === PHP_SESSION_NONE) {
-            require_once 'session_handler.php';
-            
             ini_set('session.gc_maxlifetime', 1800);
-            session_set_cookie_params(1800);
             
-            $handler = new DBSessionHandler($conn);
-            session_set_save_handler($handler, true);
+            // Set cookie parameters for Docker environment
+            session_set_cookie_params([
+                'lifetime' => 1800,
+                'path' => '/',
+                'domain' => '',
+                'secure' => false,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+            
+            // Use file-based sessions (simpler and more reliable for Docker)
             session_start();
+            
+            // Log session ID for debugging
+            error_log("authenticate.php: Session started with ID: " . session_id());
         }
         
         // Clear any existing session data

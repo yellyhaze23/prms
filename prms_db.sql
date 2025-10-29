@@ -7008,6 +7008,20 @@ ALTER TABLE `notifications`
   ADD CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 COMMIT;
 
+-- SQL script to create the sessions table for database-based PHP sessions
+-- Execute this in your MySQL database
+
+CREATE TABLE IF NOT EXISTS sessions (
+    id VARCHAR(255) PRIMARY KEY,
+    data LONGTEXT,
+    timestamp INT
+);
+
+-- Optional: Add an index on timestamp for faster garbage collection
+CREATE INDEX idx_timestamp ON sessions(timestamp);
+
+
+
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

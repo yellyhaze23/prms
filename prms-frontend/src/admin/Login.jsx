@@ -73,7 +73,10 @@ function Login({ onLogin }) {
       const res = await axios.post(
         `${import.meta.env.VITE_API_BASE_URL}/authenticate.php`, 
         { username, password },
-        { timeout: 10000 }
+        { 
+          timeout: 10000,
+          withCredentials: true  // Enable session cookies
+        }
       );
 
       if (res.data.success) {
