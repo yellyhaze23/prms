@@ -97,12 +97,29 @@ try {
         throw new Exception('No disease data found in disease_summary table');
     }
     
-    // Create JSON file for Python script
-    $json_file = __DIR__ . '/../forecasting/temp_forecast_data.json';
-    file_put_contents($json_file, json_encode($disease_data));
+    // Path to the forecasting directory (Docker-compatible)
+    $forecasting_dir = getenv('FORECASTING_DIR') ?: __DIR__ . '/../forecasting';
     
-    // Path to the forecasting directory
-    $forecasting_dir = __DIR__ . '/../forecasting';
+    // Ensure directory exists and is writable
+    if (!is_dir($forecasting_dir)) {
+        error_log("ERROR: Forecasting directory not found: " . $forecasting_dir);
+        throw new Exception("Forecasting directory not found: $forecasting_dir");
+    }
+    
+    if (!is_writable($forecasting_dir)) {
+        error_log("ERROR: Forecasting directory not writable: " . $forecasting_dir);
+        throw new Exception("Forecasting directory not writable: $forecasting_dir");
+    }
+    
+    // Create JSON file for Python script
+    $json_file = $forecasting_dir . '/temp_forecast_data.json';
+    error_log("Creating JSON file: " . $json_file);
+    
+    if (file_put_contents($json_file, json_encode($disease_data)) === false) {
+        error_log("ERROR: Failed to write JSON file: " . $json_file);
+        throw new Exception("Failed to write forecast data to file");
+    }
+    
     $python_script = $forecasting_dir . '/forecast_arima.py';
     
     // Change to forecasting directory and run Python script

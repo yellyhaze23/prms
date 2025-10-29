@@ -53,11 +53,15 @@ COPY . /var/www/html/
 # Create necessary directories
 RUN mkdir -p /var/www/html/uploads \
     && mkdir -p /var/www/html/logs \
+    && mkdir -p /var/www/forecasting \
+    && mkdir -p /var/www/forecasting/cache \
     && chmod -R 775 /var/www/html/uploads \
-    && chmod -R 775 /var/www/html/logs
+    && chmod -R 775 /var/www/html/logs \
+    && chmod -R 775 /var/www/forecasting
 
 # Set permissions
-RUN chown -R www-data:www-data /var/www/html
+RUN chown -R www-data:www-data /var/www/html \
+    && chown -R www-data:www-data /var/www/forecasting
 
 # Configure PHP session settings to use /tmp
 RUN echo "session.save_path = \"/tmp\"" >> /usr/local/etc/php/conf.d/session.ini \

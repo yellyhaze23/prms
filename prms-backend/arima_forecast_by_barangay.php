@@ -131,8 +131,24 @@ try {
     
     error_log("Found " . count($disease_data) . " records for forecasting");
     
+    // Path to the forecasting directory (Docker-compatible)
+    $forecasting_dir = getenv('FORECASTING_DIR') ?: __DIR__ . '/../forecasting';
+    
+    // Ensure directory exists and is writable
+    if (!is_dir($forecasting_dir)) {
+        error_log("ERROR: Forecasting directory not found: " . $forecasting_dir);
+        throw new Exception("Forecasting directory not found: $forecasting_dir");
+    }
+    
+    if (!is_writable($forecasting_dir)) {
+        error_log("ERROR: Forecasting directory not writable: " . $forecasting_dir);
+        throw new Exception("Forecasting directory not writable: $forecasting_dir");
+    }
+    
     // Create JSON file for Python script
-    $json_file = __DIR__ . '/../forecasting/temp_forecast_barangay_data.json';
+    $json_file = $forecasting_dir . '/temp_forecast_barangay_data.json';
+    error_log("Creating JSON file: " . $json_file);
+    
     if (!file_put_contents($json_file, json_encode($disease_data))) {
         error_log("ERROR: Failed to write JSON file: " . $json_file);
         throw new Exception('Failed to create temporary data file');
@@ -140,8 +156,6 @@ try {
     
     error_log("Created JSON file: " . $json_file);
     
-    // Path to the forecasting directory
-    $forecasting_dir = __DIR__ . '/../forecasting';
     $python_script = $forecasting_dir . '/forecast_arima_by_barangay.py';
     
     // Check if Python script exists
