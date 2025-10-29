@@ -65,6 +65,6 @@ RUN echo "session.save_path = \"/tmp\"" >> /usr/local/etc/php/conf.d/session.ini
     && echo "session.gc_divisor = 100" >> /usr/local/etc/php/conf.d/session.ini
 
 EXPOSE 9000
-
+COPY session.ini /usr/local/etc/php/conf.d/session.ini
 CMD ["php-fpm"]
 

@@ -2,7 +2,7 @@ import axios from 'axios';
 
 class NotificationService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost/prms-backend';
+    this.baseURL = import.meta.env.VITE_API_BASE_URL || '/prms-backend';
   }
 
   // Create a new notification

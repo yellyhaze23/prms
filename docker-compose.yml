@@ -74,8 +74,8 @@ services:
       context: ./prms-frontend
       dockerfile: Dockerfile
       args:
-      - VITE_API_BASE_URL=/prms-backend
-      - VITE_STAFF_API_BASE_URL=/prms-backend/api/staff
+      - VITE_API_BASE_URL=http://72.61.148.144/prms-backend
+      - VITE_STAFF_API_BASE_URL=http://72.61.148.144/prms-backend/api/staff
 
     container_name: prms-frontend
     restart: unless-stopped
