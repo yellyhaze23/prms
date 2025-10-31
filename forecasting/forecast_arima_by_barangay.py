@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.arima.model import ARIMA
-from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 import matplotlib.pyplot as plt
 import os
 import json
@@ -63,7 +63,7 @@ def save_cached_model(model, disease, barangay, forecast_period):
 
 def calculate_accuracy_metrics(actual, predicted):
     """
-    Calculate RMSE and MAPE for forecast accuracy
+    Calculate RMSE and MAE for forecast accuracy
     """
     # Remove any NaN values
     mask = ~(np.isnan(actual) | np.isnan(predicted))
@@ -71,15 +71,15 @@ def calculate_accuracy_metrics(actual, predicted):
     predicted_clean = predicted[mask]
     
     if len(actual_clean) == 0:
-        return {'rmse': 0, 'mape': 0}
+        return {'rmse': 0, 'mae': 0}
     
     # Calculate RMSE
     rmse = np.sqrt(mean_squared_error(actual_clean, predicted_clean))
     
-    # Calculate MAPE (avoid division by zero)
-    mape = mean_absolute_percentage_error(actual_clean, predicted_clean) * 100
+    # Calculate MAE (Mean Absolute Error) - better for small numbers
+    mae = mean_absolute_error(actual_clean, predicted_clean)
     
-    return {'rmse': float(rmse), 'mape': float(mape)}
+    return {'rmse': float(rmse), 'mae': float(mae)}
 
 def main():
     try:
@@ -155,7 +155,7 @@ def main():
                     # Calculate accuracy metrics
                     accuracy_metrics = calculate_accuracy_metrics(test_data.values, validation_forecast)
                 else:
-                    accuracy_metrics = {'rmse': 0, 'mape': 0}
+                    accuracy_metrics = {'rmse': 0, 'mae': 0}
                 
                 # Store results with barangay info
                 current_date = datetime.now()
@@ -185,7 +185,7 @@ def main():
                         "trend": trend,
                         "last_actual_cases": last_actual_cases,
                         "accuracy_rmse": accuracy_metrics['rmse'],
-                        "accuracy_mape": accuracy_metrics['mape']
+                        "accuracy_mae": accuracy_metrics['mae']
                     }
                     
                     # Add coordinates if available

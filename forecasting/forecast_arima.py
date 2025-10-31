@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.arima.model import ARIMA
-from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 import matplotlib.pyplot as plt
 import os
 import json
@@ -64,7 +64,7 @@ def save_cached_model(model, disease, forecast_period):
 
 def calculate_accuracy_metrics(actual, predicted):
     """
-    Calculate RMSE and MAPE for forecast accuracy
+    Calculate RMSE and MAE for forecast accuracy
     """
     # Remove any NaN values
     mask = ~(np.isnan(actual) | np.isnan(predicted))
@@ -72,15 +72,15 @@ def calculate_accuracy_metrics(actual, predicted):
     predicted_clean = predicted[mask]
     
     if len(actual_clean) == 0:
-        return {'rmse': 0, 'mape': 0}
+        return {'rmse': 0, 'mae': 0}
     
     # Calculate RMSE
     rmse = np.sqrt(mean_squared_error(actual_clean, predicted_clean))
     
-    # Calculate MAPE (avoid division by zero)
-    mape = mean_absolute_percentage_error(actual_clean, predicted_clean) * 100
+    # Calculate MAE (Mean Absolute Error) - better for small numbers
+    mae = mean_absolute_error(actual_clean, predicted_clean)
     
-    return {'rmse': float(rmse), 'mape': float(mape)}
+    return {'rmse': float(rmse), 'mae': float(mae)}
 
 def main():
     try:
@@ -164,7 +164,7 @@ def main():
                 forecast = model_fit.forecast(steps=forecast_period)
                 
                 # Calculate accuracy metrics using last 20% of data for validation
-                if len(ts) >= 10:  # Only calculate if we have enough data
+                if len(ts) >= 5:  # Only calculate if we have enough data (match barangay threshold)
                     split_point = int(len(ts) * 0.8)
                     train_data = ts[:split_point]
                     test_data = ts[split_point:]
@@ -177,7 +177,7 @@ def main():
                     # Calculate accuracy metrics
                     accuracy_metrics = calculate_accuracy_metrics(test_data.values, validation_forecast)
                 else:
-                    accuracy_metrics = {'rmse': 0, 'mape': 0}
+                    accuracy_metrics = {'rmse': 0, 'mae': 0}
                 
                 # Store results - ROUND TO WHOLE NUMBERS for panelist presentation
                 # Use current date for forecasting instead of last historical data point
@@ -190,7 +190,7 @@ def main():
                         "forecast_month": next_month.strftime("%Y-%m"),
                         "forecast_cases": int(round(float(val))) if not pd.isna(val) else int(max(1, float(ts.mean()))), # Convert to int for JSON serialization
                         "accuracy_rmse": accuracy_metrics['rmse'],
-                        "accuracy_mape": accuracy_metrics['mape']
+                        "accuracy_mae": accuracy_metrics['mae']
                     })
                 
                 # Plot actual vs forecast

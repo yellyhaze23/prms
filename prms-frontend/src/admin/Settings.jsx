@@ -1886,7 +1886,7 @@ function Settings() {
                 <h4 className="text-md font-semibold text-gray-900">Backup Files</h4>
               </div>
               
-              <div className="overflow-x-auto" style={{ overflowY: 'visible' }}>
+              <div className="overflow-x-auto overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-sm pb-4" style={{ maxHeight: '600px', minHeight: '300px' }}>
                 <table className="min-w-full divide-y divide-gray-200 overflow-visible">
                   <thead className="bg-blue-50">
                     <tr>

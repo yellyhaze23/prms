@@ -24,7 +24,6 @@ import {
   FaMinus
 } from "react-icons/fa";
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
-import ModernAlert from '../components/ModernAlert';
 import CountUp from '../components/CountUp';
 import ModernToast from '../components/ModernToast';
 import {
@@ -68,8 +67,6 @@ const Dashboard = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState('weekly');
   const [lastUpdated, setLastUpdated] = useState(null);
   const [syncing, setSyncing] = useState(false);
-  const [alerts, setAlerts] = useState([]);
-  const [alertCountdown, setAlertCountdown] = useState(10); // 10 seconds countdown
   const [currentUser, setCurrentUser] = useState({ name: 'Admin' });
   const [diseaseTrends, setDiseaseTrends] = useState({});
 
@@ -164,19 +161,6 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Countdown timer for alerts
-  useEffect(() => {
-    if (alerts.length > 0 && alertCountdown > 0) {
-      const timer = setTimeout(() => {
-        setAlertCountdown(prev => prev - 0.2);
-      }, 500);
-      return () => clearTimeout(timer);
-    } else if (alerts.length > 0 && alertCountdown === 0) {
-      // Auto-hide alerts after countdown
-      setAlerts([]);
-    }
-  }, [alerts.length, alertCountdown]);
-
   const fetchCurrentUser = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/get_current_user.php`);
@@ -228,13 +212,8 @@ const Dashboard = () => {
       
       if (data.success) {
         setDashboardData(data);
-        setAlerts(data.alerts || []);
         setLastUpdated(new Date());
         setError(null);
-        // Reset countdown when new alerts arrive
-        if (data.alerts && data.alerts.length > 0) {
-          setAlertCountdown(10);
-        }
       } else {
         const errorMsg = data.error || "Failed to fetch dashboard data";
         setError(errorMsg);
@@ -297,24 +276,6 @@ const Dashboard = () => {
   const handleTimeframeChange = (timeframe) => {
     setSelectedTimeframe(timeframe);
     fetchDashboardData(timeframe);
-  };
-
-  const getAlertIcon = (type) => {
-    switch (type) {
-      case 'danger': return <FaExclamationTriangle className="text-red-500" />;
-      case 'warning': return <FaExclamationTriangle className="text-yellow-500" />;
-      case 'info': return <FaBell className="text-blue-500" />;
-      default: return <FaBell className="text-gray-500" />;
-    }
-  };
-
-  const getAlertColor = (type) => {
-    switch (type) {
-      case 'danger': return 'border-red-200 bg-red-50';
-      case 'warning': return 'border-yellow-200 bg-yellow-50';
-      case 'info': return 'border-blue-200 bg-blue-50';
-      default: return 'border-gray-200 bg-gray-50';
-    }
   };
 
   if (loading && !dashboardData) {
@@ -631,36 +592,6 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-
-        {/* Modern Alerts */}
-        {alerts && alerts.length > 0 && (
-          <div className="mb-6">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                <FaBell className="mr-2 text-yellow-500" />
-                System Alerts
-              </h3>
-            </div>
-            <div className="space-y-3">
-              {alerts.map((alert, index) => (
-                <ModernAlert
-                  key={index}
-                  type={alert.type === 'danger' ? 'error' : alert.type === 'warning' ? 'warning' : 'info'}
-                  title={alert.type === 'danger' ? 'Outbreak Alert' : alert.type === 'warning' ? 'System Warning' : 'System Info'}
-                  message={alert.message}
-                  onClose={() => setAlerts(prev => prev.filter((_, i) => i !== index))}
-                  autoHide={true}
-                  duration={5000}
-                  action={alert.count && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 text-gray-800">
-                      {alert.count} cases
-                    </span>
-                  )}
-                />
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Essential Statistics Cards */}
         <motion.div 

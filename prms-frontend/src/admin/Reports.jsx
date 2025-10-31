@@ -142,7 +142,7 @@ function Reports() {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setForecastData(data.forecasts || []);
+          setForecastData(data.data || []); // Use 'data' property (API returns {success: true, data: [...], count: N})
         }
       }
     } catch (err) {

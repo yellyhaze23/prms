@@ -175,10 +175,10 @@ const ARIMAForecast = () => {
       cases > max.cases ? { disease, cases } : max
     , { disease: '', cases: 0 });
 
-    // Calculate average accuracy
-    const accuracyMetrics = results.filter(r => r.accuracy_mape > 0);
+    // Calculate average accuracy (MAE - Mean Absolute Error in cases)
+    const accuracyMetrics = results.filter(r => r.accuracy_mae > 0);
     const avgAccuracy = accuracyMetrics.length > 0
-      ? (100 - (accuracyMetrics.reduce((sum, r) => sum + r.accuracy_mape, 0) / accuracyMetrics.length)).toFixed(1)
+      ? (accuracyMetrics.reduce((sum, r) => sum + r.accuracy_mae, 0) / accuracyMetrics.length).toFixed(1)
       : null;
 
     return {
@@ -206,7 +206,7 @@ const ARIMAForecast = () => {
         : isDecreasing
         ? `Continue current prevention strategies. Monitor trends to ensure sustained decline in case numbers.`
         : `Maintain current health protocols and continue regular monitoring of disease patterns.`,
-      accuracy: avgAccuracy ? `${avgAccuracy}% forecast accuracy based on historical validation` : null
+      accuracy: avgAccuracy ? `Average error: ${avgAccuracy} cases (based on historical validation)` : null
     };
   };
 
@@ -371,13 +371,13 @@ const ARIMAForecast = () => {
           throw new Error('Invalid response: missing summary or forecast_results');
         }
         
-        // Store data based on forecast mode
+        // Store data based on forecast mode (keep both datasets for comparison)
         if (forecastMode === 'barangay') {
           setBarangayForecastData(data.data);
-          setForecastData(null); // Clear overall forecast
+          // Don't clear overall forecast - keep it for comparison
         } else {
           setForecastData(data.data);
-          setBarangayForecastData(null); // Clear barangay forecast
+          // Don't clear barangay forecast - keep it for comparison
         }
         setShowCharts(true);
         
@@ -544,7 +544,14 @@ const ARIMAForecast = () => {
                 </label>
                 <div className="flex gap-4">
                   <button
-                    onClick={() => setForecastMode('overall')}
+                    onClick={() => {
+                      setForecastMode('overall');
+                      // Keep both datasets - just switch view
+                      // Show charts if overall data exists
+                      if (forecastData && forecastData.summary) {
+                        setShowCharts(true);
+                      }
+                    }}
                     className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 ${
                       forecastMode === 'overall'
                         ? 'bg-blue-600 text-white shadow-lg'
@@ -555,7 +562,14 @@ const ARIMAForecast = () => {
                     Overall Forecast
                   </button>
                   <button
-                    onClick={() => setForecastMode('barangay')}
+                    onClick={() => {
+                      setForecastMode('barangay');
+                      // Keep both datasets - just switch view
+                      // Show charts if barangay data exists
+                      if (barangayForecastData) {
+                        setShowCharts(true);
+                      }
+                    }}
                     className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 ${
                       forecastMode === 'barangay'
                         ? 'bg-blue-600 text-white shadow-lg'
@@ -668,7 +682,7 @@ const ARIMAForecast = () => {
             )}
 
             {/* Forecast Results Section */}
-            {forecastData && forecastData.summary ? (
+            {forecastMode === 'overall' && forecastData && forecastData.summary ? (
               <div className="space-y-6">
                 {/* Summary Cards */}
                 <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
@@ -831,12 +845,17 @@ const ARIMAForecast = () => {
                             <span className={`text-lg font-normal ${colors.text} ml-1`}>predicted cases</span>
                           </p>
                           
-                          {/* Accuracy Metrics */}
-                          {(result.accuracy_rmse > 0 || result.accuracy_mape > 0) && (
+                          {/* Accuracy Metrics - Show if properties exist */}
+                          {((result.accuracy_rmse !== undefined && result.accuracy_rmse !== null) || 
+                            (result.accuracy_mae !== undefined && result.accuracy_mae !== null)) && (
                             <div className="mt-3 pt-3 border-t border-gray-200">
                               <div className="flex justify-between text-xs">
-                                <span className={`${colors.text}`}>RMSE: {result.accuracy_rmse?.toFixed(2) || 'N/A'}</span>
-                                <span className={`${colors.text}`}>MAPE: {result.accuracy_mape?.toFixed(1) || 'N/A'}%</span>
+                                <span className={`${colors.text}`}>
+                                  RMSE: {result.accuracy_rmse != null ? result.accuracy_rmse.toFixed(2) : 'N/A'}
+                                </span>
+                                <span className={`${colors.text}`}>
+                                  MAE: {result.accuracy_mae != null ? result.accuracy_mae.toFixed(1) + ' cases' : 'N/A'}
+                                </span>
                               </div>
                             </div>
                           )}
@@ -851,7 +870,7 @@ const ARIMAForecast = () => {
                   <SimpleForecastChart forecastResults={forecastData.forecast_results} />
                 )}
               </div>
-            ) : barangayForecastData ? (
+            ) : forecastMode === 'barangay' && barangayForecastData ? (
               <div className="space-y-6">
                 {/* Barangay Forecast Summary Cards */}
                 <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
@@ -1091,12 +1110,17 @@ const ARIMAForecast = () => {
                             </div>
                           </div>
                           
-                          {/* Accuracy Metrics */}
-                          {(result.accuracy_rmse > 0 || result.accuracy_mape > 0) && (
+                          {/* Accuracy Metrics - Show if properties exist */}
+                          {((result.accuracy_rmse !== undefined && result.accuracy_rmse !== null) || 
+                            (result.accuracy_mae !== undefined && result.accuracy_mae !== null)) && (
                             <div className="mt-3 pt-3 border-t border-gray-200">
                               <div className="flex justify-between text-xs">
-                                <span className={`${colors.text}`}>RMSE: {result.accuracy_rmse?.toFixed(2) || 'N/A'}</span>
-                                <span className={`${colors.text}`}>MAPE: {result.accuracy_mape?.toFixed(1) || 'N/A'}%</span>
+                                <span className={`${colors.text}`}>
+                                  RMSE: {result.accuracy_rmse != null ? result.accuracy_rmse.toFixed(2) : 'N/A'}
+                                </span>
+                                <span className={`${colors.text}`}>
+                                  MAE: {result.accuracy_mae != null ? result.accuracy_mae.toFixed(1) + ' cases' : 'N/A'}
+                                </span>
                               </div>
                             </div>
                           )}

@@ -80,9 +80,12 @@ export default function StaffRecords() {
   const fetchDiseases = async () => {
     try {
       const response = await api.get('/get_diseases.php');
-      setDiseases(response.data?.data || response.data);
+      const diseasesData = response.data?.data || response.data;
+      // Ensure we always set an array
+      setDiseases(Array.isArray(diseasesData) ? diseasesData : []);
     } catch (error) {
       console.error('Error fetching diseases:', error);
+      setDiseases([]); // Set empty array on error
     }
   };
 

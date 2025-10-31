@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { FaChartLine, FaChevronRight, FaUser, FaShieldAlt } from 'react-icons/fa';
+import { FaChartLine, FaUser, FaShieldAlt, FaChevronLeft } from 'react-icons/fa';
 
-export default function Sidebar({ nav = [], brandTitle = 'Tracely', brandSubtitle = 'Track disease easily', collapsed = false }) {
+export default function Sidebar({ nav = [], brandTitle = 'Tracely', brandSubtitle = 'Track disease easily', collapsed = false, onToggle }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -81,24 +81,19 @@ export default function Sidebar({ nav = [], brandTitle = 'Tracely', brandSubtitl
   };
 
   return (
-    <div className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 shadow-2xl border-r border-slate-700/50 z-50 hidden lg:flex flex-col transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'}`}>
-      {/* Header Section */}
-      <div className="p-6 border-b border-slate-700/50">
-        <div className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'}`}>
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-            <FaChartLine className="text-white text-xl" />
-          </div>
-          {!collapsed && (
-            <div>
-              <h1 className="text-white font-bold text-lg">{brandTitle}</h1>
-              <p className="text-slate-400 text-xs">{brandSubtitle}</p>
-            </div>
-          )}
-        </div>
-      </div>
+    <div className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white shadow-xl border-r border-gray-200 z-40 hidden lg:flex flex-col transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'}`}>
+      
+      {/* Floating Toggle Button */}
+      <button
+        onClick={onToggle}
+        className={`absolute -right-3 top-8 w-6 h-6 bg-white border-2 border-gray-300 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 z-50 ${collapsed ? 'rotate-180' : ''}`}
+        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        <FaChevronLeft className="w-3 h-3 text-gray-600" />
+      </button>
 
       {/* Navigation Section */}
-      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+      <nav className="flex-1 px-4 pt-8 pb-6 space-y-2 overflow-y-auto">
         {nav.map((item) => (
           <NavLink
             key={item.to}
@@ -107,8 +102,8 @@ export default function Sidebar({ nav = [], brandTitle = 'Tracely', brandSubtitl
             className={({ isActive }) =>
               `group flex items-center ${collapsed ? 'justify-center px-2' : 'px-4'} py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
+                  : 'text-gray-700 hover:text-blue-600 hover:bg-gray-100'
               }`
             }
             title={collapsed ? item.label : undefined}
@@ -116,13 +111,10 @@ export default function Sidebar({ nav = [], brandTitle = 'Tracely', brandSubtitl
             {({ isActive }) => (
               <>
                 {item.Icon ? (
-                  <item.Icon className={`${collapsed ? '' : 'mr-3'} text-lg transition-transform duration-200 text-slate-400 group-hover:text-white`} />
+                  <item.Icon className={`${collapsed ? '' : 'mr-3'} text-lg transition-transform duration-200 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-blue-500'}`} />
                 ) : null}
                 {!collapsed && (
-                  <>
-                    <span className="flex-1">{item.label}</span>
-                    {isActive && <FaChevronRight className="text-white text-xs opacity-70" />}
-                  </>
+                  <span className="flex-1">{item.label}</span>
                 )}
               </>
             )}
@@ -131,20 +123,20 @@ export default function Sidebar({ nav = [], brandTitle = 'Tracely', brandSubtitl
       </nav>
 
       {/* User Profile Badge Footer */}
-      <div className="p-4 border-t border-slate-700/50 mt-auto">
+      <div className="p-4 border-t border-gray-200 mt-auto bg-gray-50">
         {loading ? (
           <div className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'} animate-pulse`}>
-            <div className="w-10 h-10 bg-slate-700 rounded-lg"></div>
+            <div className="w-10 h-10 bg-gray-300 rounded-lg"></div>
             {!collapsed && (
               <div className="flex-1">
-                <div className="h-3 bg-slate-700 rounded w-20 mb-2"></div>
-                <div className="h-2 bg-slate-700 rounded w-16"></div>
+                <div className="h-3 bg-gray-300 rounded w-20 mb-2"></div>
+                <div className="h-2 bg-gray-300 rounded w-16"></div>
               </div>
             )}
           </div>
         ) : currentUser ? (
           <div 
-            className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'} p-3 rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-700/50 border border-slate-600/30 backdrop-blur-sm transition-all duration-200 hover:border-blue-500/30 group`}
+            className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'} p-3 rounded-xl bg-white border border-gray-200 transition-all duration-200 hover:border-blue-300 group`}
             title={collapsed ? `${currentUser.name || currentUser.username}\n${formatRole(currentUser.role)}` : undefined}
           >
             {/* Avatar */}
@@ -153,23 +145,23 @@ export default function Sidebar({ nav = [], brandTitle = 'Tracely', brandSubtitl
                 {getUserInitials(currentUser.name || currentUser.username)}
               </div>
               {/* Online Status Indicator */}
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-slate-800"></div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
             </div>
 
             {/* User Info */}
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-white font-semibold text-sm truncate leading-tight">
+                <p className="text-gray-900 font-semibold text-sm truncate leading-tight">
                   {currentUser.name || currentUser.username}
                 </p>
                 <div className="flex items-center space-x-1 mt-1">
                   {currentUser.role === 'admin' ? (
-                    <FaShieldAlt className="text-amber-400 text-xs" />
+                    <FaShieldAlt className="text-gray-900 text-xs" />
                   ) : (
-                    <FaUser className="text-blue-400 text-xs" />
+                    <FaUser className="text-blue-500 text-xs" />
                   )}
                   <span className={`text-xs font-medium ${
-                    currentUser.role === 'admin' ? 'text-amber-400' : 'text-blue-400'
+                    currentUser.role === 'admin' ? 'text-gray-900' : 'text-blue-600'
                   }`}>
                     {formatRole(currentUser.role)}
                   </span>
@@ -180,7 +172,7 @@ export default function Sidebar({ nav = [], brandTitle = 'Tracely', brandSubtitl
         ) : (
           !collapsed && (
             <div className="text-center">
-              <p className="text-slate-400 text-xs">Not logged in</p>
+              <p className="text-gray-500 text-xs">Not logged in</p>
             </div>
           )
         )}

@@ -67,17 +67,17 @@ if (file_exists($cache_file) && (time() - filemtime($cache_file)) < 3600) {
 
 try {
     // Get disease data from disease_summary table with data limiting for performance
-    // For large datasets, limit to last 6 months of data for faster training
+    // For large datasets, limit to last 12 months of data for better accuracy
     $sql = "SELECT disease_name, year, month, total_cases 
             FROM disease_summary 
-            WHERE (year * 12 + month) >= (YEAR(CURDATE()) * 12 + MONTH(CURDATE()) - 6)
+            WHERE (year * 12 + month) >= (YEAR(CURDATE()) * 12 + MONTH(CURDATE()) - 12)
             ORDER BY disease_name, year, month";
     
     if ($disease) {
         $sql = "SELECT disease_name, year, month, total_cases 
                 FROM disease_summary 
                 WHERE disease_name = ? 
-                AND (year * 12 + month) >= (YEAR(CURDATE()) * 12 + MONTH(CURDATE()) - 6)
+                AND (year * 12 + month) >= (YEAR(CURDATE()) * 12 + MONTH(CURDATE()) - 12)
                 ORDER BY year, month";
     }
     
@@ -126,13 +126,26 @@ try {
     $original_dir = getcwd();
     chdir($forecasting_dir);
     
-    // Set matplotlib config directory to avoid permission errors
-    putenv('MPLCONFIGDIR=/tmp/matplotlib_cache');
+    // Detect OS and set matplotlib config directory accordingly
+    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+        // Windows: use temp directory
+        $temp_dir = sys_get_temp_dir();
+        $mplconfig = $temp_dir . '\\matplotlib_cache';
+        if (!is_dir($mplconfig)) {
+            mkdir($mplconfig, 0777, true);
+        }
+        putenv('MPLCONFIGDIR=' . $mplconfig);
+        // Windows: use 'python' command (not python3)
+        $python_cmd = 'python';
+    } else {
+        // Linux/Mac
+        putenv('MPLCONFIGDIR=/tmp/matplotlib_cache');
+        // Try python3 first, fallback to python
+        $python_cmd = shell_exec('which python3') ? 'python3' : 'python';
+    }
     
-    // Run the Python script with JSON data
-    // Try python3 first (common on Linux/VPS), fallback to python
-    $python_cmd = shell_exec('which python3') ? 'python3' : 'python';
-    $command = "MPLCONFIGDIR=/tmp/matplotlib_cache $python_cmd forecast_arima.py \"$json_file\" $forecast_period 2>&1";
+    // Build command WITHOUT setting env var in command (already set via putenv)
+    $command = "$python_cmd forecast_arima.py \"$json_file\" $forecast_period 2>&1";
     error_log("Executing Python command: " . $command);
     $output = shell_exec($command);
     

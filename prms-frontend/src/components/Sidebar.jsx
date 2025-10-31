@@ -8,14 +8,14 @@ import {
   FaUser,
   FaMapMarkerAlt,
   FaChartBar,
-  FaChevronRight,
   FaChartLine,
   FaStethoscope,
   FaShieldAlt,
+  FaChevronLeft,
 } from "react-icons/fa";
 import { preloadRoute } from '../utils/routePreloader';
 
-function Sidebar({ collapsed = false }) {
+function Sidebar({ collapsed = false, onToggle }) {
   const location = useLocation();
   const isActive = (path) => location.pathname === path;
   const [currentUser, setCurrentUser] = useState(null);
@@ -124,24 +124,19 @@ function Sidebar({ collapsed = false }) {
 
   return (
     <>
-      <div className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 shadow-2xl border-r border-slate-700/50 z-50 hidden lg:flex flex-col transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'}`}>
-        {/* Header Section */}
-        <div className={`border-b border-slate-700/50 ${collapsed ? 'p-4' : 'p-6'}`}>
-          <div className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'}`}>
-            <div className={`bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg ${collapsed ? 'w-8 h-8' : 'w-12 h-12'}`}>
-              <FaChartLine className={`text-white ${collapsed ? 'text-sm' : 'text-xl'}`} />
-            </div>
-            {!collapsed && (
-              <div>
-                <h1 className="text-white font-bold text-lg">Tracely</h1>
-                <p className="text-slate-400 text-xs">Track disease easily</p>
-              </div>
-            )}
-          </div>
-        </div>
+      <div className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white shadow-xl border-r border-gray-200 z-40 hidden lg:flex flex-col transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'}`}>
+        
+        {/* Floating Toggle Button */}
+        <button
+          onClick={onToggle}
+          className={`absolute -right-3 top-8 w-6 h-6 bg-white border-2 border-gray-300 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 z-50 ${collapsed ? 'rotate-180' : ''}`}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          <FaChevronLeft className="w-3 h-3 text-gray-600" />
+        </button>
 
         {/* Navigation Section */}
-        <nav className={`flex-1 py-6 space-y-2 overflow-y-auto ${collapsed ? 'px-2' : 'px-4'}`}>
+        <nav className={`flex-1 pt-8 pb-6 space-y-2 overflow-y-auto ${collapsed ? 'px-2' : 'px-4'}`}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -156,8 +151,8 @@ function Sidebar({ collapsed = false }) {
                   collapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'
                 } ${
                   active
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
-                    : "text-slate-300 hover:text-white hover:bg-slate-700/50"
+                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
+                    : "text-gray-700 hover:text-blue-600 hover:bg-gray-100"
                 }`}
                 title={collapsed ? item.label : ''}
               >
@@ -165,16 +160,11 @@ function Sidebar({ collapsed = false }) {
                   className={`text-lg transition-transform duration-200 ${
                     collapsed ? '' : 'mr-3'
                   } ${
-                    active ? "text-white" : "text-slate-400 group-hover:text-white"
+                    active ? "text-white" : "text-gray-500 group-hover:text-blue-500"
                   }`} 
                 />
                 {!collapsed && (
-                  <>
-                    <span className="flex-1">{item.label}</span>
-                    {active && (
-                      <FaChevronRight className="text-white text-xs opacity-70" />
-                    )}
-                  </>
+                  <span className="flex-1">{item.label}</span>
                 )}
               </Link>
             );
@@ -182,41 +172,41 @@ function Sidebar({ collapsed = false }) {
         </nav>
 
         {/* Footer Section with User Badge */}
-        <div className={`border-t border-slate-700/50 mt-auto ${collapsed ? 'p-2' : 'p-4'}`}>
+        <div className={`border-t border-gray-200 mt-auto ${collapsed ? 'p-2' : 'p-4'} bg-gray-50`}>
           {/* User Profile Badge */}
           {loading ? (
             <div className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'} animate-pulse`}>
-              <div className="w-10 h-10 bg-slate-700 rounded-lg"></div>
+              <div className="w-10 h-10 bg-gray-300 rounded-lg"></div>
               {!collapsed && (
                 <div className="flex-1">
-                  <div className="h-3 bg-slate-700 rounded w-20 mb-2"></div>
-                  <div className="h-2 bg-slate-700 rounded w-16"></div>
+                  <div className="h-3 bg-gray-300 rounded w-20 mb-2"></div>
+                  <div className="h-2 bg-gray-300 rounded w-16"></div>
                 </div>
               )}
             </div>
           ) : currentUser ? (
             <div 
-              className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'} p-3 rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-700/50 border border-slate-600/30 backdrop-blur-sm transition-all duration-200 hover:border-amber-500/30 group`}
+              className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'} p-3 rounded-xl bg-white border border-gray-200 transition-all duration-200 hover:border-blue-300 group`}
               title={collapsed ? `${currentUser.name}\n${formatRole(currentUser.role)}` : undefined}
             >
               {/* Avatar */}
               <div className="relative flex-shrink-0">
-                <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-amber-500/25 group-hover:shadow-amber-500/40 transition-shadow duration-200">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/25 group-hover:shadow-blue-500/40 transition-shadow duration-200">
                   {getUserInitials(currentUser.name)}
                 </div>
                 {/* Online Status Indicator */}
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-slate-800"></div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-blue-400 rounded-full border-2 border-white"></div>
               </div>
 
               {/* User Info */}
               {!collapsed && (
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-semibold text-sm truncate leading-tight">
+                  <p className="text-gray-900 font-semibold text-sm truncate leading-tight">
                     {currentUser.name}
                   </p>
                   <div className="flex items-center space-x-1 mt-1">
-                    <FaShieldAlt className="text-amber-400 text-xs" />
-                    <span className="text-xs font-medium text-amber-400">
+                    <FaShieldAlt className="text-gray-900 text-xs" />
+                    <span className="text-xs font-medium text-gray-900">
                       Administrator
                     </span>
                   </div>
@@ -226,7 +216,7 @@ function Sidebar({ collapsed = false }) {
           ) : (
             !collapsed && (
               <div className="text-center">
-                <p className="text-slate-400 text-xs">Not logged in</p>
+                <p className="text-gray-500 text-xs">Not logged in</p>
               </div>
             )
           )}

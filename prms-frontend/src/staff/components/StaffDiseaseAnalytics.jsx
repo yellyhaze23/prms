@@ -19,13 +19,17 @@ const StaffDiseaseAnalytics = () => {
       const response = await api.get('/disease-analytics.php');
       
       if (response.data.success) {
-        setDiseases(response.data.diseases);
+        const diseasesData = response.data.diseases;
+        // Ensure we always set an array
+        setDiseases(Array.isArray(diseasesData) ? diseasesData : []);
       } else {
         showToast('Failed to fetch disease analytics', 'error');
+        setDiseases([]); // Set empty array on error
       }
     } catch (error) {
       console.error('Error fetching disease analytics:', error);
       showToast('Error loading disease data', 'error');
+      setDiseases([]); // Set empty array on error
     } finally {
       setLoading(false);
     }

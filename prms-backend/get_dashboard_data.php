@@ -267,22 +267,49 @@ try {
     $recentConsultations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
-    // 9. Alerts and Notifications
-    $alerts = [];
-    
-    // Check for high disease cases
+    // 9. Create System Alerts as Notifications (instead of returning alerts)
+    // Check for high disease cases and create notifications
     if ($stats['active_cases'] > 50) {
-        $alerts[] = [
-            'type' => 'warning',
-            'message' => 'High number of active disease cases detected',
-            'count' => $stats['active_cases']
-        ];
+        require_once 'notification_service.php';
+        $notificationService = new NotificationService($conn);
+        
+        // Get all admin and staff users to notify
+        $userStmt = $conn->prepare("SELECT id FROM users WHERE role IN ('admin', 'staff')");
+        $userStmt->execute();
+        $users = $userStmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $title = 'System Warning';
+        $message = "High number of active disease cases detected: {$stats['active_cases']} cases";
+        
+        foreach ($users as $user) {
+            // Check if similar notification already exists today to prevent duplicates
+            $checkStmt = $conn->prepare("
+                SELECT COUNT(*) as notification_exists 
+                FROM notifications 
+                WHERE user_id = :user_id 
+                AND title = :title 
+                AND DATE(created_at) = CURDATE()
+            ");
+            $checkStmt->bindParam(':user_id', $user['id'], PDO::PARAM_INT);
+            $checkStmt->bindParam(':title', $title);
+            $checkStmt->execute();
+            $exists = $checkStmt->fetch(PDO::FETCH_ASSOC)['notification_exists'];
+            
+            // Only create if notification doesn't exist today
+            if ($exists == 0) {
+                $notificationService->createNotification(
+                    $user['id'],
+                    'warning',
+                    $title,
+                    $message,
+                    '/reports', // action URL
+                    'View Reports' // action text
+                );
+            }
+        }
     }
-    
-    // Outbreak notification generation removed - was causing 99+ spam every 30 seconds
-    // Dashboard data fetching should not generate notifications
 
-    // Compile all data
+    // Compile all data (alerts removed - now using notifications)
     $dashboardData = [
         'success' => true,
         'timestamp' => date('Y-m-d H:i:s'),
@@ -295,7 +322,6 @@ try {
         'gender_distribution' => $genderDistribution,
         'top_locations' => $topLocations,
         'recent_consultations' => $recentConsultations,
-        'alerts' => $alerts,
         ];
 
     echo json_encode($dashboardData, JSON_PRETTY_PRINT);

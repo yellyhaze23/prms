@@ -147,9 +147,9 @@ function App() {
   // Wrap content with SessionManager only for admin routes
   const appContent = (
     <div className="app-layout">
-      {!isStaffRoute && <Sidebar collapsed={sidebarCollapsed} />}
-      {!isStaffRoute && <TopBar userId={1} userName="Admin" userRole="Administrator" onToggleSidebar={toggleSidebar} sidebarCollapsed={sidebarCollapsed} />}
-      {isStaffRoute && <StaffTopBar onToggleSidebar={toggleStaffSidebar} sidebarCollapsed={staffSidebarCollapsed} />}
+      {!isStaffRoute && <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />}
+      {!isStaffRoute && <TopBar userId={1} userName="Admin" userRole="Administrator" sidebarCollapsed={sidebarCollapsed} />}
+      {isStaffRoute && <StaffTopBar sidebarCollapsed={staffSidebarCollapsed} />}
       <div className={`main-content ${isStaffRoute ? (staffSidebarCollapsed ? 'sidebar-collapsed' : '') : (sidebarCollapsed ? 'sidebar-collapsed' : '')} ${isTransitioning ? 'page-enter' : ''} ${isLoggingOut ? 'page-exit' : ''}`}>
         <Suspense fallback={<PageLoader />}>
               <Routes>
@@ -168,7 +168,7 @@ function App() {
                 path="/staff/*"
                 element={
                   <RequireStaff>
-                    <StaffLayout sidebarCollapsed={staffSidebarCollapsed} />
+                    <StaffLayout sidebarCollapsed={staffSidebarCollapsed} onToggleSidebar={toggleStaffSidebar} />
                   </RequireStaff>
                 }
               >

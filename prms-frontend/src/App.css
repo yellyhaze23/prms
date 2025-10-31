@@ -55,7 +55,7 @@
   width: 100%;
   min-height: 100vh;
   background-color: #f8fafc; /* slate-50 */
-  padding-top: 4rem; /* 64px - space for mobile TopBar */
+  padding-top: 5.5rem; /* 88px - space for TopBar + breathing room */
   transition: margin-left 0.3s ease, width 0.3s ease; /* Smooth transitions */
 }
 
@@ -64,7 +64,7 @@
   .main-content {
     margin-left: 16rem; /* 256px - matches w-64 in Tailwind */
     width: calc(100% - 16rem);
-    padding-top: 4rem; /* 64px - space for TopBar */
+    padding-top: 5.5rem; /* 88px - space for TopBar + breathing room */
   }
   
   /* Collapsed sidebar styles */
@@ -72,4 +72,15 @@
     margin-left: 4rem; /* 64px - matches w-16 in Tailwind */
     width: calc(100% - 4rem);
   }
+}
+
+/* Add breathing room to page containers */
+.min-h-screen.bg-gray-50 {
+  padding-top: 0.23rem !important; /* Additional top padding for all pages */
+}
+
+/* Page headers spacing */
+.min-h-screen.bg-gray-50 > div > div:first-child,
+.min-h-screen.bg-gray-50 > div:first-child {
+  margin-top: 0.23rem; /* Extra space for page headers */
 }
