@@ -14,7 +14,7 @@ function PatientInformation({ patient, onEdit, onDelete }) {
 
   const imageSrc = patient.image_path
     ? `${import.meta.env.VITE_API_BASE_URL}/uploads/${patient.image_path}`
-    : "/lspu-logo.png";
+    : "/logo.png";
 
   return (
     <div className="space-y-6">

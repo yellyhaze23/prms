@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { FaUser, FaCog, FaSignOutAlt, FaQuestionCircle, FaChartLine, FaSearch } from 'react-icons/fa';
+import { FaUser, FaCog, FaSignOutAlt, FaQuestionCircle, FaSearch } from 'react-icons/fa';
 import NotificationBell from './NotificationBell';
 import BackupStatusIndicator from './BackupStatusIndicator';
 import ConfirmationModal from './ConfirmationModal';
@@ -154,10 +154,10 @@ const TopBar = ({ userId = 1, userName = "User", userRole = "Guest", sidebarColl
           {/* Left side - Logo */}
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
-              <FaChartLine className="text-white text-lg" />
+              <span className="text-white font-bold text-xl">P</span>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900 uppercase tracking-wider">TRACELY prms</h1>
+              <h1 className="text-lg font-bold text-gray-900 uppercase tracking-wider">PRSTF</h1>
             </div>
           </div>
 

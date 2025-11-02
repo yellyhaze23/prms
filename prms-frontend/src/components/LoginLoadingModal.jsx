@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaSpinner, FaCheckCircle, FaChartLine } from 'react-icons/fa';
+import { FaSpinner, FaCheckCircle } from 'react-icons/fa';
 import './LoginLoadingModal.css';
 
 const LoginLoadingModal = ({ isVisible, stage = 'loading' }) => {
@@ -11,7 +11,9 @@ const LoginLoadingModal = ({ isVisible, stage = 'loading' }) => {
         <div className="loading-content">
           {/* Logo/Icon */}
           <div className="loading-logo">
-            <FaChartLine className="logo-icon" />
+            <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+              <span className="text-white font-bold text-4xl">P</span>
+            </div>
           </div>
           
           {/* Loading Animation */}

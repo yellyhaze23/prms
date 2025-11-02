@@ -19,8 +19,8 @@ const HelpModal = ({ isOpen, onClose }) => {
       content: (
         <div className="space-y-4">
           <div className="bg-blue-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-blue-800 mb-2">Welcome to TRACELY!</h4>
-            <p className="text-blue-700">This guide will help you get started with the Tracely Patient Record System with tracking and forecasting.</p>
+            <h4 className="font-semibold text-blue-800 mb-2">Welcome to PRSTF!</h4>
+            <p className="text-blue-700">This guide will help you get started with the Patient Record System with Tracking and Forecasting.</p>
           </div>
           
           <div>

@@ -10,7 +10,7 @@ function PatientCard({ patients, onSelect }) {
         patients.map((patient, index) => {
           const imageSrc = patient.image_path
             ? `${import.meta.env.VITE_API_BASE_URL}/uploads/${patient.image_path}`
-            : "/lspu-logo.png";
+            : "/logo.png";
 
           return (
             <div

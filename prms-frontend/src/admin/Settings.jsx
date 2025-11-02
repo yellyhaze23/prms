@@ -1730,14 +1730,9 @@ function Settings() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                            {log.username ? log.username.charAt(0).toUpperCase() : '?'}
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{log.username || 'Unknown'}</div>
-                            <div className="text-xs text-gray-500 capitalize">{log.user_type}</div>
-                          </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{log.username || 'Unknown'}</div>
+                          <div className="text-xs text-gray-500 capitalize">{log.user_type}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

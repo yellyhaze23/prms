@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaCog, FaSignOutAlt, FaChartLine, FaSearch } from 'react-icons/fa';
+import { FaCog, FaSignOutAlt, FaSearch } from 'react-icons/fa';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import LogoutAnimationModal from '../../components/LogoutAnimationModal';
 import DateTimeDisplay from '../../components/DateTimeDisplay';
@@ -163,10 +163,10 @@ const StaffTopBar = ({ sidebarCollapsed = false }) => {
           {/* Left side - Logo */}
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
-              <FaChartLine className="text-white text-lg" />
+              <span className="text-white font-bold text-xl">P</span>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900 uppercase tracking-wider">TRACELY</h1>
+              <h1 className="text-lg font-bold text-gray-900 uppercase tracking-wider">PRMS</h1>
             </div>
           </div>
 

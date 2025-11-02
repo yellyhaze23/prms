@@ -174,11 +174,11 @@ function Login({ onLogin }) {
             className="brand-section"
             variants={cardVariants}
           >
-            <div className="logo-container">
-              <FaChartLine className="logo-icon" />
-            </div>
-            <h1>Tracely Patient Record System</h1>
-            <p>Advanced Communicable Disease Management</p>
+            <h1>
+              Patient Record System<br />
+              with Tracking &<br />
+              Forecasting
+            </h1>
           </motion.div>
 
           <motion.div 
@@ -195,7 +195,6 @@ function Login({ onLogin }) {
               <motion.div 
                 className="feature-item"
                 variants={cardVariants}
-                whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
               >
                 <FaUsers className="feature-icon" />
                 <span>Patient Management</span>
@@ -203,7 +202,6 @@ function Login({ onLogin }) {
               <motion.div 
                 className="feature-item"
                 variants={cardVariants}
-                whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
               >
                 <FaMapMarkerAlt className="feature-icon" />
                 <span>Disease Tracking</span>
@@ -211,7 +209,6 @@ function Login({ onLogin }) {
               <motion.div 
                 className="feature-item"
                 variants={cardVariants}
-                whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
               >
                 <FaChartLine className="feature-icon" />
                 <span>ARIMA Forecasting</span>
@@ -219,7 +216,6 @@ function Login({ onLogin }) {
               <motion.div 
                 className="feature-item"
                 variants={cardVariants}
-                whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
               >
                 <FaShieldAlt className="feature-icon" />
                 <span>Data Security</span>
