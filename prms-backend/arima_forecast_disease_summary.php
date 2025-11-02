@@ -39,6 +39,16 @@ if (!$input) {
 $disease = isset($input['disease']) ? $input['disease'] : null;
 $forecast_period = isset($input['forecast_period']) ? (int)$input['forecast_period'] : 3;
 
+// Validate forecast period (must be between 1 and 12 months)
+if ($forecast_period < 1 || $forecast_period > 12) {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false, 
+        'error' => 'Forecast period must be between 1 and 12 months. Recommended: 3-6 months for best accuracy.'
+    ]);
+    exit;
+}
+
 error_log("Overall forecast request - Disease: " . ($disease ?: 'all') . ", Period: " . $forecast_period);
 
 // Create cache directory if it doesn't exist

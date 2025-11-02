@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { FaCog, FaEdit, FaTrash, FaClock, FaUser, FaShieldAlt, FaEllipsisV, FaDatabase, FaDownload, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaKey, FaFileAlt, FaMapMarkerAlt, FaEnvelope, FaPhone, FaBriefcase, FaHospital, FaCamera, FaIdCard } from "react-icons/fa";
+import { FaCog, FaEdit, FaTrash, FaClock, FaUser, FaShieldAlt, FaEllipsisV, FaDatabase, FaDownload, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaKey, FaFileAlt, FaMapMarkerAlt, FaEnvelope, FaPhone, FaBriefcase, FaHospital, FaCamera, FaIdCard, FaInfoCircle, FaCode, FaServer } from "react-icons/fa";
 import SettingsToolbar from "../components/SettingsToolbar";
 import UserModal from "../components/AddUser";
 import UserProfileModal from "../components/UserProfileModal";
@@ -24,7 +24,7 @@ import {
 import "./Settings.css";
 
 function Settings() {
-  const [activeTab, setActiveTab] = useState("users"); // users | profile | account | security | activity | backup
+  const [activeTab, setActiveTab] = useState("users"); // users | profile | account | security | activity | backup | about
   const [users, setUsers] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
   const [search, setSearch] = useState("");
@@ -198,6 +198,10 @@ function Settings() {
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
+    // Auto-dismiss after 4 seconds
+    setTimeout(() => {
+      setToast({ message: "", type: "success" });
+    }, 4000);
   };
 
   const toggleBackupMenu = (filename) => {
@@ -684,6 +688,17 @@ function Settings() {
             >
               <FaDatabase className="inline h-4 w-4 mr-2" />
               Backup & Restore
+            </button>
+            <button
+              onClick={() => setActiveTab('about')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'about'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <FaInfoCircle className="inline h-4 w-4 mr-2" />
+              About
             </button>
           </nav>
         </div>
@@ -1987,15 +2002,17 @@ function Settings() {
                                   <div className="absolute -top-1 right-4 w-2 h-2 bg-white border-l border-t border-gray-200 transform rotate-45"></div>
                                   <div className="py-1">
                                     <button
-                                      onClick={() => {
-                                        handleBackupAction('restore', file.filename);
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        // Temporarily disabled for beta testing
                                         setActiveBackupMenu(null);
+                                        showToast('Restore feature is temporarily disabled for beta testing', 'info');
                                       }}
-                                      disabled={globalBackupState.isRunning}
-                                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center focus:outline-none focus:bg-green-50"
-                                      title="Restore this backup"
+                                      className="w-full px-4 py-2 text-left text-sm text-gray-400 bg-gray-50 cursor-not-allowed transition-all duration-200 flex items-center opacity-60"
+                                      title="Restore is temporarily disabled for beta testing"
                                     >
-                                      <FaCheckCircle className="w-4 h-4 mr-3 text-green-500" />
+                                      <FaCheckCircle className="w-4 h-4 mr-3 text-gray-400" />
                                       Restore Backup
                                     </button>
                                     <button
@@ -2033,6 +2050,148 @@ function Settings() {
                 </table>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'about' && (
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm mx-6 min-h-[600px] pb-8">
+          {/* Header Section */}
+          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <FaInfoCircle className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">About PRMS</h3>
+                <p className="text-sm text-gray-600">Patient Record System with Tracking and ARIMA-Based Forecasting</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="px-6 py-8">
+            {/* System Overview */}
+            <div className="mb-8">
+              <h4 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <FaHospital className="text-blue-600" />
+                System Overview
+              </h4>
+              <div className="bg-blue-50 rounded-lg p-6 border border-blue-100">
+                <p className="text-gray-700 leading-relaxed mb-4">
+                  <strong>Patient Record System with Tracking and ARIMA-Based Forecasting for Top 5 Communicable Diseases </strong> 
+                  is an advanced web-based application designed for managing patient records, tracking communicable diseases, 
+                  and generating forecasts using ARIMA (AutoRegressive Integrated Moving Average) models.
+                </p>
+                <p className="text-gray-700 leading-relaxed">
+                  This system focuses on the top 5 communicable diseases and enables healthcare administrators and staff 
+                  to efficiently manage patient data, monitor disease trends with geographical tracking, and make data-driven 
+                  decisions through predictive analytics and forecasting.
+                </p>
+              </div>
+            </div>
+
+            {/* Key Features */}
+            <div className="mb-8">
+              <h4 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <FaCode className="text-green-600" />
+                Key Features
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-green-50 rounded-lg p-4 border border-green-100">
+                  <h5 className="font-semibold text-green-900 mb-2">👥 Patient Management</h5>
+                  <p className="text-sm text-gray-700">Comprehensive patient records with demographic and medical information</p>
+                </div>
+                <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                  <h5 className="font-semibold text-purple-900 mb-2">📊 Disease Tracking</h5>
+                  <p className="text-sm text-gray-700">Real-time disease monitoring with geographical heatmap visualization</p>
+                </div>
+                <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
+                  <h5 className="font-semibold text-orange-900 mb-2">🔮 ARIMA Forecasting</h5>
+                  <p className="text-sm text-gray-700">Statistical time series forecasting for proactive healthcare planning</p>
+                </div>
+                <div className="bg-red-50 rounded-lg p-4 border border-red-100">
+                  <h5 className="font-semibold text-red-900 mb-2">📈 Analytics & Reports</h5>
+                  <p className="text-sm text-gray-700">Comprehensive reports with charts and data visualization</p>
+                </div>
+                <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-100">
+                  <h5 className="font-semibold text-indigo-900 mb-2">🔒 Security & Audit</h5>
+                  <p className="text-sm text-gray-700">Role-based access control and complete audit logging</p>
+                </div>
+                <div className="bg-teal-50 rounded-lg p-4 border border-teal-100">
+                  <h5 className="font-semibold text-teal-900 mb-2">💾 Backup & Restore</h5>
+                  <p className="text-sm text-gray-700">Automated database backup and restore functionality</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Developer Information */}
+            <div className="mb-8">
+              <h4 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <FaUser className="text-blue-600" />
+                Developer Information
+              </h4>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="text-sm text-gray-600 mb-2 font-medium">Developers</div>
+                    <div className="text-lg font-semibold text-gray-900">Ariel Longa, Mark Brian Navarro & Team</div>
+                    <div className="text-sm text-gray-500 mt-1">Capstone Project Developers</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600 mb-2 font-medium">Institution</div>
+                    <div className="text-lg font-semibold text-gray-900">Laguna State Polytechnic University - Los Baños Campus</div>
+                    <div className="text-sm text-gray-500 mt-1">Educational Institution</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600 mb-2 font-medium">Academic Year</div>
+                    <div className="text-lg font-semibold text-gray-900">2025-2026</div>
+                    <div className="text-sm text-gray-500 mt-1">School Year</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600 mb-2 font-medium">Program/Course</div>
+                    <div className="text-lg font-semibold text-gray-900">BS Information Technology</div>
+                    <div className="text-sm text-gray-500 mt-1">Degree Program</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* System Information */}
+            <div className="mb-8">
+              <h4 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <FaServer className="text-gray-600" />
+                System Information
+              </h4>
+              <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-gray-600 mb-1">Version</div>
+                    <div className="text-lg font-semibold text-gray-900">1.0.0</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600 mb-1">Release Date</div>
+                    <div className="text-lg font-semibold text-gray-900">{new Date().getFullYear()}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Project Information */}
+            <div className="mb-8">
+              <h4 className="text-xl font-bold text-gray-900 mb-4">Project Information</h4>
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-6 border border-indigo-100">
+                <p className="text-gray-700 leading-relaxed mb-3">
+                  This system is developed as a <strong>Capstone Project</strong> for academic purposes, 
+                  demonstrating advanced web development, database management, and statistical forecasting integration.
+                </p>
+                <p className="text-gray-700 leading-relaxed">
+                  The application follows modern software engineering practices including RESTful API design, 
+                  secure authentication, role-based access control, and comprehensive audit logging.
+                </p>
+              </div>
+            </div>
+
           </div>
         </div>
       )}

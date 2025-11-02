@@ -19,6 +19,8 @@ import {
 } from 'react-icons/fa';
 import RecentForecasts from '../components/RecentForecasts';
 import SimpleForecastChart from '../components/SimpleForecastChart';
+import ActualVsForecastChart from '../components/ActualVsForecastChart';
+import BarangayForecastChart from '../components/BarangayForecastChart';
 import ModernToast from '../components/ModernToast';
 import CountUp from '../components/CountUp';
 import notificationService from '../utils/notificationService';
@@ -50,10 +52,87 @@ const ARIMAForecast = () => {
   // NEW: Barangay forecast state
   const [barangayForecastData, setBarangayForecastData] = useState(null);
   const [forecastMode, setForecastMode] = useState('overall'); // 'overall' or 'barangay'
+  const [historicalData, setHistoricalData] = useState(null);
 
   const diseases = [
     'Chickenpox', 'Dengue', 'Hepatitis', 'Measles', 'Tuberculosis'
   ];
+
+  // Load saved forecast data from localStorage on mount
+  useEffect(() => {
+    try {
+      // Load overall forecast data
+      const savedOverallForecast = localStorage.getItem('arima_forecast_overall');
+      if (savedOverallForecast) {
+        const parsed = JSON.parse(savedOverallForecast);
+        setForecastData(parsed);
+        if (parsed && parsed.forecast_results) {
+          setShowCharts(true);
+        }
+      }
+
+      // Load barangay forecast data
+      const savedBarangayForecast = localStorage.getItem('arima_forecast_barangay');
+      if (savedBarangayForecast) {
+        const parsed = JSON.parse(savedBarangayForecast);
+        setBarangayForecastData(parsed);
+        if (parsed && parsed.forecast_results) {
+          setShowCharts(true);
+        }
+      }
+
+      // Load forecast mode
+      const savedMode = localStorage.getItem('arima_forecast_mode');
+      if (savedMode && (savedMode === 'overall' || savedMode === 'barangay')) {
+        setForecastMode(savedMode);
+      }
+
+      // Load historical data
+      const savedHistorical = localStorage.getItem('arima_forecast_historical');
+      if (savedHistorical) {
+        setHistoricalData(JSON.parse(savedHistorical));
+      }
+    } catch (error) {
+      console.error('Error loading saved forecast data:', error);
+    }
+  }, []);
+
+  // Save forecast data to localStorage whenever it changes
+  useEffect(() => {
+    if (forecastData) {
+      try {
+        localStorage.setItem('arima_forecast_overall', JSON.stringify(forecastData));
+      } catch (error) {
+        console.error('Error saving overall forecast to localStorage:', error);
+      }
+    }
+  }, [forecastData]);
+
+  useEffect(() => {
+    if (barangayForecastData) {
+      try {
+        localStorage.setItem('arima_forecast_barangay', JSON.stringify(barangayForecastData));
+      } catch (error) {
+        console.error('Error saving barangay forecast to localStorage:', error);
+      }
+    }
+  }, [barangayForecastData]);
+
+  useEffect(() => {
+    if (forecastMode) {
+      localStorage.setItem('arima_forecast_mode', forecastMode);
+    }
+  }, [forecastMode]);
+
+  useEffect(() => {
+    if (historicalData) {
+      try {
+        localStorage.setItem('arima_forecast_historical', JSON.stringify(historicalData));
+      } catch (error) {
+        console.error('Error saving historical data to localStorage:', error);
+      }
+    }
+  }, [historicalData]);
 
   // Dropdown options
   const dropdownOptions = [
@@ -311,6 +390,18 @@ const ARIMAForecast = () => {
   };
 
   const handleGenerateForecast = async () => {
+    // Validate forecast period before making API call
+    if (forecastPeriod < 1 || forecastPeriod > 12) {
+      setError('Forecast period must be between 1 and 12 months. Recommended: 3-6 months for best accuracy.');
+      setToast({
+        isVisible: true,
+        type: 'error',
+        title: 'Invalid Forecast Period',
+        message: 'Forecast period must be between 1 and 12 months.'
+      });
+      return;
+    }
+    
     setIsLoading(true);
     setError('');
     setProgress(0);
@@ -379,6 +470,10 @@ const ARIMAForecast = () => {
           setForecastData(data.data);
           // Don't clear barangay forecast - keep it for comparison
         }
+        
+        // Fetch historical data for comparison chart
+        fetchHistoricalData(selectedDisease);
+        
         setShowCharts(true);
         
         const forecastType = forecastMode === 'barangay' ? 'Barangay-level' : 'Overall';
@@ -426,6 +521,23 @@ const ARIMAForecast = () => {
       setIsLoading(false);
       setLoadingStep('');
       setProgress(0);
+    }
+  };
+
+  const fetchHistoricalData = async (disease = null) => {
+    try {
+      const diseaseParam = disease && disease !== '' ? `&disease=${encodeURIComponent(disease)}` : '';
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/get_historical_disease_data.php?months=12${diseaseParam}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.historical_data) {
+          setHistoricalData(data.historical_data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching historical data:', error);
+      // Silent fail - historical data is optional
     }
   };
 
@@ -587,6 +699,20 @@ const ARIMAForecast = () => {
                   </p>
                 )}
               </div>
+
+              {/* Forecast Period Notes - Below Information Box */}
+              <div className="mt-3 mb-4 space-y-2">
+                {forecastPeriod > 9 && (
+                  <p className="text-sm text-amber-600 flex items-center gap-2 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                    <FaExclamationTriangle className="text-xs flex-shrink-0" />
+                    <span>Note: Forecasts beyond 9 months may have reduced accuracy</span>
+                  </p>
+                )}
+                <p className="text-xs text-gray-600 flex items-center gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                  <FaInfoCircle className="text-xs flex-shrink-0" />
+                  <span>Recommended: 3-6 months for best accuracy</span>
+                </p>
+              </div>
               
               {/* Form Layout - 3 columns: 2 fields + 1 button group */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -640,10 +766,15 @@ const ARIMAForecast = () => {
                   <input
                     type="number"
                     value={forecastPeriod}
-                    onChange={(e) => setForecastPeriod(Math.max(1, parseInt(e.target.value)))}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      const clamped = Math.max(1, Math.min(12, value)); // Min: 1, Max: 12
+                      setForecastPeriod(clamped);
+                    }}
                     min="1"
+                    max="12"
                     className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 font-medium"
-                    placeholder="Enter months..."
+                    placeholder="Enter months (1-12)..."
                   />
                 </div>
 
@@ -869,6 +1000,14 @@ const ARIMAForecast = () => {
                 {forecastData && forecastData.forecast_results && (
                   <SimpleForecastChart forecastResults={forecastData.forecast_results} />
                 )}
+
+                {/* Actual vs Forecast Comparison Chart */}
+                {forecastData && forecastData.forecast_results && (
+                  <ActualVsForecastChart 
+                    forecastResults={forecastData.forecast_results} 
+                    historicalData={historicalData}
+                  />
+                )}
               </div>
             ) : forecastMode === 'barangay' && barangayForecastData ? (
               <div className="space-y-6">
@@ -1012,6 +1151,11 @@ const ARIMAForecast = () => {
                     </div>
                   );
                 })()}
+
+                {/* Barangay Forecast Visualization Bar Chart */}
+                {barangayForecastData && barangayForecastData.forecast_results && (
+                  <BarangayForecastChart forecastResults={barangayForecastData.forecast_results} />
+                )}
 
                 {/* High Risk Barangays Alert Section */}
                 {barangayForecastData.high_risk_barangays && Object.keys(barangayForecastData.high_risk_barangays).length > 0 && (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
 import Toolbar from "../components/Toolbar";
@@ -23,6 +24,7 @@ import {
 } from '../utils/animations';
 
 function Patient() {
+  const location = useLocation();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState("id");
@@ -39,6 +41,22 @@ function Patient() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Check URL parameter to open add modal (wait for page animation to complete)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('add') === 'true') {
+      // Wait for page transition animation to complete (0.5s duration + 0.2s delay = ~700ms)
+      // Adding extra buffer for smooth transition
+      const animationDelay = setTimeout(() => {
+        setShowAddModal(true);
+        // Clean up URL by removing the parameter
+        window.history.replaceState({}, '', '/patient');
+      }, 600); // Wait 600ms for page animation to complete
+
+      return () => clearTimeout(animationDelay);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     fetchPatients();

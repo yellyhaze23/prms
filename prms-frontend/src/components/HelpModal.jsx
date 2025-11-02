@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { 
   FaTimes, 
-  FaSearch, 
   FaUsers, 
   FaFileAlt, 
   FaChartBar, 
@@ -12,7 +11,6 @@ import {
 
 const HelpModal = ({ isOpen, onClose }) => {
   const [activeSection, setActiveSection] = useState('quick-start');
-  const [searchQuery, setSearchQuery] = useState('');
 
   const helpSections = {
     'quick-start': {
@@ -251,13 +249,6 @@ const HelpModal = ({ isOpen, onClose }) => {
     }
   };
 
-  const filteredSections = Object.entries(helpSections).filter(([key, section]) =>
-    section.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    section.content.props.children.some(child => 
-      typeof child === 'string' ? child.toLowerCase().includes(searchQuery.toLowerCase()) : false
-    )
-  );
-
   if (!isOpen) return null;
 
   return (
@@ -280,20 +271,6 @@ const HelpModal = ({ isOpen, onClose }) => {
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
           <div className="w-64 bg-gray-50 border-r flex flex-col">
-            {/* Search */}
-            <div className="p-4 border-b">
-            <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search help..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            </div>
-
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto">
               <div className="p-2">
@@ -333,8 +310,7 @@ const HelpModal = ({ isOpen, onClose }) => {
 
         {/* Footer */}
         <div className="border-t p-4 bg-gray-50">
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <span>Need more help? Contact your system administrator.</span>
+          <div className="flex items-center justify-end text-sm text-gray-600">
             <button
               onClick={onClose}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

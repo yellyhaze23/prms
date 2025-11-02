@@ -4,10 +4,10 @@ require 'config.php';
 
 // Configure session cookie parameters (same as authenticate.php)
 if (session_status() === PHP_SESSION_NONE) {
-    ini_set('session.gc_maxlifetime', 1800);
+    ini_set('session.gc_maxlifetime', 86400);
     
     session_set_cookie_params([
-        'lifetime' => 1800,
+        'lifetime' => 86400,
         'path' => '/',
         'domain' => '',
         'secure' => false,

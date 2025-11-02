@@ -21,37 +21,38 @@ ChartJS.register(
   Legend
 );
 
-const SimpleForecastChart = ({ forecastResults }) => {
-  // Process data for chart
+const BarangayForecastChart = ({ forecastResults }) => {
+  // Process data for chart - Group by Barangay
   const chartData = useMemo(() => {
     if (!forecastResults || forecastResults.length === 0) return null;
 
-    // Filter out error entries (forecast_month === "Error" or has error property)
+    // Filter out error entries
     const validResults = forecastResults.filter(result => 
       result.forecast_month !== "Error" && 
       result.forecast_month !== "error" &&
       !result.error &&
-      result.forecast_month &&
+      result.barangay_name &&
       result.disease_name
     );
 
     if (validResults.length === 0) return null;
 
-    // Group by disease
-    const diseaseGroups = {};
+    // Group by barangay and aggregate total cases across all diseases and months
+    const barangayGroups = {};
     validResults.forEach(result => {
-      if (!diseaseGroups[result.disease_name]) {
-        diseaseGroups[result.disease_name] = {
-          months: [],
-          cases: []
-        };
+      if (!barangayGroups[result.barangay_name]) {
+        barangayGroups[result.barangay_name] = 0;
       }
-      diseaseGroups[result.disease_name].months.push(result.forecast_month);
-      diseaseGroups[result.disease_name].cases.push(result.forecast_cases);
+      barangayGroups[result.barangay_name] += result.forecast_cases || 0;
     });
 
-    // Get all unique months (sorted) - only from valid results
-    const allMonths = [...new Set(validResults.map(r => r.forecast_month))].sort();
+    // Sort barangays by total cases (descending) for better visualization
+    const sortedBarangays = Object.entries(barangayGroups)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 15); // Limit to top 15 barangays to avoid overcrowding
+
+    // Get unique diseases for grouping (optional - if we want to show by disease too)
+    const allDiseases = [...new Set(validResults.map(r => r.disease_name))].sort();
 
     // Define colors for each disease
     const diseaseColors = {
@@ -62,15 +63,17 @@ const SimpleForecastChart = ({ forecastResults }) => {
       'Tuberculosis': '#8B5CF6'  // Purple
     };
 
-    // Create datasets for each disease
-    const datasets = Object.keys(diseaseGroups).map(diseaseName => {
+    // Create datasets grouped by disease for each barangay
+    const datasets = allDiseases.map(diseaseName => {
       const color = diseaseColors[diseaseName] || '#6B7280';
       
       return {
         label: diseaseName,
-        data: allMonths.map(month => {
-          const index = diseaseGroups[diseaseName].months.indexOf(month);
-          return index !== -1 ? diseaseGroups[diseaseName].cases[index] : 0;
+        data: sortedBarangays.map(([barangay]) => {
+          // Sum cases for this disease across all months in this barangay
+          return validResults
+            .filter(r => r.barangay_name === barangay && r.disease_name === diseaseName)
+            .reduce((sum, r) => sum + (r.forecast_cases || 0), 0);
         }),
         backgroundColor: color,
         borderColor: color,
@@ -82,7 +85,7 @@ const SimpleForecastChart = ({ forecastResults }) => {
     });
 
     return {
-      labels: allMonths,
+      labels: sortedBarangays.map(([barangay]) => barangay),
       datasets: datasets
     };
   }, [forecastResults]);
@@ -106,7 +109,7 @@ const SimpleForecastChart = ({ forecastResults }) => {
       },
       title: {
         display: true,
-        text: 'Forecast by Disease and Month',
+        text: 'Forecast by Barangay',
         font: {
           size: 16,
           weight: 'bold'
@@ -140,7 +143,7 @@ const SimpleForecastChart = ({ forecastResults }) => {
         display: true,
         title: {
           display: true,
-          text: 'Forecast Month',
+          text: 'Barangay',
           font: {
             size: 12,
             weight: 'bold'
@@ -200,7 +203,7 @@ const SimpleForecastChart = ({ forecastResults }) => {
         </div>
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Forecast Visualization</h3>
-          <p className="text-sm text-gray-500">Predicted cases by disease and month</p>
+          <p className="text-sm text-gray-500">Predicted cases by barangay and disease (top 15 barangays)</p>
         </div>
       </div>
 
@@ -216,13 +219,11 @@ const SimpleForecastChart = ({ forecastResults }) => {
             <span>• Bar chart showing forecast predictions</span>
             <span>• Hover for detailed information</span>
           </div>
-    
         </div>
       </div>
     </div>
   );
 };
 
-export default SimpleForecastChart;
-
+export default BarangayForecastChart;
 

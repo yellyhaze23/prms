@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   FaUsers, 
@@ -60,6 +61,7 @@ ChartJS.register(
 );
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(false); // Start with false for instant display
   const [error, setError] = useState(null);
@@ -69,6 +71,7 @@ const Dashboard = () => {
   const [syncing, setSyncing] = useState(false);
   const [currentUser, setCurrentUser] = useState({ name: 'Admin' });
   const [diseaseTrends, setDiseaseTrends] = useState({});
+  const [recentForecast, setRecentForecast] = useState(null);
 
   // Animation variants for framer-motion
   const containerVariants = {
@@ -153,10 +156,12 @@ const Dashboard = () => {
     fetchCurrentUser();
     fetchDashboardData();
     fetchDiseaseTrends();
+    fetchRecentForecast();
     // Auto-refresh every 5 minutes for real-time updates (reduced from 30 seconds)
     const interval = setInterval(() => {
       fetchDashboardData();
       fetchDiseaseTrends();
+      fetchRecentForecast();
     }, 300000);
     return () => clearInterval(interval);
   }, []);
@@ -270,6 +275,22 @@ const Dashboard = () => {
         type: 'warning',
         message: 'Failed to load disease trends'
       });
+    }
+  };
+
+  const fetchRecentForecast = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/get_recent_forecasts.php`);
+      
+      if (response.data.success && response.data.data && response.data.data.length > 0) {
+        // Get the most recent forecast
+        setRecentForecast(response.data.data[0]);
+      } else {
+        setRecentForecast(null);
+      }
+    } catch (error) {
+      console.error('Error fetching recent forecast:', error);
+      setRecentForecast(null);
     }
   };
 
@@ -564,6 +585,77 @@ const Dashboard = () => {
     return currentUser.name || "Admin";
   };
 
+  // Helper function to calculate percentage change from trend data
+  const calculatePercentageChange = (trendData, currentValue) => {
+    if (!trendData || trendData.length < 2 || !currentValue) return 0;
+    
+    const firstValue = trendData[0]?.value || 0;
+    const lastValue = currentValue;
+    
+    if (firstValue === 0) return lastValue > 0 ? 100 : 0;
+    
+    const change = ((lastValue - firstValue) / firstValue) * 100;
+    return parseFloat(change.toFixed(2));
+  };
+
+  // Helper function to create mini line chart SVG
+  const createMiniLineChart = (trendData, color, height = 40, uniqueId = '') => {
+    if (!trendData || trendData.length < 2) return null;
+    
+    const values = trendData.map(item => item.value || 0);
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+    const range = maxValue - minValue || 1; // Avoid division by zero
+    
+    const width = 120;
+    const padding = 4;
+    const chartWidth = width - (padding * 2);
+    const chartHeight = height - (padding * 2);
+    
+    // Calculate points
+    const points = values.map((value, index) => {
+      const x = padding + (index / (values.length - 1)) * chartWidth;
+      const y = padding + chartHeight - ((value - minValue) / range) * chartHeight;
+      return `${x},${y}`;
+    });
+    
+    const pathData = `M ${points.join(' L ')}`;
+    const gradientId = `gradient-${uniqueId}-${color.replace('#', '')}`;
+    
+    return (
+      <svg width={width} height={height} className="overflow-visible">
+        <defs>
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.05" />
+          </linearGradient>
+        </defs>
+        {/* Area fill */}
+        <path
+          d={`${pathData} L ${padding + chartWidth},${padding + chartHeight} L ${padding},${padding + chartHeight} Z`}
+          fill={`url(#${gradientId})`}
+        />
+        {/* Line */}
+        <path
+          d={pathData}
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Last point */}
+        <circle
+          cx={padding + chartWidth}
+          cy={padding + chartHeight - ((values[values.length - 1] - minValue) / range) * chartHeight}
+          r="3"
+          fill={color}
+          className="drop-shadow-sm"
+        />
+      </svg>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -576,15 +668,36 @@ const Dashboard = () => {
               </h1>
               <p className="text-gray-700 font-bold text-lg mt-1">Dashboard</p>
             </div>
-            <div className="flex items-center space-x-4">
-              {lastUpdated && (
-                <div className="text-gray-500 text-sm">
-                  <FaClock className="inline mr-1" />
-                  Last updated: {lastUpdated.toLocaleTimeString()}
-                </div>
-              )}
+            <div className="flex items-center space-x-3">
+              {/* Quick Actions */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => navigate('/patient?add=true')}
+                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm font-medium"
+                  title="Add New Patient"
+                >
+                  <FaUser className="mr-2" />
+                  Add
+                </button>
+                <button
+                  onClick={() => navigate('/reports')}
+                  className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm font-medium"
+                  title="View Reports"
+                >
+                  <FaChartBar className="mr-2" />
+                  Reports
+                </button>
+                <button
+                  onClick={() => navigate('/arima-forecast')}
+                  className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm font-medium"
+                  title="View Forecast"
+                >
+                  <FaChartLine className="mr-2" />
+                  Forecast
+                </button>
+              </div>
               {syncing && (
-                <div className="text-gray-500 text-sm flex items-center">
+                <div className="text-gray-500 text-sm flex items-center ml-2">
                   <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mr-2"></div>
                   Syncing...
                 </div>
@@ -601,107 +714,245 @@ const Dashboard = () => {
           animate="visible"
         >
           <motion.div 
-            className="modern-summary-card"
+            className="modern-summary-card relative overflow-hidden"
             variants={cardVariants}
             whileHover={{ 
               scale: 1.02,
               transition: { duration: 0.2 }
             }}
           >
-            <div className="flex items-center">
+            {/* Percentage Change Indicator */}
+            {stats.total_patients_trend && (
+              <div className="absolute top-4 right-4 flex items-center space-x-1">
+                {(() => {
+                  const percentageChange = calculatePercentageChange(stats.total_patients_trend, stats.total_patients);
+                  const isPositive = percentageChange >= 0;
+                  return (
+                    <>
+                      <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${isPositive ? 'bg-green-100' : 'bg-red-100'}`}>
+                        {isPositive ? (
+                          <FaArrowUp className="text-green-600 text-xs" />
+                        ) : (
+                          <FaArrowDown className="text-red-600 text-xs" />
+                        )}
+                        <span className={`text-xs font-semibold ${isPositive ? 'text-green-700' : 'text-red-700'}`}>
+                          {Math.abs(percentageChange).toFixed(1)}%
+                        </span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+            
+            <div className="flex items-center mb-3">
               <div className="flex-shrink-0">
                 <div className="modern-icon-container bg-blue-50">
                   <FaUsers className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
               <div className="ml-4 flex-1">
-                <div className="flex items-center space-x-2">
-                  <p className="modern-card-label">Total Patients</p>
-                </div>
+                <p className="modern-card-label">Total Patients</p>
                 <p className="modern-card-value">
                   <CountUp end={stats.total_patients} duration={2000} />
                 </p>
-                <p className="modern-card-description">Registered patients</p>
               </div>
             </div>
+            
+            {/* Mini Line Chart */}
+            {stats.total_patients_trend && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                {createMiniLineChart(stats.total_patients_trend, '#3B82F6', 50, 'patients')}
+              </div>
+            )}
+            <p className="modern-card-description mt-2">Registered patients</p>
           </motion.div>
 
           <motion.div 
-            className="modern-summary-card"
+            className="modern-summary-card relative overflow-hidden"
             variants={cardVariants}
             whileHover={{ 
               scale: 1.02,
               transition: { duration: 0.2 }
             }}
           >
-            <div className="flex items-center">
+            {/* Percentage Change Indicator */}
+            {stats.total_diseases_trend && (
+              <div className="absolute top-4 right-4 flex items-center space-x-1">
+                {(() => {
+                  const percentageChange = calculatePercentageChange(stats.total_diseases_trend, stats.total_diseases);
+                  const isPositive = percentageChange >= 0;
+                  return (
+                    <>
+                      <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${isPositive ? 'bg-green-100' : 'bg-red-100'}`}>
+                        {isPositive ? (
+                          <FaArrowUp className="text-green-600 text-xs" />
+                        ) : (
+                          <FaArrowDown className="text-red-600 text-xs" />
+                        )}
+                        <span className={`text-xs font-semibold ${isPositive ? 'text-green-700' : 'text-red-700'}`}>
+                          {Math.abs(percentageChange).toFixed(1)}%
+                        </span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+            
+            <div className="flex items-center mb-3">
               <div className="flex-shrink-0">
                 <div className="modern-icon-container bg-red-50">
                   <FaVirus className="h-6 w-6 text-red-600" />
                 </div>
               </div>
               <div className="ml-4 flex-1">
-                <div className="flex items-center space-x-2">
-                  <p className="modern-card-label">Diseases Tracked</p>
-                </div>
+                <p className="modern-card-label">Diseases Tracked</p>
                 <p className="modern-card-value">
                   <CountUp end={stats.total_diseases} duration={2000} />
                 </p>
-                <p className="modern-card-description">Active diseases</p>
               </div>
             </div>
+            
+            {/* Mini Line Chart */}
+            {stats.total_diseases_trend && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                {createMiniLineChart(stats.total_diseases_trend, '#EF4444', 50, 'diseases')}
+              </div>
+            )}
+            <p className="modern-card-description mt-2">Active diseases</p>
           </motion.div>
 
           <motion.div 
-            className="modern-summary-card"
+            className="modern-summary-card relative overflow-hidden"
             variants={cardVariants}
             whileHover={{ 
               scale: 1.02,
               transition: { duration: 0.2 }
             }}
           >
-            <div className="flex items-center">
+            {/* Percentage Change Indicator */}
+            {stats.active_cases_trend && (
+              <div className="absolute top-4 right-4 flex items-center space-x-1">
+                {(() => {
+                  const percentageChange = calculatePercentageChange(stats.active_cases_trend, stats.active_cases);
+                  const isPositive = percentageChange >= 0;
+                  return (
+                    <>
+                      <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${isPositive ? 'bg-green-100' : 'bg-red-100'}`}>
+                        {isPositive ? (
+                          <FaArrowUp className="text-green-600 text-xs" />
+                        ) : (
+                          <FaArrowDown className="text-red-600 text-xs" />
+                        )}
+                        <span className={`text-xs font-semibold ${isPositive ? 'text-green-700' : 'text-red-700'}`}>
+                          {Math.abs(percentageChange).toFixed(1)}%
+                        </span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+            
+            <div className="flex items-center mb-3">
               <div className="flex-shrink-0">
                 <div className="modern-icon-container bg-orange-50">
                   <FaExclamationTriangle className="h-6 w-6 text-orange-600" />
                 </div>
               </div>
               <div className="ml-4 flex-1">
-                <div className="flex items-center space-x-2">
-                  <p className="modern-card-label">Active Cases</p>
-                </div>
+                <p className="modern-card-label">Active Cases</p>
                 <p className="modern-card-value">
                   <CountUp end={stats.active_cases} duration={2000} />
                 </p>
-                <p className="modern-card-description">Current patients</p>
               </div>
             </div>
+            
+            {/* Mini Line Chart */}
+            {stats.active_cases_trend && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                {createMiniLineChart(stats.active_cases_trend, '#F59E0B', 50, 'active')}
+              </div>
+            )}
+            <p className="modern-card-description mt-2">Current patients</p>
           </motion.div>
 
           <motion.div 
-            className="modern-summary-card"
+            className="modern-summary-card relative overflow-hidden"
             variants={cardVariants}
             whileHover={{ 
               scale: 1.02,
               transition: { duration: 0.2 }
             }}
           >
-            <div className="flex items-center">
+            {/* Percentage Change Indicator */}
+            {stats.new_patients_trend && (
+              <div className="absolute top-4 right-4 flex items-center space-x-1">
+                {(() => {
+                  // For new patients, compare average of first 3 days vs last 3 days
+                  const trendData = stats.new_patients_trend;
+                  if (trendData.length < 6) {
+                    const firstValue = trendData[0]?.value || 0;
+                    const lastValue = trendData[trendData.length - 1]?.value || 0;
+                    const percentageChange = firstValue === 0 ? (lastValue > 0 ? 100 : 0) : ((lastValue - firstValue) / Math.max(firstValue, 1)) * 100;
+                    const isPositive = percentageChange >= 0;
+                    return (
+                      <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${isPositive ? 'bg-green-100' : 'bg-red-100'}`}>
+                        {isPositive ? (
+                          <FaArrowUp className="text-green-600 text-xs" />
+                        ) : (
+                          <FaArrowDown className="text-red-600 text-xs" />
+                        )}
+                        <span className={`text-xs font-semibold ${isPositive ? 'text-green-700' : 'text-red-700'}`}>
+                          {Math.abs(percentageChange).toFixed(1)}%
+                        </span>
+                      </div>
+                    );
+                  }
+                  const firstHalf = trendData.slice(0, 3);
+                  const lastHalf = trendData.slice(-3);
+                  const firstAvg = firstHalf.reduce((sum, item) => sum + (item.value || 0), 0) / firstHalf.length;
+                  const lastAvg = lastHalf.reduce((sum, item) => sum + (item.value || 0), 0) / lastHalf.length;
+                  const percentageChange = firstAvg === 0 ? (lastAvg > 0 ? 100 : 0) : ((lastAvg - firstAvg) / Math.max(firstAvg, 1)) * 100;
+                  const isPositive = percentageChange >= 0;
+                  return (
+                    <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${isPositive ? 'bg-green-100' : 'bg-red-100'}`}>
+                      {isPositive ? (
+                        <FaArrowUp className="text-green-600 text-xs" />
+                      ) : (
+                        <FaArrowDown className="text-red-600 text-xs" />
+                      )}
+                      <span className={`text-xs font-semibold ${isPositive ? 'text-green-700' : 'text-red-700'}`}>
+                        {Math.abs(percentageChange).toFixed(1)}%
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+            
+            <div className="flex items-center mb-3">
               <div className="flex-shrink-0">
                 <div className="modern-icon-container bg-green-50">
                   <FaUserMd className="h-6 w-6 text-green-600" />
                 </div>
               </div>
               <div className="ml-4 flex-1">
-                <div className="flex items-center space-x-2">
-                  <p className="modern-card-label">New This Month</p>
-                </div>
+                <p className="modern-card-label">New This Month</p>
                 <p className="modern-card-value">
                   <CountUp end={stats.new_patients_this_month} duration={2000} />
                 </p>
-                <p className="modern-card-description">New patients</p>
               </div>
             </div>
+            
+            {/* Mini Line Chart */}
+            {stats.new_patients_trend && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                {createMiniLineChart(stats.new_patients_trend, '#10B981', 50, 'new')}
+              </div>
+            )}
+            <p className="modern-card-description mt-2">New patients</p>
           </motion.div>
 
         </motion.div>
@@ -1176,6 +1427,100 @@ const Dashboard = () => {
           </motion.div>
         </motion.div>
 
+        {/* Recent Forecasts Preview */}
+        {recentForecast && (
+          <motion.div 
+            className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.div 
+              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+              variants={chartVariants}
+              whileHover={{ 
+                scale: 1.01,
+                transition: { duration: 0.2 }
+              }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <FaChartLine className="mr-2 text-purple-600" />
+                  Recent Forecasts Preview
+                </h3>
+                <button
+                  onClick={() => navigate('/arima-forecast')}
+                  className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm font-medium"
+                  title="View Full Forecast"
+                >
+                  <FaChartLine className="mr-2" />
+                  View Full Forecast
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-start justify-between p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-100">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                        <FaChartLine className="text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 text-lg">{recentForecast.disease || 'Overall Forecast'}</p>
+                        <p className="text-sm text-gray-600 capitalize">{recentForecast.forecast_type || 'overall'} • {recentForecast.forecast_period || 30} days</p>
+                      </div>
+                    </div>
+                    {recentForecast.forecast_results && recentForecast.forecast_results.length > 0 && (
+                      <div className="mt-3">
+                        <div className="grid grid-cols-3 gap-4">
+                          {recentForecast.forecast_results.slice(0, 3).map((result, index) => (
+                            <div key={index} className="text-center p-2 bg-white rounded border border-purple-100">
+                              <p className="text-xs text-gray-500 mb-1">{result.forecast_month || 'N/A'}</p>
+                              <p className="text-lg font-bold text-purple-600">{result.forecast_cases || 0}</p>
+                              <p className="text-xs text-gray-400">cases</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {recentForecast.indicators && (
+                      <div className="mt-3 flex items-center space-x-4 text-sm">
+                        {recentForecast.indicators.accuracy_rmse !== undefined && (
+                          <div className="flex items-center space-x-1">
+                            <span className="text-gray-600">RMSE:</span>
+                            <span className="font-semibold text-gray-900">{recentForecast.indicators.accuracy_rmse?.toFixed(2) || 'N/A'}</span>
+                          </div>
+                        )}
+                        {recentForecast.indicators.accuracy_mae !== undefined && (
+                          <div className="flex items-center space-x-1">
+                            <span className="text-gray-600">MAE:</span>
+                            <span className="font-semibold text-gray-900">{recentForecast.indicators.accuracy_mae?.toFixed(1) || 'N/A'} cases</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
+                  <span>Generated: {new Date(recentForecast.generated_at).toLocaleString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}</span>
+                  <button
+                    onClick={() => navigate('/arima-forecast')}
+                    className="text-purple-600 hover:text-purple-700 font-medium flex items-center space-x-1"
+                  >
+                    <span>View Details</span>
+                    <FaChartLine className="text-xs" />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {/* Recent Consultations */}
         <motion.div 
           className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8"
@@ -1252,3 +1597,7 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+
+
+

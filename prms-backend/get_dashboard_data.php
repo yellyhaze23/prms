@@ -19,18 +19,93 @@ try {
     $lastWeek = date('Y-m-d', strtotime('-7 days'));
     $lastMonth = date('Y-m-d', strtotime('-30 days'));
 
-    // 1. Enhanced Basic Statistics
+    // 1. Enhanced Basic Statistics with Trend Data
     $stats = [];
     
-    // Total patients
+    // Total patients - with trend data (last 7 days)
     $stmt = $conn->prepare("SELECT COUNT(*) as total FROM patients");
     $stmt->execute();
     $stats['total_patients'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    // Get patient count trend (last 7 days)
+    $stmt = $conn->prepare("
+        SELECT 
+            DATE(created_at) as date,
+            COUNT(*) as count
+        FROM patients
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+    ");
+    $stmt->execute();
+    $patientTrendRaw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Calculate cumulative counts for trend
+    $patientTrend = [];
+    $cumulativeCount = 0;
+    $today = new DateTime();
+    for ($i = 6; $i >= 0; $i--) {
+        $date = clone $today;
+        $date->modify("-{$i} days");
+        $dateStr = $date->format('Y-m-d');
+        
+        $dayData = array_filter($patientTrendRaw, function($row) use ($dateStr) {
+            return $row['date'] === $dateStr;
+        });
+        $dayCount = !empty($dayData) ? (int)reset($dayData)['count'] : 0;
+        $cumulativeCount += $dayCount;
+        
+        // Get total count up to this day
+        $stmt = $conn->prepare("SELECT COUNT(*) as total FROM patients WHERE DATE(created_at) <= ?");
+        $stmt->execute([$dateStr]);
+        $cumulativeCount = (int)$stmt->fetch(PDO::FETCH_ASSOC)['total'];
+        
+        $patientTrend[] = ['date' => $dateStr, 'value' => $cumulativeCount];
+    }
+    $stats['total_patients_trend'] = $patientTrend;
 
-    // Total diseases
+    // Total diseases - with trend data
     $stmt = $conn->prepare("SELECT COUNT(*) as total FROM diseases");
     $stmt->execute();
     $stats['total_diseases'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    // Disease trend (last 7 days - using disease_summary table if available, otherwise static)
+    $stmt = $conn->prepare("
+        SELECT 
+            DATE(created_at) as date,
+            COUNT(DISTINCT diagnosis) as count
+        FROM medical_records
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        AND diagnosis IS NOT NULL AND diagnosis != ''
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+    ");
+    $stmt->execute();
+    $diseaseTrendRaw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $diseaseTrend = [];
+    $today = new DateTime();
+    for ($i = 6; $i >= 0; $i--) {
+        $date = clone $today;
+        $date->modify("-{$i} days");
+        $dateStr = $date->format('Y-m-d');
+        
+        $dayData = array_filter($diseaseTrendRaw, function($row) use ($dateStr) {
+            return $row['date'] === $dateStr;
+        });
+        $dayCount = !empty($dayData) ? (int)reset($dayData)['count'] : 0;
+        
+        // Get unique disease count up to this day
+        $stmt = $conn->prepare("
+            SELECT COUNT(DISTINCT diagnosis) as total 
+            FROM medical_records 
+            WHERE DATE(created_at) <= ? AND diagnosis IS NOT NULL AND diagnosis != ''
+        ");
+        $stmt->execute([$dateStr]);
+        $cumulativeCount = (int)$stmt->fetch(PDO::FETCH_ASSOC)['total'];
+        
+        $diseaseTrend[] = ['date' => $dateStr, 'value' => max($cumulativeCount, $stats['total_diseases'])];
+    }
+    $stats['total_diseases_trend'] = $diseaseTrend;
 
     // New patients this month
     $stmt = $conn->prepare("
@@ -40,8 +115,36 @@ try {
     ");
     $stmt->execute();
     $stats['new_patients_this_month'] = $stmt->fetch(PDO::FETCH_ASSOC)['new_patients'];
+    
+    // New patients trend (last 7 days)
+    $stmt = $conn->prepare("
+        SELECT 
+            DATE(created_at) as date,
+            COUNT(*) as count
+        FROM patients
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+    ");
+    $stmt->execute();
+    $newPatientTrendRaw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $newPatientTrend = [];
+    $today = new DateTime();
+    for ($i = 6; $i >= 0; $i--) {
+        $date = clone $today;
+        $date->modify("-{$i} days");
+        $dateStr = $date->format('Y-m-d');
+        
+        $dayData = array_filter($newPatientTrendRaw, function($row) use ($dateStr) {
+            return $row['date'] === $dateStr;
+        });
+        $dayCount = !empty($dayData) ? (int)reset($dayData)['count'] : 0;
+        
+        $newPatientTrend[] = ['date' => $dateStr, 'value' => $dayCount];
+    }
+    $stats['new_patients_trend'] = $newPatientTrend;
 
-    // Active cases (patients with diseases in medical records)
+    // Active cases - with trend data (last 7 days)
     $stmt = $conn->prepare("
         SELECT COUNT(DISTINCT p.id) as active_cases
         FROM patients p
@@ -50,6 +153,46 @@ try {
     ");
     $stmt->execute();
     $stats['active_cases'] = $stmt->fetch(PDO::FETCH_ASSOC)['active_cases'];
+    
+    // Active cases trend (last 7 days)
+    $stmt = $conn->prepare("
+        SELECT 
+            DATE(mr.updated_at) as date,
+            COUNT(DISTINCT mr.patient_id) as count
+        FROM medical_records mr
+        WHERE mr.updated_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        AND mr.diagnosis IS NOT NULL AND mr.diagnosis != ''
+        GROUP BY DATE(mr.updated_at)
+        ORDER BY date ASC
+    ");
+    $stmt->execute();
+    $activeCasesTrendRaw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $activeCasesTrend = [];
+    $today = new DateTime();
+    for ($i = 6; $i >= 0; $i--) {
+        $date = clone $today;
+        $date->modify("-{$i} days");
+        $dateStr = $date->format('Y-m-d');
+        
+        $dayData = array_filter($activeCasesTrendRaw, function($row) use ($dateStr) {
+            return $row['date'] === $dateStr;
+        });
+        $dayCount = !empty($dayData) ? (int)reset($dayData)['count'] : 0;
+        
+        // Get total active cases up to this day
+        $stmt = $conn->prepare("
+            SELECT COUNT(DISTINCT p.id) as active_cases
+            FROM patients p
+            INNER JOIN medical_records mr ON p.id = mr.patient_id
+            WHERE mr.diagnosis IS NOT NULL AND mr.diagnosis != ''
+            AND DATE(mr.updated_at) <= ?
+        ");
+        $stmt->execute([$dateStr]);
+        $cumulativeCount = (int)$stmt->fetch(PDO::FETCH_ASSOC)['active_cases'];
+        
+        $activeCasesTrend[] = ['date' => $dateStr, 'value' => $cumulativeCount];
+    }
+    $stats['active_cases_trend'] = $activeCasesTrend;
 
     // 2. Disease Statistics
     $diseaseStats = [];

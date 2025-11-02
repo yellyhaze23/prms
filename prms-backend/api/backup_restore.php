@@ -308,15 +308,30 @@ try {
                         sendResponse('error', 'Filename is required');
                     }
                     
-                    $filepath = $backupDir . $filename;
+                    // Normalize path: ensure proper directory separator
+                    $normalizedDir = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $backupDir), DIRECTORY_SEPARATOR);
+                    $filepath = $normalizedDir . DIRECTORY_SEPARATOR . $filename;
+                    
+                    // Get canonical path (resolves symlinks, relative paths, etc.)
+                    $canonicalPath = realpath($filepath);
+                    if ($canonicalPath !== false) {
+                        $filepath = $canonicalPath;
+                    }
+                    
+                    // Get directory path for permission check
+                    $dirPath = dirname($filepath);
                     
                     // Debug: Log the actual paths being used
                     $debugInfo = [
                         'filename' => $filename,
                         'backupDir' => $backupDir,
+                        'normalizedDir' => $normalizedDir,
                         'filepath' => $filepath,
+                        'dirPath' => $dirPath,
                         'file_exists' => file_exists($filepath),
-                        'is_writable' => is_writable($filepath),
+                        'is_writable_file' => is_writable($filepath),
+                        'is_writable_dir' => is_writable($dirPath),
+                        'canonicalPath' => $canonicalPath,
                         'current_dir' => getcwd(),
                         'script_dir' => __DIR__
                     ];
@@ -326,16 +341,69 @@ try {
                         sendResponse('error', 'Backup file does not exist: ' . $filename . ' | Debug: ' . json_encode($debugInfo));
                     }
                     
-                    // Check if file is writable
-                    if (!is_writable($filepath)) {
-                        sendResponse('error', 'Backup file is not writable: ' . $filename . ' | Debug: ' . json_encode($debugInfo));
+                    // Check if directory is writable (required for delete on Windows)
+                    if (!is_writable($dirPath)) {
+                        sendResponse('error', 'Backup directory is not writable. Cannot delete file. | Debug: ' . json_encode($debugInfo));
                     }
                     
-                    // Try to delete the file
-                    if (unlink($filepath)) {
-                        sendResponse('success', 'Backup file deleted successfully');
-                    } else {
-                        sendResponse('error', 'Failed to delete backup file: ' . $filename . ' | Debug: ' . json_encode($debugInfo));
+                    // Helper function to check if file is locked
+                    $isFileLocked = function($path) {
+                        if (!file_exists($path)) {
+                            return false;
+                        }
+                        // Try to open file for writing to check if it's locked
+                        $handle = @fopen($path, 'r+');
+                        if ($handle === false) {
+                            return true; // File might be locked
+                        }
+                        fclose($handle);
+                        return false;
+                    };
+                    
+                    // Retry logic for file deletion (Windows file locking issue)
+                    $maxRetries = 3;
+                    $retryDelay = 500000; // 0.5 seconds in microseconds
+                    $result = false;
+                    $lastError = null;
+                    
+                    for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                        // Check if file is locked before attempting deletion
+                        if ($isFileLocked($filepath)) {
+                            if ($attempt < $maxRetries) {
+                                usleep($retryDelay * $attempt); // Exponential backoff
+                                continue;
+                            } else {
+                                sendResponse('error', 'Backup file is locked by another process. Please close any applications using this file and try again. | Debug: ' . json_encode(array_merge($debugInfo, ['attempt' => $attempt])));
+                                break;
+                            }
+                        }
+                        
+                        // Try to delete the file with error suppression to catch errors
+                        $error = null;
+                        set_error_handler(function($errno, $errstr) use (&$error) {
+                            $error = $errstr;
+                            return true;
+                        });
+                        
+                        $result = @unlink($filepath);
+                        restore_error_handler();
+                        
+                        if ($result) {
+                            sendResponse('success', 'Backup file deleted successfully');
+                            break;
+                        } else {
+                            $lastError = $error;
+                            // If it's a "Resource temporarily unavailable" error, retry
+                            if (strpos($error, 'Resource temporarily unavailable') !== false && $attempt < $maxRetries) {
+                                usleep($retryDelay * $attempt); // Exponential backoff
+                                continue;
+                            } else {
+                                // If it's not a retryable error or we've exhausted retries, return error
+                                $errorMsg = $lastError ? ' Error: ' . $lastError : '';
+                                sendResponse('error', 'Failed to delete backup file: ' . $filename . $errorMsg . ' (Attempt ' . $attempt . '/' . $maxRetries . ') | Debug: ' . json_encode(array_merge($debugInfo, ['attempt' => $attempt])));
+                                break;
+                            }
+                        }
                     }
                     break;
                     
