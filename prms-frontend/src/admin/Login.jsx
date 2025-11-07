@@ -174,10 +174,17 @@ function Login({ onLogin }) {
             className="brand-section"
             variants={cardVariants}
           >
+            <div className="logo-container">
+              <img 
+                src="/rhulogo.png" 
+                alt="RHU Logo" 
+                className="logo-icon" 
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+              />
+            </div>
             <h1>
               Patient Record System<br />
-              with Tracking &<br />
-              Forecasting
+              with Tracking & Forecasting<br />
             </h1>
           </motion.div>
 
@@ -253,7 +260,7 @@ function Login({ onLogin }) {
                 variants={cardVariants}
               >
                 <label htmlFor="username" className="form-label">
-                  Username
+                  Username or email
                 </label>
                 <div className="input-group">
                   <FaUser className="input-icon" />
@@ -355,7 +362,7 @@ function Login({ onLogin }) {
               className="form-footer"
               variants={cardVariants}
             >
-              <p>Secure login powered by Tracely PRMS</p>
+              <p>Secure login powered by PRSTF</p>
             </motion.div>
           </motion.div>
         </motion.div>

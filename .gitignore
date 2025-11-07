@@ -58,11 +58,15 @@ uploads/
 prms-backend/uploads/
 *.jpg
 *.jpeg
-*.png
 *.gif
 *.pdf
 *.doc
 *.docx
+
+# Allow public folder assets (logos, icons, etc.)
+!prms-frontend/public/
+!prms-frontend/public/**
+!*.png
 
 # Cache files
 cache/
@@ -141,7 +145,6 @@ dist
 
 # Gatsby files
 .cache/
-public
 
 # Storybook build outputs
 .out
@@ -153,3 +156,8 @@ temp/
 forecasting/forecast_result.csv
 forecasting/temp_test_data.json
 prms-backend/config.php
+forecasting/forecast_chickenpox.png
+forecasting/forecast_dengue.png
+forecasting/forecast_hepatitis.png
+forecasting/forecast_measles.png
+forecasting/forecast_tuberculosis.png
