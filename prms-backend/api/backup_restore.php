@@ -43,8 +43,16 @@ if ($isDocker) {
 
 // Create backup directory if it doesn't exist
 if (!is_dir($backupDir)) {
-    mkdir($backupDir, 0755, true);
+    mkdir($backupDir, 0775, true);
+    // Set ownership to www-data in Docker
+    if ($isDocker) {
+        @chown($backupDir, 'www-data');
+        @chgrp($backupDir, 'www-data');
+    }
 }
+
+// Ensure backupDir ends with / for proper path concatenation
+$backupDir = rtrim($backupDir, '/') . '/';
 
 function sendResponse($status, $message, $data = null) {
     // Clean any output buffer to prevent HTML contamination
@@ -138,25 +146,56 @@ function createBackup() {
     if ($isDocker) {
         // Docker/Production: Use docker exec to run mysqldump in db container
         $dbContainer = getenv('DB_CONTAINER_NAME') ?: 'prms-db';
-        $dbRootPassword = getenv('DB_ROOT_PASSWORD') ?: 'prms_root_2024';
         
-        // Use docker exec to run mysqldump in the database container
-        // Output is redirected to the backup file in the backend container
+        // Use prms_user instead of root (safer and should have proper permissions)
+        $dbUser = getenv('DB_USER') ?: 'prms_user';
+        $dbPass = getenv('DB_PASSWORD') ?: 'prms_pass_2024';
+        
+        // Use docker exec to run mysqldump and capture output in PHP
+        // This is more reliable than file redirection
         $command = sprintf(
-            'docker exec %s mysqldump --single-transaction --quick --lock-tables=false --routines --triggers --events --hex-blob --default-character-set=utf8mb4 -h localhost -u root -p%s %s > %s 2>&1',
+            'docker exec %s mysqldump --single-transaction --quick --lock-tables=false --routines --triggers --events --hex-blob --default-character-set=utf8mb4 -h localhost -u %s -p%s %s 2>&1',
             escapeshellarg($dbContainer),
-            escapeshellarg($dbRootPassword),
-            escapeshellarg($database),
-            escapeshellarg($filepath)
+            escapeshellarg($dbUser),
+            escapeshellarg($dbPass),
+            escapeshellarg($database)
         );
         
-        // Execute backup
+        // Execute backup and capture all output
         $output = [];
         $returnCode = 0;
         exec($command, $output, $returnCode);
         
-        // Check if file was created and has content
-        if (file_exists($filepath) && filesize($filepath) > 0) {
+        // Combine output into backup content
+        $backupContent = implode("\n", $output);
+        
+        // Check for mysqldump errors
+        if ($returnCode !== 0 || 
+            strpos($backupContent, 'mysqldump:') !== false || 
+            strpos($backupContent, 'ERROR') !== false || 
+            strpos($backupContent, 'Access denied') !== false ||
+            strpos($backupContent, 'Got error') !== false) {
+            error_log("Docker backup failed. Command: $command, Return code: $returnCode, Output: " . substr($backupContent, 0, 500));
+            return false;
+        }
+        
+        // Check if we have actual SQL content (should start with SQL comments or CREATE)
+        if (empty($backupContent) || strlen($backupContent) < 100) {
+            error_log("Docker backup produced empty or too small output. Size: " . strlen($backupContent));
+            return false;
+        }
+        
+        // Write backup content to file using PHP (handles permissions better)
+        $bytesWritten = @file_put_contents($filepath, $backupContent);
+        
+        if ($bytesWritten !== false && $bytesWritten > 0 && file_exists($filepath)) {
+            // Set proper permissions
+            @chmod($filepath, 0664);
+            if ($isDocker) {
+                @chown($filepath, 'www-data');
+                @chgrp($filepath, 'www-data');
+            }
+            
             return [
                 'filename' => $filename,
                 'size' => filesize($filepath),
@@ -164,8 +203,7 @@ function createBackup() {
             ];
         }
         
-        // Log the error for debugging
-        error_log("Docker backup failed. Command: $command, Return code: $returnCode, Output: " . implode("\n", $output));
+        error_log("Failed to write backup file. Bytes written: " . ($bytesWritten ?: 0) . ", Filepath: $filepath, Is writable: " . (is_writable(dirname($filepath)) ? 'yes' : 'no'));
         return false;
     } else {
         // Laragon/Windows: Try different mysqldump paths
