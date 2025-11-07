@@ -32,6 +32,11 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     && apt-get install -y docker-ce-cli \
     && rm -rf /var/lib/apt/lists/*
 
+# Create docker group and add www-data to it (for docker socket access)
+# The GID will be set at runtime to match the host's docker group
+RUN groupadd -f docker || true \
+    && usermod -aG docker www-data || true
+
 # Create symlink for python command
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
@@ -80,7 +85,14 @@ RUN echo "session.save_path = \"/tmp\"" >> /usr/local/etc/php/conf.d/session.ini
     && echo "session.gc_probability = 1" >> /usr/local/etc/php/conf.d/session.ini \
     && echo "session.gc_divisor = 100" >> /usr/local/etc/php/conf.d/session.ini
 
+# Copy entrypoint script for fixing permissions
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 EXPOSE 9000
 COPY session.ini /usr/local/etc/php/conf.d/session.ini
+
+# Use custom entrypoint
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["php-fpm"]
 

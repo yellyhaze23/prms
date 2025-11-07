@@ -169,6 +169,14 @@ function createBackup() {
         // Combine output into backup content
         $backupContent = implode("\n", $output);
         
+        // Check for docker permission errors or mysqldump errors
+        if (strpos($backupContent, 'permission denied') !== false || 
+            strpos($backupContent, 'docker.sock') !== false) {
+            // Docker exec failed due to permissions, fallback to direct MySQL connection
+            error_log("Docker exec permission denied, falling back to direct MySQL connection");
+            return createBackupDirectMySQL($host, $username, $password, $database, $filepath, $filename);
+        }
+        
         // Check for mysqldump errors
         if ($returnCode !== 0 || 
             strpos($backupContent, 'mysqldump:') !== false || 
@@ -176,7 +184,8 @@ function createBackup() {
             strpos($backupContent, 'Access denied') !== false ||
             strpos($backupContent, 'Got error') !== false) {
             error_log("Docker backup failed. Command: $command, Return code: $returnCode, Output: " . substr($backupContent, 0, 500));
-            return false;
+            // Try fallback
+            return createBackupDirectMySQL($host, $username, $password, $database, $filepath, $filename);
         }
         
         // Check if we have actual SQL content (should start with SQL comments or CREATE)
@@ -253,6 +262,100 @@ function createBackup() {
         
         // Log the error for debugging
         error_log("Backup failed. Command: $command, Return code: $returnCode, Output: " . implode("\n", $output));
+        return false;
+    }
+}
+
+// Fallback function: Create backup using direct MySQL connection (pure PHP)
+function createBackupDirectMySQL($host, $user, $pass, $dbname, $filepath, $filename) {
+    try {
+        $conn = new mysqli($host, $user, $pass, $dbname);
+        if ($conn->connect_error) {
+            error_log("Backup PHP connection failed: " . $conn->connect_error);
+            return false;
+        }
+        
+        $conn->set_charset("utf8mb4");
+        
+        $sql = "-- MySQL Backup created with PHP\n";
+        $sql .= "-- Date: " . date('Y-m-d H:i:s') . "\n";
+        $sql .= "-- Server: " . $host . "\n";
+        $sql .= "-- Database: " . $dbname . "\n\n";
+        $sql .= "SET NAMES utf8mb4;\n";
+        $sql .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
+        
+        // Get all tables
+        $tables = [];
+        $result = $conn->query("SHOW TABLES");
+        if (!$result) {
+            error_log("Failed to get tables: " . $conn->error);
+            $conn->close();
+            return false;
+        }
+        
+        while ($row = $result->fetch_array()) {
+            $tables[] = $row[0];
+        }
+        
+        foreach ($tables as $table) {
+            $sql .= "\n-- --------------------------------------------------------\n";
+            $sql .= "-- Table structure for table `$table`\n";
+            $sql .= "-- --------------------------------------------------------\n\n";
+            $sql .= "DROP TABLE IF EXISTS `$table`;\n";
+            
+            // Get CREATE TABLE
+            $createResult = $conn->query("SHOW CREATE TABLE `$table`");
+            if ($createRow = $createResult->fetch_assoc()) {
+                $sql .= $createRow['Create Table'] . ";\n\n";
+            }
+            
+            // Get table data
+            $dataResult = $conn->query("SELECT * FROM `$table`");
+            if ($dataResult && $dataResult->num_rows > 0) {
+                $sql .= "-- Dumping data for table `$table`\n\n";
+                $sql .= "LOCK TABLES `$table` WRITE;\n";
+                $sql .= "/*!40000 ALTER TABLE `$table` DISABLE KEYS */;\n\n";
+                
+                while ($dataRow = $dataResult->fetch_assoc()) {
+                    $sql .= "INSERT INTO `$table` VALUES (";
+                    $values = [];
+                    foreach ($dataRow as $value) {
+                        if ($value === null) {
+                            $values[] = 'NULL';
+                        } else {
+                            $values[] = "'" . $conn->real_escape_string($value) . "'";
+                        }
+                    }
+                    $sql .= implode(',', $values) . ");\n";
+                }
+                
+                $sql .= "\n/*!40000 ALTER TABLE `$table` ENABLE KEYS */;\n";
+                $sql .= "UNLOCK TABLES;\n\n";
+            }
+        }
+        
+        $sql .= "SET FOREIGN_KEY_CHECKS=1;\n";
+        
+        $conn->close();
+        
+        // Write to file
+        $bytesWritten = @file_put_contents($filepath, $sql);
+        if ($bytesWritten && file_exists($filepath) && filesize($filepath) > 0) {
+            @chmod($filepath, 0664);
+            @chown($filepath, 'www-data');
+            @chgrp($filepath, 'www-data');
+            
+            return [
+                'filename' => $filename,
+                'size' => filesize($filepath),
+                'created' => date('Y-m-d H:i:s')
+            ];
+        }
+        
+        error_log("Failed to write PHP backup file. Bytes: " . ($bytesWritten ?: 0));
+        return false;
+    } catch (Exception $e) {
+        error_log("PHP backup failed: " . $e->getMessage());
         return false;
     }
 }
