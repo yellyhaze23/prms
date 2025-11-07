@@ -7,6 +7,9 @@
 require 'cors.php';
 require 'config.php';
 
+// Set JSON header
+header('Content-Type: application/json');
+
 // Configure session cookie for cross-origin requests
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
@@ -100,33 +103,40 @@ try {
     );
     
     if ($stmt->execute()) {
-        // Log activity
-        $activity_stmt = $conn->prepare("
-            INSERT INTO activity_logs (user_id, username, activity_type, description)
-            VALUES (?, (SELECT username FROM users WHERE id = ?), 'profile_update', 'Updated profile information')
-        ");
-        $activity_stmt->bind_param("ii", $user_id, $user_id);
-        $activity_stmt->execute();
-        $activity_stmt->close();
+        $stmt->close();
+        
+        // Log activity (non-blocking - don't fail if logging fails)
+        try {
+            $activity_stmt = $conn->prepare("
+                INSERT INTO activity_logs (user_id, username, activity_type, description)
+                VALUES (?, (SELECT username FROM users WHERE id = ?), 'profile_update', 'Updated profile information')
+            ");
+            if ($activity_stmt) {
+                $activity_stmt->bind_param("ii", $user_id, $user_id);
+                $activity_stmt->execute();
+                $activity_stmt->close();
+            }
+        } catch (Exception $logError) {
+            // Log error but don't fail the request
+            error_log("Failed to log activity: " . $logError->getMessage());
+        }
         
         echo json_encode([
             'success' => true,
             'message' => 'Profile updated successfully'
         ]);
+        exit;
     } else {
         throw new Exception("Failed to update profile");
     }
     
-    $stmt->close();
 } catch (Exception $e) {
     error_log("Error updating admin profile: " . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Failed to update profile'
+        'message' => 'Failed to update profile: ' . $e->getMessage()
     ]);
+    exit;
 }
-
-$conn->close();
-?>
 
