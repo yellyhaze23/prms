@@ -45,10 +45,11 @@
 }
 
 .loading-logo {
+  position: relative;
   width: 80px;
   height: 80px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 20px;
+  margin-bottom: 5px;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -283,6 +284,11 @@
   .loading-logo {
     width: 60px;
     height: 60px;
+  }
+  
+  .loading-logo > div {
+    width: 60px !important;
+    height: 60px !important;
   }
   
   .logo-icon {

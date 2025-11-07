@@ -9,6 +9,17 @@ const LogoutAnimationModal = ({ isVisible, stage = 'loading' }) => {
     <div className="logout-animation-overlay">
       <div className="logout-animation-modal" onClick={(e) => e.stopPropagation()}>
         <div className="logout-content">
+          {/* Logo */}
+          <div className="logout-logo">
+            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-lg border-2 border-blue-100">
+              <img 
+                src="/rhulogo.png" 
+                alt="RHU Logo" 
+                className="w-full h-full object-contain p-2" 
+              />
+            </div>
+          </div>
+          
           {/* Animation Container */}
           <div className="logout-animation-container">
             {stage === 'loading' && (

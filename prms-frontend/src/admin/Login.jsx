@@ -16,6 +16,7 @@ import {
   FaTimes
 } from "react-icons/fa";
 import LoginLoadingModal from "../components/LoginLoadingModal";
+import AdminPasswordResetModal from "../components/AdminPasswordResetModal";
 import "./Login.css";
 // Animation variants
 import { 
@@ -37,6 +38,8 @@ function Login({ onLogin }) {
   const [showLoadingModal, setShowLoadingModal] = useState(false);
   const [loadingStage, setLoadingStage] = useState('loading');
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
 
   // Load saved credentials on component mount
   useEffect(() => {
@@ -95,7 +98,19 @@ function Login({ onLogin }) {
         }, 1500);
       } else {
         // Display backend error message
-        setError(res.data.message || "Login failed. Please try again.");
+        const errorMsg = res.data.message || "Login failed. Please try again.";
+        setError(errorMsg);
+        
+        // Check if account is locked and requires reset
+        if (res.data.requireReset || res.data.locked) {
+          setFailedAttempts(res.data.attempts || 5);
+          setTimeout(() => {
+            setShowResetModal(true);
+          }, 1000);
+        } else if (res.data.attempts) {
+          setFailedAttempts(res.data.attempts);
+        }
+        
         setShowLoadingModal(false);
         setLoading(false);
       }
@@ -438,6 +453,22 @@ function Login({ onLogin }) {
           </motion.div>
         </div>
       )}
+
+      {/* Admin Password Reset Modal */}
+      <AdminPasswordResetModal
+        isOpen={showResetModal}
+        onClose={() => {
+          setShowResetModal(false);
+          setFailedAttempts(0);
+        }}
+        username={username}
+        onSuccess={() => {
+          setError('');
+          setPassword('');
+          setShowResetModal(false);
+          setFailedAttempts(0);
+        }}
+      />
     </motion.div>
   );
 }

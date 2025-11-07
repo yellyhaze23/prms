@@ -162,11 +162,15 @@ const StaffTopBar = ({ sidebarCollapsed = false }) => {
         <div className="flex items-center justify-between px-6 py-4">
           {/* Left side - Logo */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-xl">P</span>
+            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-lg border-2 border-blue-100">
+              <img 
+                src="/rhulogo.png" 
+                alt="RHU Logo" 
+                className="w-full h-full object-contain p-0.5" 
+              />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900 uppercase tracking-wider">PRMS</h1>
+              <h1 className="text-lg font-bold text-gray-900 uppercase tracking-wider">PRSTF</h1>
             </div>
           </div>
 
@@ -275,8 +279,12 @@ const StaffTopBar = ({ sidebarCollapsed = false }) => {
       <div className="fixed top-0 left-0 right-0 bg-white shadow-sm border-b border-gray-200 z-40 lg:hidden">
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">SP</span>
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-lg border-2 border-blue-100">
+              <img 
+                src="/rhulogo.png" 
+                alt="RHU Logo" 
+                className="w-full h-full object-contain p-1" 
+              />
             </div>
             <div className="flex flex-col">
               <h2 className="text-base font-semibold text-gray-900">Staff Portal</h2>

@@ -25,6 +25,9 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo_mysql mysqli mbstring exif pcntl bcmath gd zip opcache \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
 # Install Docker CLI (for docker exec commands in backup functionality)
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
@@ -64,6 +67,11 @@ RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt
 
 # Copy application files
 COPY . /var/www/html/
+
+# Install PHP dependencies (PHPMailer)
+RUN if [ -f composer.json ]; then \
+        composer install --no-dev --optimize-autoloader; \
+    fi
 
 # Create necessary directories
 RUN mkdir -p /var/www/html/uploads \

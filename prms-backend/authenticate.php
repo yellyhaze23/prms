@@ -25,8 +25,40 @@ $result = $stmt->get_result();
 
 if ($result->num_rows === 1) {
     $user = $result->fetch_assoc();
+    $isAdmin = ($user['role'] === 'admin');
+    $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    
+    // Check login attempts for admin only
+    if ($isAdmin) {
+        $attemptSql = "SELECT attempts, locked_until FROM login_attempts WHERE username = ? AND ip_address = ?";
+        $attemptStmt = $conn->prepare($attemptSql);
+        $attemptStmt->bind_param("ss", $username, $ip_address);
+        $attemptStmt->execute();
+        $attemptResult = $attemptStmt->get_result();
+        $attemptData = $attemptResult->fetch_assoc();
+        
+        // Check if account is locked
+        if ($attemptData && $attemptData['locked_until'] && strtotime($attemptData['locked_until']) > time()) {
+            $auditLogger->logLogin($user['id'], 'admin', $username, 'failed', 'Account locked due to too many attempts');
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Account locked due to too many failed attempts. Please use password reset.',
+                'locked' => true,
+                'attempts' => $attemptData['attempts'] ?? 0
+            ]);
+            exit;
+        }
+    }
+    
     if (password_verify($password, $user['password'])) {
         $role = isset($user['role']) && $user['role'] ? $user['role'] : 'staff';
+        
+        // Clear login attempts on successful login
+        if ($isAdmin) {
+            $clearStmt = $conn->prepare("DELETE FROM login_attempts WHERE username = ? AND ip_address = ?");
+            $clearStmt->bind_param("ss", $username, $ip_address);
+            $clearStmt->execute();
+        }
         
         // Log successful login
         $auditLogger->logLogin($user['id'], $role, $user['username'], 'success');
@@ -82,9 +114,47 @@ if ($result->num_rows === 1) {
             ]
         ]);
     } else {
-        // Log failed login attempt
+        // Failed login
         $auditLogger->logLogin($user['id'], 'unknown', $username, 'failed', 'Invalid password');
-        echo json_encode(['success' => false, 'message' => 'Incorrect password']);
+        
+        // Track attempts for admin only
+        if ($isAdmin) {
+            if ($attemptData) {
+                // Update existing record
+                $newAttempts = ($attemptData['attempts'] ?? 0) + 1;
+                $updateStmt = $conn->prepare("UPDATE login_attempts SET attempts = ?, last_attempt = NOW() WHERE username = ? AND ip_address = ?");
+                $updateStmt->bind_param("iss", $newAttempts, $username, $ip_address);
+                $updateStmt->execute();
+                
+                if ($newAttempts >= 5) {
+                    // Lock account and trigger password reset
+                    $lockedUntil = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+                    $lockStmt = $conn->prepare("UPDATE login_attempts SET locked_until = ? WHERE username = ? AND ip_address = ?");
+                    $lockStmt->bind_param("sss", $lockedUntil, $username, $ip_address);
+                    $lockStmt->execute();
+                    
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Too many failed attempts. Password reset required.',
+                        'locked' => true,
+                        'attempts' => $newAttempts,
+                        'requireReset' => true
+                    ]);
+                    exit;
+                }
+            } else {
+                // Create new attempt record
+                $insertStmt = $conn->prepare("INSERT INTO login_attempts (username, ip_address, attempts) VALUES (?, ?, 1)");
+                $insertStmt->bind_param("ss", $username, $ip_address);
+                $insertStmt->execute();
+            }
+        }
+        
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Incorrect password',
+            'attempts' => $isAdmin && isset($attemptData) ? ($attemptData['attempts'] ?? 0) + 1 : null
+        ]);
     }
 } else {
     // Check if user exists but is inactive

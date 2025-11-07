@@ -11,8 +11,12 @@ const LoginLoadingModal = ({ isVisible, stage = 'loading' }) => {
         <div className="loading-content">
           {/* Logo/Icon */}
           <div className="loading-logo">
-            <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-4xl">P</span>
+            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-lg border-2 border-blue-100">
+              <img 
+                src="/rhulogo.png" 
+                alt="RHU Logo" 
+                className="w-full h-full object-contain p-2" 
+              />
             </div>
           </div>
           

@@ -1,0 +1,15 @@
+{
+    "name": "prms/backend",
+    "description": "PRMS Backend API",
+    "type": "project",
+    "require": {
+        "php": ">=8.0",
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "PRMS\\": "src/"
+        }
+    }
+}
+
