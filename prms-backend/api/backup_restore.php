@@ -17,14 +17,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// Database configuration
-$host = 'localhost';
-$username = 'root';
-$password = '';
-$database = 'prms';
+// Auto-detect environment (Docker vs Laragon)
+$isDocker = getenv('DB_HOST') !== false || file_exists('/.dockerenv');
 
-// Backup directory - Save outside web root for security
-$backupDir = 'C:/laragon/backups/';
+// Get database credentials from environment or use defaults
+if ($isDocker) {
+    // Docker/Production Environment
+    $host = getenv('DB_HOST') ?: 'db';
+    $username = getenv('DB_USER') ?: 'prms_user';
+    $password = getenv('DB_PASSWORD') ?: 'prms_pass_2024';
+    $database = getenv('DB_NAME') ?: 'prms_db';
+    
+    // Backup directory for Docker - use persistent volume
+    $backupDir = getenv('BACKUP_DIR') ?: '/var/www/html/backups/';
+} else {
+    // Laragon Localhost Environment
+    $host = 'localhost';
+    $username = 'root';
+    $password = '';
+    $database = 'prms_db';
+    
+    // Backup directory for Laragon
+    $backupDir = 'C:/laragon/backups/';
+}
 
 // Create backup directory if it doesn't exist
 if (!is_dir($backupDir)) {
@@ -117,47 +132,91 @@ function createBackup() {
     $filename = "backup_{$timestamp}.sql";
     $filepath = $backupDir . $filename;
     
-    // Try different mysqldump paths
-    $mysqldumpPaths = [
-        'mysqldump',
-        'C:\\laragon\\bin\\mysql\\mysql-8.0.30-winx64\\bin\\mysqldump.exe',
-        'C:\\xampp\\mysql\\bin\\mysqldump.exe',
-        'C:\\wamp64\\bin\\mysql\\mysql8.0.31\\bin\\mysqldump.exe'
-    ];
+    // Detect environment
+    $isDocker = getenv('DB_HOST') !== false || file_exists('/.dockerenv');
     
-    $mysqldump = null;
-    foreach ($mysqldumpPaths as $path) {
-        if (is_executable($path) || shell_exec("where $path")) {
-            $mysqldump = $path;
-            break;
+    if ($isDocker) {
+        // Docker/Production: Use docker exec to run mysqldump in db container
+        $dbContainer = getenv('DB_CONTAINER_NAME') ?: 'prms-db';
+        $dbRootPassword = getenv('DB_ROOT_PASSWORD') ?: 'prms_root_2024';
+        
+        // Use docker exec to run mysqldump in the database container
+        // Output is redirected to the backup file in the backend container
+        $command = sprintf(
+            'docker exec %s mysqldump --single-transaction --quick --lock-tables=false --routines --triggers --events --hex-blob --default-character-set=utf8mb4 -h localhost -u root -p%s %s > %s 2>&1',
+            escapeshellarg($dbContainer),
+            escapeshellarg($dbRootPassword),
+            escapeshellarg($database),
+            escapeshellarg($filepath)
+        );
+        
+        // Execute backup
+        $output = [];
+        $returnCode = 0;
+        exec($command, $output, $returnCode);
+        
+        // Check if file was created and has content
+        if (file_exists($filepath) && filesize($filepath) > 0) {
+            return [
+                'filename' => $filename,
+                'size' => filesize($filepath),
+                'created' => date('Y-m-d H:i:s')
+            ];
         }
-    }
-    
-    if (!$mysqldump) {
-        // Fallback: try to find mysqldump in common locations
-        $mysqldump = 'mysqldump';
-    }
-    
-    // Create optimized mysqldump command with proper escaping
-    $command = "\"$mysqldump\" --single-transaction --quick --lock-tables=false --routines --triggers --events --hex-blob --default-character-set=utf8mb4 -h \"$host\" -u \"$username\" -p\"$password\" \"$database\" > \"$filepath\"";
-    
-    // Execute backup
-    $output = [];
-    $returnCode = 0;
-    exec($command . ' 2>&1', $output, $returnCode);
-    
-    if ($returnCode === 0 && file_exists($filepath) && filesize($filepath) > 0) {
-        return [
-            'filename' => $filename,
-            'size' => filesize($filepath),
-            'created' => date('Y-m-d H:i:s')
+        
+        // Log the error for debugging
+        error_log("Docker backup failed. Command: $command, Return code: $returnCode, Output: " . implode("\n", $output));
+        return false;
+    } else {
+        // Laragon/Windows: Try different mysqldump paths
+        $mysqldumpPaths = [
+            'mysqldump',
+            'C:\\laragon\\bin\\mysql\\mysql-8.0.30-winx64\\bin\\mysqldump.exe',
+            'C:\\xampp\\mysql\\bin\\mysqldump.exe',
+            'C:\\wamp64\\bin\\mysql\\mysql8.0.31\\bin\\mysqldump.exe'
         ];
+        
+        $mysqldump = null;
+        foreach ($mysqldumpPaths as $path) {
+            if (is_executable($path) || shell_exec("where $path")) {
+                $mysqldump = $path;
+                break;
+            }
+        }
+        
+        if (!$mysqldump) {
+            // Fallback: try to find mysqldump in common locations
+            $mysqldump = 'mysqldump';
+        }
+        
+        // Create optimized mysqldump command with proper escaping
+        $command = sprintf(
+            '"%s" --single-transaction --quick --lock-tables=false --routines --triggers --events --hex-blob --default-character-set=utf8mb4 -h "%s" -u "%s" -p"%s" "%s" > "%s" 2>&1',
+            $mysqldump,
+            $host,
+            $username,
+            $password,
+            $database,
+            $filepath
+        );
+        
+        // Execute backup
+        $output = [];
+        $returnCode = 0;
+        exec($command, $output, $returnCode);
+        
+        if ($returnCode === 0 && file_exists($filepath) && filesize($filepath) > 0) {
+            return [
+                'filename' => $filename,
+                'size' => filesize($filepath),
+                'created' => date('Y-m-d H:i:s')
+            ];
+        }
+        
+        // Log the error for debugging
+        error_log("Backup failed. Command: $command, Return code: $returnCode, Output: " . implode("\n", $output));
+        return false;
     }
-    
-    // Log the error for debugging
-    error_log("Backup failed. Command: $command, Return code: $returnCode, Output: " . implode("\n", $output));
-    
-    return false;
 }
 
 function restoreBackup($filename) {

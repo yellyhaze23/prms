@@ -1,7 +1,7 @@
 # PHP Backend Dockerfile for PRMS
 FROM php:8.2-fpm
 
-# Install system dependencies including Python
+# Install system dependencies including Python and Docker CLI
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -19,7 +19,17 @@ RUN apt-get update && apt-get install -y \
     gfortran \
     libopenblas-dev \
     liblapack-dev \
+    ca-certificates \
+    gnupg \
+    lsb-release \
     && docker-php-ext-install pdo_mysql mysqli mbstring exif pcntl bcmath gd zip opcache \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Docker CLI (for docker exec commands in backup functionality)
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
+    && apt-get update \
+    && apt-get install -y docker-ce-cli \
     && rm -rf /var/lib/apt/lists/*
 
 # Create symlink for python command
@@ -53,10 +63,12 @@ COPY . /var/www/html/
 # Create necessary directories
 RUN mkdir -p /var/www/html/uploads \
     && mkdir -p /var/www/html/logs \
+    && mkdir -p /var/www/html/backups \
     && mkdir -p /var/www/forecasting \
     && mkdir -p /var/www/forecasting/cache \
     && chmod -R 775 /var/www/html/uploads \
     && chmod -R 775 /var/www/html/logs \
+    && chmod -R 775 /var/www/html/backups \
     && chmod -R 775 /var/www/forecasting
 
 # Set permissions
